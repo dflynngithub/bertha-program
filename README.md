@@ -1,4 +1,4 @@
-![Image](https://github.com/dflynngithub/Bertha/blob/master/logo.png)
+![Image](https://github.com/dflynngithub/Bertha/blob/master/logo.pdf)
 
 ## The Bertha program
 
