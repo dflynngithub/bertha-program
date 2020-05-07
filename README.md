@@ -1,3 +1,5 @@
+![Image](https://github.com/dflynngithub/Bertha/blob/master/logo.png)
+
 ## The Bertha program
 
 You can use the [editor on GitHub](https://github.com/dflynngithub/Bertha/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
