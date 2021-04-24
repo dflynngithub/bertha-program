@@ -1,0 +1,891 @@
+      SUBROUTINE SCFRE0(ICNT)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C         SSSSSS   CCCCCC  FFFFFFFF RRRRRRR  EEEEEEEE  000000          C
+C        SS    SS CC    CC FF       RR    RR EE       00    00         C
+C        SS       CC       FF       RR    RR EE       00    00         C
+C         SSSSSS  CC       FFFFFF   RR    RR EEEEEE   00    00         C
+C              SS CC       FF       RRRRRRR  EE       00    00         C
+C        SS    SS CC    CC FF       RR    RR EE       00    00         C
+C         SSSSSS   CCCCCC  FF       RR    RR EEEEEEEE  000000          C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  SCFRE0 IS INVOKED AT THE BEGINNING OF A CALCULATION, SOLVING THE    C
+C  CLOSED-SHELL AVERAGE OF CONFIGURATION EQUATIONS FOR THE GROUND      C
+C  STATE OF A NEUTRAL ATOM, USING A ONE-CENTER SGTF BASIS.             C
+C  (*) A SOLUTION IS GENERATED FOR EVERY ORBITAL IN EACH OCCUPIED      C
+C      SHELL, SO FOR PARTIALLY OCCUPIED SHELLS WITH M ELECTRONS,       C
+C      THERE WILL BE N >= M ADDRESSES RESERVED.                        C
+C  (*) THE CONFIGURATION IS DETERMINED AUTOMATICALLY BY AUFBAU.        C
+C -------------------------------------------------------------------- C
+C  INPUT:                                                              C
+C    ICNT - ATOMIC CENTER OF INTEREST                                  C
+C  OUTPUT:                                                             C
+C    C    - EXP COEFFS FOR USE AS STARTING VECTORS LATER               C
+C -------------------------------------------------------------------- C
+C  DFNOTE: UNFINISHED -- BREIT INTERACTION STILL A MESS.               C
+C**********************************************************************C
+      PARAMETER(MDM=1600,MCT=15,MKP=9,MMV=(MKP+1)/2,MBS=26,MB2=MBS*MBS,
+     &                                     LWK=128*MBS,MNU=MKP+1,MIT=50)
+C
+      CHARACTER*1 ELLTERM,QSGN
+      CHARACTER*2 ELMNT(120),ELNM
+      CHARACTER*4 HMLTN
+      CHARACTER*8 ZWRT,QWRT,EWRT
+C
+      COMPLEX*16 C(MDM,MDM)
+C
+      DIMENSION QE(MKP),QA(MKP),NORB(MKP,MKP+1),NUMOCC(MKP)
+      DIMENSION S1(2*MBS,2*MBS),S2(2*MBS,2*MBS)
+      DIMENSION F1(2*MBS,2*MBS),F2(2*MBS,2*MBS)
+      DIMENSION G11(2*MBS,2*MBS),G21(2*MBS,2*MBS),
+     &          G12(2*MBS,2*MBS),G22(2*MBS,2*MBS)
+      DIMENSION B11(2*MBS,2*MBS),B21(2*MBS,2*MBS),
+     &          B12(2*MBS,2*MBS),B22(2*MBS,2*MBS)
+      DIMENSION W1(2*MBS),W2(2*MBS),T(LWK)
+      DIMENSION DLTLL1(MB2),DLTSL1(MB2),DLTSS1(MB2),DEN1(MB2,3),
+     &          DLTLL2(MB2),DLTSL2(MB2),DLTSS2(MB2),DEN2(MB2,3)
+      DIMENSION DENLL(MB2,2*MKP+1),DFNLL(MB2,2*MKP+1),
+     &          DENSL(MB2,2*MKP+1),DFNSL(MB2,2*MKP+1),
+     &          DENSS(MB2,2*MKP+1),DFNSS(MB2,2*MKP+1)
+     
+      dimension bmat(mdm,mdm)
+C
+      COMMON/ANGL/BK(MNU,4),DK(MNU,4),HK(MNU,4),FK(MNU,4),GM(MNU,4),
+     &            NUS(MNU),NUNUM,NUMIN,NUMAX
+      COMMON/ATOM/ELMNT
+      COMMON/BLOC/NFUNA,NFUNB,LQNA,LQNB,MAXM
+      COMMON/BSIS/EXLA(MBS),EXLB(MBS)
+      COMMON/COEF/C
+      COMMON/EIGN/EIGEN(MDM)
+      COMMON/ENRG/ETOT,ENUC,EONE,ECLG,ECLQ,EBRG,EBRQ,EHNC,EHKN,EGDR,
+     &            EGXC,EQDR,EQXC,EBDR,EBXC,EMDR,EMXC
+      COMMON/FILL/NCNF(MCT,MKP,MKP+1),NLVL(MCT,MKP),IFILL(MCT)
+      COMMON/PRMS/CV,HMLTN,INEW,ITREE,IMOL,ILEV,IEQS
+      COMMON/SPEC/EXPSET(MBS,MKP,MCT),COORD(3,MCT),ZNUC(MCT),AMASS(MCT),
+     &            CNUC(MCT),PNUC,LARGE(MCT,MKP,2*MMV),NFUNCT(MKP,MCT),
+     &            KVALS(MKP,MCT),IZNUC(MCT),IQNUC(MCT),LMAX(MCT),
+     &            NKAP(MCT),NCNT,NDIM,NSHIFT,NOCC,NVIR,IOCCM0
+C
+      DATA EEPS/5.0D-13/
+C
+C     IMPORT ATOMIC CHARGE DETAILS
+      IZN  = IZNUC(ICNT)
+      ICRG = IQNUC(ICNT)
+      ZCRG = DFLOAT(IZN)
+      ELNM = ELMNT(IZN)
+      MLQN = LMAX(ICNT)
+C
+C     CONVERT TO STRINGS
+1     FORMAT(A,' = ',I1)
+2     FORMAT(A,' = ',I2)
+3     FORMAT(A,' = ',I3)
+4     FORMAT(A,' = ',I4)
+5     FORMAT('(',A,')')
+6     FORMAT('(',A,'^',A,')')
+7     FORMAT('(',A,'^',I1,A,')')
+8     FORMAT('(',A,'^',I2,A,')')
+9     FORMAT('(',A,'^',I3,A,')')
+C
+      IF(IZN.LT.10) THEN
+        WRITE(ZWRT,1) 'Z',IZN
+      ELSEIF(IZN.LT.100) THEN
+        WRITE(ZWRT,2) 'Z',IZN       
+      ELSE
+        WRITE(ZWRT,3) 'Z',IZN
+      ENDIF
+C
+      IF(ICRG.LT.10) THEN
+        WRITE(QWRT,2) 'Q',ICRG
+      ELSEIF(IZN.LT.100) THEN
+        WRITE(QWRT,3) 'Q',ICRG      
+      ELSE
+        WRITE(QWRT,4) 'Q',ICRG
+      ENDIF
+C
+      IF(ICRG.GT.0) THEN
+        QSGN = '+'
+      ELSEIF(ICRG.LT.0) THEN
+        QSGN = '-'
+      ENDIF
+C
+      IF(ICRG.EQ.0) THEN
+        WRITE(EWRT,5) TRIM(ELNM)
+      ELSEIF(IABS(ICRG).EQ.1) THEN
+        WRITE(EWRT,6) TRIM(ELNM),QSGN
+      ELSEIF(IABS(ICRG).LT.10) THEN
+        WRITE(EWRT,7) TRIM(ELNM),IABS(ICRG),QSGN
+      ELSEIF(IABS(ICRG).LT.100) THEN
+        WRITE(EWRT,8) TRIM(ELNM),IABS(ICRG),QSGN
+      ELSE
+        WRITE(EWRT,9) TRIM(ELNM),IABS(ICRG),QSGN
+      ENDIF
+C
+C     DETERMINE THE GROUND-STATE CONFIGURATION FOR THIS NEUTRAL ATOM
+      IF(IFILL(ICNT).EQ.0) THEN
+        CALL AUFBAU(IZN,ICRG,NORB,NUMOCC,LMXCONF)
+      ELSE
+        LMXCONF = LMAX(ICNT)
+        DO LQN=1,LMXCONF+1
+          NUMOCC(LQN) = NLVL(ICNT,LQN)
+          DO N=1,NLVL(ICNT,LQN)
+            NORB(LQN,N) = NCNF(ICNT,LQN,N)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     IDENTIFY THE HIGHEST OCCUPIED SHELL
+      NMAX = 1
+      DO LQN=1,LMXCONF+1
+        IF(NUMOCC(LQN).GT.NMAX) THEN
+          NMAX = NUMOCC(LQN)
+        ENDIF
+      ENDDO
+C
+C     CHECK WHETHER THERE ARE SUFFICIENT BASIS FUNCTION TYPES
+      IF(MLQN.LT.LMXCONF) THEN
+        WRITE(6, *) 'In SCFRE0: insufficient angular types in basis.'
+        WRITE(7, *) 'In SCFRE0: insufficient angular types in basis.'
+        WRITE(6, *) 'MLQN = ',MLQN,' and LMXCONF = ',LMXCONF
+        WRITE(7, *) 'MLQN = ',MLQN,' and LMXCONF = ',LMXCONF
+        STOP
+      ENDIF
+C
+C     WRITE ORBITAL OCCUPANCIES TO TERMINAL AND PREPARE DENSITIES
+16    FORMAT(12X,'Center',I3,':',3X,A,3X,A,3X,A)
+
+20    FORMAT(1X,A,2X,A,2X'NSHELL ',10(2X,I2))
+21    FORMAT(1X,'-------',7X,'-------',10(A))
+22    FORMAT(1X,'LQN = 0',3X,I2,2X,' OCC(s):'    ,10(2X,I2))
+23    FORMAT(1X,'LQN = 1',3X,I2,2X,' OCC(p):', 4X, 9(2X,I2))
+24    FORMAT(1X,'LQN = 2',3X,I2,2X,' OCC(d):', 8X, 8(2X,I2))
+25    FORMAT(1X,'LQN = 3',3X,I2,2X,' OCC(f):',12X, 7(2X,I2))
+26    FORMAT(1X,'LQN = 4',3X,I2,2X,' OCC(g):',16X, 6(2X,I2))
+27    FORMAT(1X,'LQN = 5',3X,I2,2X,' OCC(h):',20X, 5(2X,I2))
+28    FORMAT(1X,'LQN = 6',3X,I2,2X,' OCC(i):',24X, 4(2X,I2))
+29    FORMAT(1X,'LQN = 7',3X,I2,2X,' OCC(j):',28X, 3(2X,I2))
+50    FORMAT(1X,'It',9X,'E1 (au)',7X,'E2 (au)',10X,'ET (au)',8X,'Ratio')
+C
+      WRITE(6, *) REPEAT('=',62)
+      WRITE(7, *) REPEAT('=',62)
+      WRITE(6,16) ICNT,ZWRT,QWRT,EWRT
+      WRITE(7,16) ICNT,ZWRT,QWRT,EWRT
+      WRITE(6, *) REPEAT('=',62)
+      WRITE(7, *) REPEAT('=',62)
+      IF(IFILL(ICNT).EQ.0) THEN
+        WRITE(6,20) 'Aufbau:','#fns',(N,N=1,NMAX)
+        WRITE(7,20) 'Aufbau:','#fns',(N,N=1,NMAX)
+      ELSE
+        WRITE(6,20) 'Manual:','#fns',(N,N=1,NMAX)
+        WRITE(7,20) 'Manual:','#fns',(N,N=1,NMAX)
+      ENDIF
+      WRITE(6, *) REPEAT('-',62)
+      WRITE(7, *) REPEAT('-',62)
+      WRITE(6,22) NFUNCT(1,ICNT),(NORB(1,J),J=1,NUMOCC(1))
+      WRITE(7,22) NFUNCT(1,ICNT),(NORB(1,J),J=1,NUMOCC(1))
+      IF(LMXCONF.EQ.0) GOTO 59
+      WRITE(6,23) NFUNCT(2,ICNT),(NORB(2,J),J=1,NUMOCC(2))
+      WRITE(7,23) NFUNCT(2,ICNT),(NORB(2,J),J=1,NUMOCC(2))
+      IF(LMXCONF.EQ.1) GOTO 59
+      WRITE(6,24) NFUNCT(3,ICNT),(NORB(3,J),J=1,NUMOCC(3))
+      WRITE(7,24) NFUNCT(3,ICNT),(NORB(3,J),J=1,NUMOCC(3))
+      IF(LMXCONF.EQ.2) GOTO 59
+      WRITE(6,25) NFUNCT(4,ICNT),(NORB(4,J),J=1,NUMOCC(4))
+      WRITE(7,25) NFUNCT(4,ICNT),(NORB(4,J),J=1,NUMOCC(4))
+      IF(LMXCONF.EQ.3) GOTO 59
+      WRITE(6,26) NFUNCT(5,ICNT),(NORB(5,J),J=1,NUMOCC(5))
+      WRITE(7,26) NFUNCT(5,ICNT),(NORB(5,J),J=1,NUMOCC(5))
+      IF(LMXCONF.EQ.4) GOTO 59
+      WRITE(6,26) NFUNCT(6,ICNT),(NORB(6,J),J=1,NUMOCC(6))
+      WRITE(7,26) NFUNCT(6,ICNT),(NORB(6,J),J=1,NUMOCC(6))
+      IF(LMXCONF.EQ.5) GOTO 59
+      WRITE(6,26) NFUNCT(7,ICNT),(NORB(7,J),J=1,NUMOCC(7))
+      WRITE(7,26) NFUNCT(7,ICNT),(NORB(7,J),J=1,NUMOCC(7))
+      IF(LMXCONF.EQ.6) GOTO 59
+      WRITE(6,26) NFUNCT(8,ICNT),(NORB(8,J),J=1,NUMOCC(8))
+      WRITE(7,26) NFUNCT(8,ICNT),(NORB(8,J),J=1,NUMOCC(8))
+59    CONTINUE
+      WRITE(6, *) REPEAT('=',62)
+      WRITE(7, *) REPEAT('=',62)
+      WRITE(6,50) 
+      WRITE(7,50)
+      WRITE(6, *) REPEAT('-',62)
+      WRITE(7, *) REPEAT('-',62)
+C
+C     IMPORT NUCLEAR RADIUS FOR THIS CENTER
+      PNUC = CNUC(ICNT)
+C
+C     INITIALISE A STORAGE BIN FOR PREVIOUS ATOMIC ENERGY
+      EPRV = 0.0D0
+C
+C**********************************************************************C
+C     ZERO-BODY PROBLEM: IZN-ICRG = 0. (NO ELECTRONS AROUND CENTER.)   C
+C**********************************************************************C
+C
+      IF(IZN.EQ.ICRG) THEN
+C
+C       NO OCCUPYING ELECTRON -> NO EIGENVALUE NEEDED
+        RETURN
+C
+C**********************************************************************C
+C     ONE-BODY PROBLEM: IZN-ICRG = 1. (NO COULOMB ENERGY.)             C
+C**********************************************************************C
+C
+      ELSEIF(IZN-ICRG.EQ.1) THEN
+C
+C       IMPORT ORDERED ELECTRON OCCUPATION NUMBER
+        IOCCML = IOCCM0
+C
+C       GROUND STATE OF SINGLY-OCCUPIED ATOM: LQNA = 0
+        LQNA = 0
+C
+C       IMPORT BASIS FUNCTION EXPONENTS
+        NFUNA = NFUNCT(LQNA+1,ICNT)
+        DO IBAS=1,NFUNA
+          EXLA(IBAS) = EXPSET(IBAS,LQNA+1,ICNT)
+        ENDDO
+C
+C       GENERATE OVERLAP AND BARE DIRAC MATRICES
+        CALL OVRLP0(S2,EXLA,     -LQNA-1,NFUNA)
+        CALL ONEEL0(F2,EXLA,ZCRG,-LQNA-1,NFUNA)
+C
+C       DIAGONALISE MATRIX (THIS NEEDS LAPACK LIBRARY)
+        CALL DSYGV(1,'V','U',2*NFUNA,F2,2*MBS,S2,2*MBS,W2,T,LWK,INFO)
+        IF(INFO.NE.0) THEN
+          WRITE(6, *) 'In SCFRE0: eigenvalue solver DSYGV failed.',INFO
+          WRITE(7, *) 'In SCFRE0: eigenvalue solver DSYGV failed.',INFO
+          STOP
+        ENDIF
+C
+C       COEFFICIENT MATRIX ADDRESSES
+        IL1 = LARGE(ICNT,LQNA+1,1)
+        IL2 = LARGE(ICNT,LQNA+1,2)
+        IS1 = IL1 + NSHIFT
+        IS2 = IL2 + NSHIFT     
+C
+C       EFFECTIVE OCCUPATION NUMBER
+        QF = 1.0D0/DSQRT(2.0D0)
+C
+C       COPY INTO MASTER COEFFICIENT LIST
+        DO IBAS=1,NFUNA
+C
+C         LARGE AND SMALL EXPANSION COEFFICIENTS
+          CL = QF*F2(IBAS      ,NFUNA+1)
+          CS = QF*F2(IBAS+NFUNA,NFUNA+1)
+C
+C         SPIN DOWN (-|MQN| PROJECTION)
+          C(IL1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CL,0.0D0)
+          C(IS1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CS,0.0D0)
+C
+C         SPIN UP   (+|MQN| PROJECTION)
+          C(IL2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CL,0.0D0)
+          C(IS2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CS,0.0D0)
+C
+        ENDDO
+C
+C       STORE LOWEST ENERGY EIGENVALUES TO MASTER LIST
+        EIGEN(IOCCML+NSHIFT+1) = W2(NFUNA+1)
+        EIGEN(IOCCML+NSHIFT+2) = W2(NFUNA+1)
+C
+C       INCREASE FOCK ADDRESS OF OCCUPIED ORBITALS (PAIR AT A TIME)
+        IOCCML = IOCCML+2
+C
+C       WRITE RESULT
+        WRITE(6,33) 1,W2(NFUNA+1)
+        WRITE(7,33) 1,W2(NFUNA+1)
+        WRITE(6, *) REPEAT(' ',62)
+        WRITE(7, *) REPEAT(' ',62)
+C
+C       UPDATE FOCK LABEL FOR OCCUPATION COUNTER
+        IOCCM0 = IOCCML
+C
+      RETURN
+      ENDIF
+C
+C**********************************************************************C
+C     TWO-BODY PROBLEM: INTERACTING ELECTRONS. (TREAT WITH SCF.)       C
+C -------------------------------------------------------------------- C
+C     ENTER ITERATIVE SELF-CONSISTENT FIELD PROCEDURE (USE INDEX 1000) C
+C**********************************************************************C
+C
+      DO 1000 ITER=1,MIT
+
+C       INITIALISE ONE-BODY AND TWO-BODY ENERGY COUNTERS
+        EH = 0.0D0
+        EG = 0.0D0
+        EB = 0.0D0
+C
+C       INITIALISE ELECTRON OCCUPATION COUNTER
+        IOCCML = IOCCM0
+C
+C**********************************************************************C
+C     FIRST LOOP: OVER BASIS FUNCTIONS I,J (USE INDEX 100)             C
+C**********************************************************************C
+C
+C     LOOP OVER ALL OCCUPIED LQN VALUES
+      DO 100 LQNA=0,LMXCONF
+C
+C     RECORD LQNA VALUE AND READ BASIS FUNCTIONS FOR THIS LQN
+      NFUNA = NFUNCT(LQNA+1,ICNT)
+      DO IBAS=1,NFUNA
+        EXLA(IBAS) = EXPSET(IBAS,LQNA+1,ICNT)
+      ENDDO
+C
+C >>> POSITIVE KAPPA(A) CHOICE (APPLIES ONLY FOR LQNA > 0)
+      IF(LQNA.EQ.0) GOTO 30
+
+      KAPA1 = LQNA
+      RK2A1 = DFLOAT(2*IABS(KAPA1))
+C
+C     UPDATE DENSITY MATRIX LIST FROM LAST ITERATION, MULT BY 2|K|
+      M = 0
+      DO IBAS=1,NFUNA
+        DO JBAS=1,NFUNA
+          M = M+1
+          DLTLL1(M) = RK2A1*DFNLL(M,2*LQNA  )
+          DLTSL1(M) = RK2A1*DFNSL(M,2*LQNA  )
+          DLTSS1(M) = RK2A1*DFNSS(M,2*LQNA  )
+        ENDDO
+      ENDDO
+C
+C     GENERATE OVERLAP AND BARE DIRAC MATRICES
+      CALL OVRLP0(S1,EXLA,     KAPA1,NFUNA)
+      CALL ONEEL0(F1,EXLA,ZCRG,KAPA1,NFUNA)
+C
+30    CONTINUE
+C
+C >>> NEGATIVE KAPPA(A) CHOICE (APPLIES TO ALL LQNA VALUES)
+      KAPA2 =-LQNA-1
+      RK2A2 = DFLOAT(2*IABS(KAPA2))
+C
+C     UPDATE DENSITY MATRIX LIST FROM LAST ITERATION, MULT BY 2|K|
+      M = 0
+      DO IBAS=1,NFUNA
+        DO JBAS=1,NFUNA
+          M = M+1
+          DLTLL2(M) = RK2A2*DFNLL(M,2*LQNA+1)
+          DLTSL2(M) = RK2A2*DFNSL(M,2*LQNA+1)
+          DLTSS2(M) = RK2A2*DFNSS(M,2*LQNA+1)
+        ENDDO
+      ENDDO
+C
+C     GENERATE OVERLAP AND BARE DIRAC MATRICES
+      CALL OVRLP0(S2,EXLA,     KAPA2,NFUNA)
+      CALL ONEEL0(F2,EXLA,ZCRG,KAPA2,NFUNA)
+C
+C**********************************************************************C
+C     SECOND LOOP: OVER BASIS FUNCTIONS K,L (USE INDEX 200)            C
+C**********************************************************************C
+C
+C     LOOP OVER ALL OCCUPIED LQN VALUES
+      DO 200 LQNB=0,LMXCONF
+C
+C     RECORD LQNB VALUE AND READ BASIS FUNCTIONS FOR THIS LQN
+      NFUNB = NFUNCT(LQNB+1,ICNT)
+      DO JBAS=1,NFUNB
+        EXLB(JBAS) = EXPSET(JBAS,LQNB+1,ICNT)
+      ENDDO
+C
+C     NUMBER OF BASIS FUNCTION OVERLAPS IN THIS BLOCK
+      MAXM = NFUNB*NFUNB
+C
+C >>> POSITIVE KAPPA(B) CHOICE (APPLIES ONLY FOR LQNB > 0)
+      IF(LQNB.EQ.0) GOTO 31
+C
+C     KAPPA(B) VALUE AND DEGENERACY
+      KAPB1 = LQNB
+      RK2B1 = DFLOAT(2*IABS(KAPB1))
+C
+C     DECISION TREE FOR VALUE OF LQNA
+      IF(LQNA.EQ.LQNB) THEN
+        DO M=1,MAXM
+          DEN1(M,1) = DENLL(M,2*LQNB  )
+          DEN1(M,2) = DENSL(M,2*LQNB  )
+          DEN1(M,3) = DENSS(M,2*LQNB  )
+        ENDDO        
+      ELSEIF(LQNA.NE.LQNB) THEN
+        DO M=1,MAXM
+          DEN1(M,1) = DFNLL(M,2*LQNB  )
+          DEN1(M,2) = DFNSL(M,2*LQNB  )
+          DEN1(M,3) = DFNSS(M,2*LQNB  )
+        ENDDO        
+      ENDIF
+C
+31    CONTINUE
+C
+C >>> NEGATIVE KAPPA(B) CHOICE (APPLIES TO ALL LQNB VALUES)
+C
+C     KAPPA(B) VALUE AND DEGENERACY
+      KAPB2 =-LQNB-1
+      RK2B2 = DFLOAT(2*IABS(KAPB2))
+C
+C     DECISION TREE FOR VALUE OF LQNA
+      IF(LQNA.EQ.LQNB) THEN
+        DO M=1,MAXM
+          DEN2(M,1) = DENLL(M,2*LQNB+1)
+          DEN2(M,2) = DENSL(M,2*LQNB+1)
+          DEN2(M,3) = DENSS(M,2*LQNB+1)
+        ENDDO        
+      ELSEIF(LQNA.NE.LQNB) THEN
+        DO M=1,MAXM
+          DEN2(M,1) = DFNLL(M,2*LQNB+1)
+          DEN2(M,2) = DFNSL(M,2*LQNB+1)
+          DEN2(M,3) = DFNSS(M,2*LQNB+1)
+        ENDDO
+      ENDIF
+C
+C**********************************************************************C
+C     GENERATE ATOMIC FOCK MATRIX (ONLY AFTER THE FIRST ITERATION)     C
+C**********************************************************************C
+C
+      IF(ITER.NE.1) THEN
+C
+C       EVALUATE CLOSED-SHELL ELECTRON REPULSION ANGULAR INTEGRALS
+        CALL ANGCOUL
+C
+C       GENERATE THE MEAN-FIELD ATOMIC COULOMB MATRIX OVER DENSITIES
+        CALL COULOMBRE0(G11,G21,G12,G22,DEN1,DEN2)
+C
+C       ADD TWO-PARTICLE CONTRIBUTIONS TO FOCK MATRIX
+        DO IBAS=1,2*NFUNA
+          DO JBAS=1,2*NFUNA
+            F1(IBAS,JBAS) = F1(IBAS,JBAS) + RK2B1*G11(IBAS,JBAS) 
+     &                                    + RK2B2*G12(IBAS,JBAS)
+            F2(IBAS,JBAS) = F2(IBAS,JBAS) + RK2B1*G21(IBAS,JBAS) 
+     &                                    + RK2B2*G22(IBAS,JBAS)
+          ENDDO
+        ENDDO
+C
+C       TWO-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+        M = 0
+        DO IBAS=1,NFUNA
+          DO JBAS=1,NFUNA
+            M = M+1
+C
+            EG = EG +       RK2B1*G11(IBAS      ,JBAS      )*DLTLL1(M)
+     &              +       RK2B2*G12(IBAS      ,JBAS      )*DLTLL1(M)
+     &              +       RK2B1*G21(IBAS      ,JBAS      )*DLTLL2(M)
+     &              +       RK2B2*G22(IBAS      ,JBAS      )*DLTLL2(M)
+     &              + 2.0D0*RK2B1*G11(IBAS+NFUNA,JBAS      )*DLTSL1(M)
+     &              + 2.0D0*RK2B2*G12(IBAS+NFUNA,JBAS      )*DLTSL1(M)
+     &              + 2.0D0*RK2B1*G21(IBAS+NFUNA,JBAS      )*DLTSL2(M)
+     &              + 2.0D0*RK2B2*G22(IBAS+NFUNA,JBAS      )*DLTSL2(M)
+     &              +       RK2B1*G11(IBAS+NFUNA,JBAS+NFUNA)*DLTSS1(M)
+     &              +       RK2B2*G12(IBAS+NFUNA,JBAS+NFUNA)*DLTSS1(M)
+     &              +       RK2B1*G21(IBAS+NFUNA,JBAS+NFUNA)*DLTSS2(M)
+     &              +       RK2B2*G22(IBAS+NFUNA,JBAS+NFUNA)*DLTSS2(M)
+          ENDDO
+        ENDDO
+C
+C       GENERATE THE MEAN-FIELD ATOMIC BREIT MATRIX
+        IF(HMLTN.NE.'DHFB') GOTO 90
+C
+C       EVALUATE CLOSED-SHELL BREIT INTERACTION ANGULAR INTEGRALS
+        CALL ANGBREIT
+C
+C       GENERATE THE MEAN-FIELD ATOMIC BREIT MATRIX OVER DENSITIES
+        CALL BREIT0(B11,B22,B12,B22,DEN1,DEN2)
+C
+C       ADD TWO-PARTICLE CONTRIBUTIONS TO FOCK MATRIX
+        DO IBAS=1,2*NFUNA
+          DO JBAS=1,2*NFUNA
+            F1(IBAS,JBAS) = F1(IBAS,JBAS) + RK2B1*B11(IBAS,JBAS) 
+     &                                    + RK2B2*B12(IBAS,JBAS)
+            F2(IBAS,JBAS) = F2(IBAS,JBAS) + RK2B1*B21(IBAS,JBAS) 
+     &                                    + RK2B2*B22(IBAS,JBAS)
+          ENDDO
+        ENDDO
+C
+C       TWO-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+        M = 0
+        DO IBAS=1,NFUNA
+          DO JBAS=1,NFUNA
+            M = M+1
+C
+            EB = EB +       RK2B1*B11(IBAS      ,JBAS      )*DLTLL1(M)
+     &              +       RK2B2*B12(IBAS      ,JBAS      )*DLTLL1(M)
+     &              +       RK2B1*B21(IBAS      ,JBAS      )*DLTLL2(M)
+     &              +       RK2B2*B22(IBAS      ,JBAS      )*DLTLL2(M)
+     &              + 2.0D0*RK2B1*B11(IBAS+NFUNA,JBAS      )*DLTSL1(M)
+     &              + 2.0D0*RK2B2*B12(IBAS+NFUNA,JBAS      )*DLTSL1(M)
+     &              + 2.0D0*RK2B1*B21(IBAS+NFUNA,JBAS      )*DLTSL2(M)
+     &              + 2.0D0*RK2B2*B22(IBAS+NFUNA,JBAS      )*DLTSL2(M)
+     &              +       RK2B1*B11(IBAS+NFUNA,JBAS+NFUNA)*DLTSS1(M)
+     &              +       RK2B2*B12(IBAS+NFUNA,JBAS+NFUNA)*DLTSS1(M)
+     &              +       RK2B1*B21(IBAS+NFUNA,JBAS+NFUNA)*DLTSS2(M)
+     &              +       RK2B2*B22(IBAS+NFUNA,JBAS+NFUNA)*DLTSS2(M)
+          ENDDO
+        ENDDO
+C
+C       PUT BREIT MATRIX COMPONENTS INTO A BIGGER MATRIX
+        IL1 = LARGE(ICNT,-(2*KAPA2+1),1)
+        IL2 = LARGE(ICNT,-(2*KAPA2+1),2)
+        IS1 = IL1 + NSHIFT
+        IS2 = IL2 + NSHIFT
+
+        JL1 = LARGE(ICNT,-(2*KAPA2+1),1)
+        JL2 = LARGE(ICNT,-(2*KAPA2+1),2)
+        JS1 = JL1 + NSHIFT
+        JS2 = JL2 + NSHIFT
+C
+        DO IBAS=1,NFUNA
+          DO JBAS=1,NFUNA
+cc          BMAT(IL1+IBAS,JL1+JBAS) = 2.0D0*B22(IBAS      ,JBAS      )
+cc          BMAT(IL2+IBAS,JL2+JBAS) = 2.0D0*B22(IBAS      ,JBAS      )
+cc          BMAT(IL1+IBAS,JS1+JBAS) = 0.8d0*B22(IBAS      ,JBAS+NFUNA)
+cc          BMAT(IL2+IBAS,JS2+JBAS) = 0.8d0*B22(IBAS      ,JBAS+NFUNA)
+cc          BMAT(IS1+IBAS,JL1+JBAS) = 2.0D0*B22(IBAS+NFUNA,JBAS      )
+cc          BMAT(IS2+IBAS,JL2+JBAS) = 2.0D0*B22(IBAS+NFUNA,JBAS      )
+cc          BMAT(IS1+IBAS,JS1+JBAS) = 2.0D0*B22(IBAS+NFUNA,JBAS+NFUNA)
+cc          BMAT(IS2+IBAS,JS2+JBAS) = 2.0D0*B22(IBAS+NFUNA,JBAS+NFUNA)
+
+            BMAT(IL1+IBAS,JL1+JBAS) = RK2B2*B22(IBAS      ,JBAS      )
+            BMAT(IL2+IBAS,JL2+JBAS) = RK2B2*B22(IBAS      ,JBAS      )
+            BMAT(IL1+IBAS,JS1+JBAS) = RK2B2*B22(IBAS      ,JBAS+NFUNA)
+            BMAT(IL2+IBAS,JS2+JBAS) = RK2B2*B22(IBAS      ,JBAS+NFUNA)
+            BMAT(IS1+IBAS,JL1+JBAS) = RK2B2*B22(IBAS+NFUNA,JBAS      )
+            BMAT(IS2+IBAS,JL2+JBAS) = RK2B2*B22(IBAS+NFUNA,JBAS      )
+            BMAT(IS1+IBAS,JS1+JBAS) = RK2B2*B22(IBAS+NFUNA,JBAS+NFUNA)
+            BMAT(IS2+IBAS,JS2+JBAS) = RK2B2*B22(IBAS+NFUNA,JBAS+NFUNA)
+          ENDDO
+        ENDDO
+C
+C
+90      CONTINUE
+C
+C     FINISH GENERATING ATOMIC FOCK MATRIX, END CONDITIONAL OVER ITER
+      ENDIF
+C
+C     END LOOP OVER LQNS FOR ORBITAL B
+200   CONTINUE
+C
+C     FINISHED CALCULATING OVERLAP COMBINATIONS BETWEEN THIS LQNA
+C     VALUE AND ALL POSSIBLE LQNB VALUES
+C
+C**********************************************************************C
+C     MATRIX DIAGONALISATION AND COEFFICIENT MATRIX UPDATES            C
+C**********************************************************************C
+C
+C     EFFECTIVE AND AVERAGE OCCUPATION NUMBERS FOR THIS LQNA ORBITAL
+C     A CLOSED SUBSHELL (NSHELL,LQNA) CONTAINS NCLS ELECTRONS
+      NCLS = 4*LQNA+2
+C
+C     FOR EACH OCCUPIED NSHELL OF THIS LQNA CLASS
+      DO IOCC=1,NUMOCC(LQNA+1)
+C
+C       NUMBER OF CHARGES IN THIS SUBSHELL (NSHELL,LQNA)
+        NQ = NORB(LQNA+1,IOCC)
+C
+C       IF SUBSHELL IS CLOSED THERE IS NO FRACTIONAL OCCUPANCY
+        IF(NQ.EQ.NCLS) THEN
+          QE(IOCC) = 1.0D0
+C       IF SUBSHELL IS OPEN, CONSTRUCT FRACTION (GRANT 6.6.24)
+        ELSE
+          QE(IOCC) = DFLOAT(NQ-1)/DFLOAT(NCLS-1)
+        ENDIF
+C
+C       ACTUAL FRACTIONAL SUBSHELL OCCUPANCY
+        IF(NQ.GT.0) THEN
+          QA(IOCC) = DFLOAT(NQ)/DFLOAT(NCLS)
+        ELSE
+          QA(IOCC) = 0.0D0
+        ENDIF
+C
+      ENDDO
+C
+C >>> POSITIVE KAPPA(A) CHOICE (APPLIES ONLY FOR LQNA > 0)
+      IF(LQNA.EQ.0) GOTO 32
+C
+C     DIAGONALISE FOCK MATRIX (THIS NEEDS LAPACK LIBRARY)
+      CALL DSYGV(1,'V','U',2*NFUNA,F1,2*MBS,S1,2*MBS,W1,T,LWK,INFO)
+      IF(INFO.NE.0) THEN
+        WRITE(6, *) 'In SCFRE0: eigenvalue solver DSYGV failed.',INFO
+        WRITE(7, *) 'In SCFRE0: eigenvalue solver DSYGV failed.',INFO
+        STOP
+      ENDIF
+C
+C     LOOP OVER KAPPA(B) VALUES
+      DO KB=1,NKAP(ICNT)
+C
+C       KAPPA(B) VALUE
+        KAPB = KVALS(KB,ICNT)
+C
+C       ATOMIC SELECTION RULE: ORTHOGONALITY IN BLOCKS OF KQN
+        IF(KAPB.NE.KAPA1) GOTO 42
+C
+C       BEGIN LOOP OVER MQNA VALUES
+        DO IMVAL=1,IABS(KAPB)
+C
+C         COEFFICIENT MATRIX ADDRESSES
+          IL1 = LARGE(ICNT,KB,IMVAL*2-1)
+          IL2 = LARGE(ICNT,KB,IMVAL*2  )
+          IS1 = IL1 + NSHIFT
+          IS2 = IL2 + NSHIFT
+C
+C         COPY INTO MASTER COEFFICIENT LIST IF QA IS POSITIVE
+          DO IOCC=1,NUMOCC(LQNA+1)
+C
+C           EFFECTIVE OCCUPATION NUMBER
+            QF = DSQRT(QA(IOCC))
+C
+C           COPY INTO MASTER COEFFICIENT LIST
+            DO IBAS=1,NFUNA
+C
+C             LARGE AND SMALL EXPANSION COEFFICIENTS
+              CL = QF*F1(IBAS      ,NFUNA+IOCC)
+              CS = QF*F1(IBAS+NFUNA,NFUNA+IOCC)
+C
+C             SPIN DOWN (-|MQN| PROJECTION)
+              C(IL1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CL,0.0D0)
+              C(IS1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CS,0.0D0)
+C
+C             SPIN UP   (+|MQN| PROJECTION)
+              C(IL2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CL,0.0D0)
+              C(IS2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CS,0.0D0)
+C
+            ENDDO
+C
+C           STORE LOWEST ENERGY EIGENVALUES TO MASTER LIST
+            EIGEN(IOCCML+NSHIFT+1) = W1(NFUNA+IOCC)
+            EIGEN(IOCCML+NSHIFT+2) = W1(NFUNA+IOCC)
+C
+C           INCREASE FOCK ADDRESS OF OCCUPIED ORBITALS (PAIR AT A TIME)
+            IOCCML = IOCCML+2
+C
+          ENDDO
+        ENDDO
+C
+C       SKIP POINT FOR KAPA1 =/= KAPB
+42      CONTINUE
+
+      ENDDO
+C
+C     BUILD ATOMIC CHARGE DENSITY MATRIX FOR THIS KQNA BLOCK
+      M = 0
+      DO IBAS=1,NFUNA
+        DO JBAS=1,NFUNA
+          M = M+1
+C
+C         INITIALISE ATOMIC DENSITY LISTS FOR THIS BLOCK
+          DENLL(M,2*LQNA  ) = 0.0D0
+          DENSL(M,2*LQNA  ) = 0.0D0
+          DENSS(M,2*LQNA  ) = 0.0D0
+C
+          DFNLL(M,2*LQNA  ) = 0.0D0
+          DFNSL(M,2*LQNA  ) = 0.0D0
+          DFNSS(M,2*LQNA  ) = 0.0D0
+C
+C         LOOP OVER ALL OCCUPIED SHELLS OF THIS KQN TYPE
+          DO IOCC=1,NUMOCC(LQNA+1)
+C
+C           DENSITY OVERLAPS FROM EIGENVECTOR PRODUCTS
+            DLL = F1(IBAS      ,NFUNA+IOCC)*F1(JBAS      ,NFUNA+IOCC)
+            DSL = F1(IBAS+NFUNA,NFUNA+IOCC)*F1(JBAS      ,NFUNA+IOCC)
+            DSS = F1(IBAS+NFUNA,NFUNA+IOCC)*F1(JBAS+NFUNA,NFUNA+IOCC)
+C
+C           ADD DENSITY CONTRIBUTIONS TO ATOMIC LIST
+            DENLL(M,2*LQNA  ) = DENLL(M,2*LQNA  ) + QE(IOCC)*DLL
+            DENSL(M,2*LQNA  ) = DENSL(M,2*LQNA  ) + QE(IOCC)*DSL
+            DENSS(M,2*LQNA  ) = DENSS(M,2*LQNA  ) + QE(IOCC)*DSS
+C
+            DFNLL(M,2*LQNA  ) = DFNLL(M,2*LQNA  ) + QA(IOCC)*DLL
+            DFNSL(M,2*LQNA  ) = DFNSL(M,2*LQNA  ) + QA(IOCC)*DSL
+            DFNSS(M,2*LQNA  ) = DFNSS(M,2*LQNA  ) + QA(IOCC)*DSS
+C
+          ENDDO
+C
+        ENDDO
+      ENDDO
+C
+C     ONE-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+      DO IOCC=1,NUMOCC(LQNA+1)
+        EH = EH + QA(IOCC)*RK2A1*W1(NFUNA+IOCC)
+      ENDDO
+C
+32    CONTINUE
+C
+C >>> NEGATIVE KAPPA(A) CHOICE (APPLIES TO ALL LQNA VALUES)
+C
+C     DIAGONALISE FOCK MATRIX (THIS NEEDS LAPACK LIBRARY)
+      CALL DSYGV(1,'V','U',2*NFUNA,F2,2*MBS,S2,2*MBS,W2,T,LWK,INFO)
+      IF(INFO.NE.0) THEN
+        WRITE(6, *) 'In SCFRE0: eigenvalue solver DSYGV failed.',INFO
+        WRITE(7, *) 'In SCFRE0: eigenvalue solver DSYGV failed.',INFO
+        STOP
+      ENDIF
+C
+C     LOOP OVER KAPPA(B) VALUES
+      DO KB=1,NKAP(ICNT)
+C
+C       KAPPA(B) VALUE
+        KAPB = KVALS(KB,ICNT)
+C
+C       ATOMIC SELECTION RULE: ORTHOGONALITY IN BLOCKS OF KQN
+        IF(KAPB.NE.KAPA2) GOTO 43
+C
+C       BEGIN LOOP OVER MQNA VALUES
+        DO IMVAL=1,IABS(KAPB)
+C
+C         COEFFICIENT MATRIX ADDRESSES
+          IL1 = LARGE(ICNT,KB,IMVAL*2-1)
+          IL2 = LARGE(ICNT,KB,IMVAL*2  )
+          IS1 = IL1 + NSHIFT
+          IS2 = IL2 + NSHIFT
+C
+C         LOOP OVER ALL OCCUPIED PRINCIPLE SHELLS N FOR THIS KQNA
+          DO IOCC=1,NUMOCC(LQNA+1)
+C
+C           EFFECTIVE OCCUPATION NUMBER
+            QF = DSQRT(QA(IOCC))
+C
+C           COPY INTO MASTER COEFFICIENT LIST
+            DO IBAS=1,NFUNA
+C
+C             LARGE AND SMALL EXPANSION COEFFICIENTS
+              CL = QF*F2(IBAS      ,NFUNA+IOCC)
+              CS = QF*F2(IBAS+NFUNA,NFUNA+IOCC)
+C
+C             SPIN DOWN (-|MQN| PROJECTION)
+              C(IL1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CL,0.0D0)
+              C(IS1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CS,0.0D0)
+C
+C             SPIN UP   (+|MQN| PROJECTION)
+              C(IL2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CL,0.0D0)
+              C(IS2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CS,0.0D0)
+C
+            ENDDO
+C
+C           STORE LOWEST ENERGY EIGENVALUES TO MASTER LIST
+            EIGEN(IOCCML+NSHIFT+1) = W2(NFUNA+IOCC)
+            EIGEN(IOCCML+NSHIFT+2) = W2(NFUNA+IOCC)
+C
+C           INCREASE FOCK ADDRESS OF OCCUPIED ORBITALS (PAIR AT A TIME)
+            IOCCML = IOCCML+2
+C
+          ENDDO
+        ENDDO
+C
+C       SKIP POINT FOR KAPA2 =/= KAPB
+43      CONTINUE
+      ENDDO
+C
+C     BUILD ATOMIC CHARGE DENSITY MATRIX FOR THIS KQNA BLOCK
+      M = 0
+      DO IBAS=1,NFUNA
+        DO JBAS=1,NFUNA
+          M = M+1
+C
+C         INITIALISE ATOMIC DENSITY LISTS FOR THIS BLOCK
+          DENLL(M,2*LQNA+1) = 0.0D0
+          DENSL(M,2*LQNA+1) = 0.0D0
+          DENSS(M,2*LQNA+1) = 0.0D0
+C
+          DFNLL(M,2*LQNA+1) = 0.0D0
+          DFNSL(M,2*LQNA+1) = 0.0D0
+          DFNSS(M,2*LQNA+1) = 0.0D0
+C
+C         LOOP OVER ALL OCCUPIED SHELLS OF THIS KQN TYPE
+          DO IOCC=1,NUMOCC(LQNA+1)
+C
+C           DENSITY OVERLAPS FROM EIGENVECTOR PRODUCTS
+            DLL = F2(IBAS      ,NFUNA+IOCC)*F2(JBAS      ,NFUNA+IOCC)
+            DSL = F2(IBAS+NFUNA,NFUNA+IOCC)*F2(JBAS      ,NFUNA+IOCC)
+            DSS = F2(IBAS+NFUNA,NFUNA+IOCC)*F2(JBAS+NFUNA,NFUNA+IOCC)
+C
+C           ADD DENSITY CONTRIBUTIONS TO ATOMIC LIST
+            DENLL(M,2*LQNA+1) = DENLL(M,2*LQNA+1) + QE(IOCC)*DLL
+            DENSL(M,2*LQNA+1) = DENSL(M,2*LQNA+1) + QE(IOCC)*DSL
+            DENSS(M,2*LQNA+1) = DENSS(M,2*LQNA+1) + QE(IOCC)*DSS
+C
+            DFNLL(M,2*LQNA+1) = DFNLL(M,2*LQNA+1) + QA(IOCC)*DLL
+            DFNSL(M,2*LQNA+1) = DFNSL(M,2*LQNA+1) + QA(IOCC)*DSL
+            DFNSS(M,2*LQNA+1) = DFNSS(M,2*LQNA+1) + QA(IOCC)*DSS
+C
+          ENDDO
+C
+        ENDDO
+      ENDDO
+C
+C     ONE-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+      DO IOCC=1,NUMOCC(LQNA+1)
+        EH = EH + QA(IOCC)*RK2A2*W2(NFUNA+IOCC)
+      ENDDO
+C
+C     END LOOP OVER LQNA VALUES
+100   CONTINUE
+C
+C     COULOMB AND BREIT ENERGY HAS BEEN DOUBLE-COUNTED
+      EG = EG/2.0D0
+      EB = EB/2.0D0
+C
+      E2 = EG+EB
+C
+C     TOTAL ATOMIC ENERGY IN THIS ITERATION
+      ENEW = EH-EG-EB
+C
+C     RELATIVE CHANGE IN ENERGY
+      ETEST = DABS((EPRV-ENEW)/ENEW)
+C
+C     WRITE THE ITERATION NUMBER AND THE TOTAL ENERGY
+      WRITE(6,33) ITER,EH,E2,ENEW,ETEST
+      WRITE(7,33) ITER,EH,E2,ENEW,ETEST
+33    FORMAT(1X,I2,2X,F14.6,2X,F12.6,2X,F15.6,1X,ES12.5)
+C
+C     SUCCESSFUL CONVERGENCE
+      IF(ETEST.LE.EEPS) THEN
+        GOTO 1001
+      ELSE
+        EPRV = ENEW
+      ENDIF
+C
+C     BARE NUCLEUS APPROXIMATION
+      IF(HMLTN.EQ.'BARE') GOTO 1001
+C
+C     END LOOP OVER ITERATIONS
+1000  CONTINUE
+C
+C     WARN USER THAT ATOMIC SCF DID NOT CONVERGE
+      WRITE(6, *) REPEAT('-',62)
+      WRITE(7, *) REPEAT('-',62)
+      WRITE(6, *) 'WARNING: this atomic SCF procedure did not converge.'
+      WRITE(7, *) 'WARNING: this atomic SCF procedure did not converge.'
+C
+C     COVERGENCE SUCCESSFUL
+1001  CONTINUE
+C
+84    FORMAT(1X,A,5X,'=',5X,F19.12,' au')
+      WRITE(6, *) REPEAT('-',62)
+      WRITE(7, *) REPEAT('-',62)
+      WRITE(6,84) 'One-electron energy          ',EH
+      WRITE(7,84) 'One-electron energy          ',EH
+      WRITE(6,84) 'Two-electron energy (Coulomb)',EG
+      WRITE(7,84) 'Two-electron energy (Coulomb)',EG
+      IF(HMLTN.NE.'DHFB') GOTO 500
+      WRITE(6,84) 'Two-electron energy (Breit)  ',EB
+      WRITE(7,84) 'Two-electron energy (Breit)  ',EB
+500   CONTINUE
+      WRITE(6,84) 'Total energy                 ',ENEW
+      WRITE(7,84) 'Total energy                 ',ENEW
+      WRITE(6, *) REPEAT('=',62)
+      WRITE(7, *) REPEAT('=',62)
+      WRITE(6, *) REPEAT(' ',62)
+      WRITE(7, *) REPEAT(' ',62)
+C
+C     UPDATE COUNTER FOR HIGHEST OCCUPIED ATOMIC ORBITAL
+      IOCCM0 = IOCCML
+C
+C     STARTING TOTAL ENERGY
+      ETOT = ETOT + ENEW
+cc
+C          OPEN(UNIT=10,FILE='fock1.dat',STATUS='UNKNOWN')
+C          REWIND(UNIT=10)
+C          DO I=1,NDIM
+C            WRITE(10, *) (bmat(i,j),J=1,NDIM)
+C          ENDDO
+C          CLOSE(UNIT=10)
+C          stop
+C
+      RETURN
+      END
+
