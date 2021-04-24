@@ -1,0 +1,298 @@
+      SUBROUTINE SCHWARZ(A,NBAS,MAXN,TADD)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C   SSSSSS   CCCCCC  HH    HH WW         WW    AA    RRRRRRR  ZZZZZZZZ C
+C  SS    SS CC    CC HH    HH WW         WW   AAAA   RR    RR      ZZ  C
+C  SS       CC       HH    HH WW         WW  AA  AA  RR    RR     ZZ   C
+C   SSSSSS  CC       HHHHHHHH WW    W    WW AA    AA RR    RR    ZZ    C
+C        SS CC       HH    HH  WW  WWW  WW  AAAAAAAA RRRRRRR    ZZ     C
+C  SS    SS CC    CC HH    HH   WWWW WWWW   AA    AA RR    RR  ZZ      C
+C   SSSSSS   CCCCCC  HH    HH    WW   WW    AA    AA RR    RR ZZZZZZZZ C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  SCHWARZ APPROXIMATES THE UPPER BOUND TO A BLOCK OF TWO-ELECTRON     C
+C  INTEGRALS AND ITS CONTRIBUTION TO THE GDIR/GXCH MATRIX.             C
+C -------------------------------------------------------------------- C
+C  INPUT:                                                              C
+C    A - FULL ARRAY OF PAIR-WISE MATRIX ELEMENTS.                      C
+C**********************************************************************C
+      PARAMETER(MDM=1200,MBS=26,MB2=MBS*MBS,MCT=15,MKP=9,MFL=7000000,
+     &                          ML2=MKP+1,MEQ=(ML2+1)*(ML2+2)*(ML2+3)/6)
+C
+      CHARACTER*4 HMLTN
+C
+      DIMENSION A(MDM,MDM)
+      DIMENSION RR(MB2,48)
+      DIMENSION X(96)
+      DIMENSION NBAS(4)
+C
+      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
+C
+      COMMON/BLOC/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
+     &            IBAS,JBAS,ILIN,NADDAB,NADDCD
+      COMMON/DENS/DENC,DENO,DENT
+      COMMON/SCRN/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG
+C
+      SENS = 1.0D-12
+C
+C     TIME AT START OF ROUTINE
+      CALL CPU_TIME(T1)
+C
+C     RESET SCREENING COUNTERS
+      IBCH = 1
+      DO M=1,NBAS(3)*NBAS(4)
+        IMAP(M) = M
+        ISCR(M) = 1
+        DO ISYM=1,11
+          IMTX(M,ISYM) = 1
+        ENDDO
+      ENDDO
+      MAXN = NBAS(3)*NBAS(4)
+C
+C     IF TOGGLE SWITCHED OFF, DO NOT SCREEN
+      IF(ITOG.EQ.0) GOTO 99
+C
+C     FIND LARGEST UPPER BOUND AND DENSITY PRODUCT FOR EACH M
+      M = 0
+      N = 0
+      DO KBAS=1,NBAS(3)
+        DO LBAS=1,NBAS(4)
+          M = M+1
+C
+          RLRG = 0.0D0
+          DLRG = 0.0D0
+C
+          RR(M, 1) = A(NA1+IBAS,NB1+JBAS)*A(NC1+KBAS,ND1+LBAS)
+          RR(M, 2) = A(NA1+IBAS,NB1+JBAS)*A(NC1+KBAS,ND2+LBAS)
+          RR(M, 3) = A(NA1+IBAS,NB1+JBAS)*A(NC2+KBAS,ND1+LBAS)
+          RR(M, 4) = A(NA1+IBAS,NB1+JBAS)*A(NC2+KBAS,ND2+LBAS)
+          RR(M, 5) = A(NA1+IBAS,NB2+JBAS)*A(NC1+KBAS,ND1+LBAS)
+          RR(M, 6) = A(NA1+IBAS,NB2+JBAS)*A(NC1+KBAS,ND2+LBAS)
+          RR(M, 7) = A(NA1+IBAS,NB2+JBAS)*A(NC2+KBAS,ND1+LBAS)
+          RR(M, 8) = A(NA1+IBAS,NB2+JBAS)*A(NC2+KBAS,ND2+LBAS)
+          RR(M, 9) = A(NA2+IBAS,NB1+JBAS)*A(NC1+KBAS,ND1+LBAS)
+          RR(M,10) = A(NA2+IBAS,NB1+JBAS)*A(NC1+KBAS,ND2+LBAS)
+          RR(M,11) = A(NA2+IBAS,NB1+JBAS)*A(NC2+KBAS,ND1+LBAS)
+          RR(M,12) = A(NA2+IBAS,NB1+JBAS)*A(NC2+KBAS,ND2+LBAS)
+          RR(M,13) = A(NA2+IBAS,NB2+JBAS)*A(NC1+KBAS,ND1+LBAS)
+          RR(M,14) = A(NA2+IBAS,NB2+JBAS)*A(NC1+KBAS,ND2+LBAS)
+          RR(M,15) = A(NA2+IBAS,NB2+JBAS)*A(NC2+KBAS,ND1+LBAS)
+          RR(M,16) = A(NA2+IBAS,NB2+JBAS)*A(NC2+KBAS,ND2+LBAS)
+C
+          X( 1) = ABS(DENT(NC1+KBAS,ND1+LBAS))
+          X( 2) = ABS(DENT(NC1+KBAS,ND2+LBAS))
+          X( 3) = ABS(DENT(NC2+KBAS,ND1+LBAS))
+          X( 4) = ABS(DENT(NC2+KBAS,ND2+LBAS))
+          X( 5) = ABS(DENT(NC1+KBAS,ND1+LBAS))
+          X( 6) = ABS(DENT(NC1+KBAS,ND2+LBAS))
+          X( 7) = ABS(DENT(NC2+KBAS,ND1+LBAS))
+          X( 8) = ABS(DENT(NC2+KBAS,ND2+LBAS))
+          X( 9) = ABS(DENT(NC1+KBAS,ND1+LBAS))
+          X(10) = ABS(DENT(NC1+KBAS,ND2+LBAS))
+          X(11) = ABS(DENT(NC2+KBAS,ND1+LBAS))
+          X(12) = ABS(DENT(NC2+KBAS,ND2+LBAS))
+          X(13) = ABS(DENT(NC1+KBAS,ND1+LBAS))
+          X(14) = ABS(DENT(NC1+KBAS,ND2+LBAS))
+          X(15) = ABS(DENT(NC2+KBAS,ND1+LBAS))
+          X(16) = ABS(DENT(NC2+KBAS,ND2+LBAS))
+C
+          X(17) = ABS(DENT(NA1+IBAS,NB1+JBAS))
+          X(18) = ABS(DENT(NA1+IBAS,NB2+JBAS))
+          X(19) = ABS(DENT(NA2+IBAS,NB1+JBAS))
+          X(20) = ABS(DENT(NA2+IBAS,NB2+JBAS))
+          X(21) = ABS(DENT(NA1+IBAS,NB1+JBAS))
+          X(22) = ABS(DENT(NA1+IBAS,NB2+JBAS))
+          X(23) = ABS(DENT(NA2+IBAS,NB1+JBAS))
+          X(24) = ABS(DENT(NA2+IBAS,NB2+JBAS))
+          X(25) = ABS(DENT(NA1+IBAS,NB1+JBAS))
+          X(26) = ABS(DENT(NA1+IBAS,NB2+JBAS))
+          X(27) = ABS(DENT(NA2+IBAS,NB1+JBAS))
+          X(28) = ABS(DENT(NA2+IBAS,NB2+JBAS))
+          X(29) = ABS(DENT(NA1+IBAS,NB1+JBAS))
+          X(30) = ABS(DENT(NA1+IBAS,NB2+JBAS))
+          X(31) = ABS(DENT(NA2+IBAS,NB1+JBAS))
+          X(32) = ABS(DENT(NA2+IBAS,NB2+JBAS))
+C
+          DO ITG=1,16
+            IF(RR(M,ITG).GT.RLRG) RLRG = RR(M,ITG)
+          ENDDO
+C
+          DO ITG=1,32
+            IF(X(ITG).GT.DLRG) DLRG = X(ITG)
+          ENDDO
+C
+          IF(RLRG*DLRG.GT.SENS) THEN
+            GOTO 1000
+          ENDIF
+C
+          RLRG = 0.0D0
+          DLRG = 0.0D0
+C
+          RR(M,17) = A(NA1+IBAS,NC1+KBAS)*A(NB1+JBAS,ND1+LBAS)
+          RR(M,18) = A(NA1+IBAS,NC1+KBAS)*A(NB1+JBAS,ND2+LBAS)
+          RR(M,19) = A(NA1+IBAS,NC1+KBAS)*A(NB2+JBAS,ND1+LBAS)
+          RR(M,20) = A(NA1+IBAS,NC1+KBAS)*A(NB2+JBAS,ND2+LBAS)
+          RR(M,21) = A(NA1+IBAS,NC2+KBAS)*A(NB1+JBAS,ND1+LBAS)
+          RR(M,22) = A(NA1+IBAS,NC2+KBAS)*A(NB1+JBAS,ND2+LBAS)
+          RR(M,23) = A(NA1+IBAS,NC2+KBAS)*A(NB2+JBAS,ND1+LBAS)
+          RR(M,24) = A(NA1+IBAS,NC2+KBAS)*A(NB2+JBAS,ND2+LBAS)
+          RR(M,25) = A(NA2+IBAS,NC1+KBAS)*A(NB1+JBAS,ND1+LBAS)
+          RR(M,26) = A(NA2+IBAS,NC1+KBAS)*A(NB1+JBAS,ND2+LBAS)
+          RR(M,27) = A(NA2+IBAS,NC1+KBAS)*A(NB2+JBAS,ND1+LBAS)
+          RR(M,28) = A(NA2+IBAS,NC1+KBAS)*A(NB2+JBAS,ND2+LBAS)
+          RR(M,29) = A(NA2+IBAS,NC2+KBAS)*A(NB1+JBAS,ND1+LBAS)
+          RR(M,30) = A(NA2+IBAS,NC2+KBAS)*A(NB1+JBAS,ND2+LBAS)
+          RR(M,31) = A(NA2+IBAS,NC2+KBAS)*A(NB2+JBAS,ND1+LBAS)
+          RR(M,32) = A(NA2+IBAS,NC2+KBAS)*A(NB2+JBAS,ND2+LBAS)
+C
+          X(33) = ABS(DENT(NA1+IBAS,NC1+KBAS))
+          X(34) = ABS(DENT(NA1+IBAS,NC2+KBAS))
+          X(35) = ABS(DENT(NA2+IBAS,NC1+KBAS))
+          X(36) = ABS(DENT(NA2+IBAS,NC2+KBAS))
+          X(37) = ABS(DENT(NA1+IBAS,NC1+KBAS))
+          X(38) = ABS(DENT(NA1+IBAS,NC2+KBAS))
+          X(39) = ABS(DENT(NA2+IBAS,NC1+KBAS))
+          X(40) = ABS(DENT(NA2+IBAS,NC2+KBAS))
+          X(41) = ABS(DENT(NA1+IBAS,NC1+KBAS))
+          X(42) = ABS(DENT(NA1+IBAS,NC2+KBAS))
+          X(43) = ABS(DENT(NA2+IBAS,NC1+KBAS))
+          X(44) = ABS(DENT(NA2+IBAS,NC2+KBAS))
+          X(45) = ABS(DENT(NA1+IBAS,NC1+KBAS))
+          X(46) = ABS(DENT(NA1+IBAS,NC2+KBAS))
+          X(47) = ABS(DENT(NA2+IBAS,NC1+KBAS))
+          X(48) = ABS(DENT(NA2+IBAS,NC2+KBAS))
+C
+          X(49) = ABS(DENT(NB1+JBAS,ND1+LBAS))
+          X(50) = ABS(DENT(NB1+JBAS,ND2+LBAS))
+          X(51) = ABS(DENT(NB2+JBAS,ND1+LBAS))
+          X(52) = ABS(DENT(NB2+JBAS,ND2+LBAS))
+          X(53) = ABS(DENT(NB1+JBAS,ND1+LBAS))
+          X(54) = ABS(DENT(NB1+JBAS,ND2+LBAS))
+          X(55) = ABS(DENT(NB2+JBAS,ND1+LBAS))
+          X(56) = ABS(DENT(NB2+JBAS,ND2+LBAS))
+          X(57) = ABS(DENT(NB1+JBAS,ND1+LBAS))
+          X(58) = ABS(DENT(NB1+JBAS,ND2+LBAS))
+          X(59) = ABS(DENT(NB2+JBAS,ND1+LBAS))
+          X(60) = ABS(DENT(NB2+JBAS,ND2+LBAS))
+          X(61) = ABS(DENT(NB1+JBAS,ND1+LBAS))
+          X(62) = ABS(DENT(NB1+JBAS,ND2+LBAS))
+          X(63) = ABS(DENT(NB2+JBAS,ND1+LBAS))
+          X(64) = ABS(DENT(NB2+JBAS,ND2+LBAS))
+C
+          DO ITG=17,32
+            IF(RR(M,ITG).GT.RLRG) RLRG = RR(M,ITG)
+          ENDDO
+C
+          DO ITG=33,64
+            IF(X(ITG).GT.DLRG) DLRG = X(ITG)
+          ENDDO
+C
+C         INCLUDE FACTOR 1/4 BECAUSE THESE ARE EXCHANGE INTEGRALS
+          IF(0.25D0*RLRG*DLRG.GT.SENS) THEN
+            GOTO 1000
+          ENDIF
+C
+          RLRG = 0.0D0
+          DLRG = 0.0D0
+C
+          RR(M,33) = A(NA1+IBAS,ND1+LBAS)*A(NC1+KBAS,NB1+JBAS)
+          RR(M,34) = A(NA1+IBAS,ND1+LBAS)*A(NC1+KBAS,NB2+JBAS)
+          RR(M,35) = A(NA1+IBAS,ND1+LBAS)*A(NC2+KBAS,NB1+JBAS)
+          RR(M,36) = A(NA1+IBAS,ND1+LBAS)*A(NC2+KBAS,NB2+JBAS)
+          RR(M,37) = A(NA1+IBAS,ND2+LBAS)*A(NC1+KBAS,NB1+JBAS)
+          RR(M,38) = A(NA1+IBAS,ND2+LBAS)*A(NC1+KBAS,NB2+JBAS)
+          RR(M,39) = A(NA1+IBAS,ND2+LBAS)*A(NC2+KBAS,NB1+JBAS)
+          RR(M,40) = A(NA1+IBAS,ND2+LBAS)*A(NC2+KBAS,NB2+JBAS)
+          RR(M,41) = A(NA2+IBAS,ND1+LBAS)*A(NC1+KBAS,NB1+JBAS)
+          RR(M,42) = A(NA2+IBAS,ND1+LBAS)*A(NC1+KBAS,NB2+JBAS)
+          RR(M,43) = A(NA2+IBAS,ND1+LBAS)*A(NC2+KBAS,NB1+JBAS)
+          RR(M,44) = A(NA2+IBAS,ND1+LBAS)*A(NC2+KBAS,NB2+JBAS)
+          RR(M,45) = A(NA2+IBAS,ND2+LBAS)*A(NC1+KBAS,NB1+JBAS)
+          RR(M,46) = A(NA2+IBAS,ND2+LBAS)*A(NC1+KBAS,NB2+JBAS)
+          RR(M,47) = A(NA2+IBAS,ND2+LBAS)*A(NC2+KBAS,NB1+JBAS)
+          RR(M,48) = A(NA2+IBAS,ND2+LBAS)*A(NC2+KBAS,NB2+JBAS)
+C
+          X(65) = ABS(DENT(NA1+IBAS,ND1+LBAS))
+          X(66) = ABS(DENT(NA1+IBAS,ND2+LBAS))
+          X(67) = ABS(DENT(NA2+IBAS,ND1+LBAS))
+          X(68) = ABS(DENT(NA2+IBAS,ND2+LBAS))
+          X(69) = ABS(DENT(NA1+IBAS,ND1+LBAS))
+          X(70) = ABS(DENT(NA1+IBAS,ND2+LBAS))
+          X(71) = ABS(DENT(NA2+IBAS,ND1+LBAS))
+          X(72) = ABS(DENT(NA2+IBAS,ND2+LBAS))
+          X(73) = ABS(DENT(NA1+IBAS,ND1+LBAS))
+          X(74) = ABS(DENT(NA1+IBAS,ND2+LBAS))
+          X(75) = ABS(DENT(NA2+IBAS,ND1+LBAS))
+          X(76) = ABS(DENT(NA2+IBAS,ND2+LBAS))
+          X(77) = ABS(DENT(NA1+IBAS,ND1+LBAS))
+          X(78) = ABS(DENT(NA1+IBAS,ND2+LBAS))
+          X(79) = ABS(DENT(NA2+IBAS,ND1+LBAS))
+          X(80) = ABS(DENT(NA2+IBAS,ND2+LBAS))
+C
+          X(81) = ABS(DENT(NB1+JBAS,NC1+KBAS))
+          X(82) = ABS(DENT(NB1+JBAS,NC2+KBAS))
+          X(83) = ABS(DENT(NB2+JBAS,NC1+KBAS))
+          X(84) = ABS(DENT(NB2+JBAS,NC2+KBAS))
+          X(85) = ABS(DENT(NB1+JBAS,NC1+KBAS))
+          X(86) = ABS(DENT(NB1+JBAS,NC2+KBAS))
+          X(87) = ABS(DENT(NB2+JBAS,NC1+KBAS))
+          X(88) = ABS(DENT(NB2+JBAS,NC2+KBAS))
+          X(89) = ABS(DENT(NB1+JBAS,NC1+KBAS))
+          X(90) = ABS(DENT(NB1+JBAS,NC2+KBAS))
+          X(91) = ABS(DENT(NB2+JBAS,NC1+KBAS))
+          X(92) = ABS(DENT(NB2+JBAS,NC2+KBAS))
+          X(93) = ABS(DENT(NB1+JBAS,NC1+KBAS))
+          X(94) = ABS(DENT(NB1+JBAS,NC2+KBAS))
+          X(95) = ABS(DENT(NB2+JBAS,NC1+KBAS))
+          X(96) = ABS(DENT(NB2+JBAS,NC2+KBAS))
+C
+          DO ITG=33,48
+            IF(RR(M,ITG).GT.RLRG) RLRG = RR(M,ITG)
+          ENDDO
+C
+          DO ITG=65,96
+            IF(X(ITG).GT.DLRG) DLRG = X(ITG)
+          ENDDO
+C
+C         INCLUDE FACTOR 1/4 BECAUSE THESE ARE EXCHANGE INTEGRALS
+          IF(0.25D0*RLRG*DLRG.GT.SENS) THEN
+            GOTO 1000
+          ENDIF
+C
+C         THIS M PASSES SCREENING TEST -- DON'T NEED TO CALCULATE
+          ISCR(M) = 0
+          GOTO 1001
+C
+C         THIS M FAILS SCREENING TEST -- MUST ACTUALLY CALCULATE
+1000      CONTINUE
+          N = N+1
+          IMAP(N) = M
+          ISCR(M) = 1
+C
+C         SKIP POINT FOR PASSED SCREENING TEST
+1001      CONTINUE
+C
+        ENDDO
+      ENDDO
+C
+C     NUMBER OF INTEGRALS TO CALCULATE
+      MAXN = N
+C
+C     NONE OF THE ELEMENTS WERE ABOVE SENSITIVITY LIMIT
+      IF(N.EQ.0) THEN
+        IBCH = 0
+      ENDIF
+C
+C     SKIP POINT WHEN SCREENING COUNTER SWITCHED OFF
+99    CONTINUE
+C
+C     TIME AT END OF ROUTINE
+      CALL CPU_TIME(T2)
+C
+C     ADD TO THE LINKED TIME INDEX
+      TADD = TADD+T2-T1
+C
+      RETURN
+      END
+

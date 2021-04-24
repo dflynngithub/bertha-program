@@ -1,0 +1,393 @@
+      SUBROUTINE ANGBRT0
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C        AA    NN    NN  GGGGGG  BBBBBBB  RRRRRRR TTTTTTTT 000000      C
+C       AAAA   NNN   NN GG    GG BB    BB RR    RR   TT   00   000     C
+C      AA  AA  NNNN  NN GG       BB    BB RR    RR   TT   00  0000     C
+C     AA    AA NN NN NN GG       BBBBBBB  RR    RR   TT   00 00 00     C
+C     AAAAAAAA NN  NNNN GG   GGG BB    BB RRRRRRR    TT   0000  00     C
+C     AA    AA NN   NNN GG    GG BB    BB RR    RR   TT   000   00     C
+C     AA    AA NN    NN  GGGGGG  BBBBBBB  RR    RR   TT    000000      C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  ANGBRT0 EVALUATES ANGULAR COEFFICIENTS OF THE ATOMIC CLOSED SHELL   C
+C  BREIT INTERACTION FOR ALL (K1,K2) VALUES IN THE MANIFOLD (L1,L2).   C
+C -------------------------------------------------------------------- C
+C  OUTPUT:                                                             C
+C    NUNUM - NUMBER OF NU VALUES THAT SATISFY PARITY RESTRICTION RULE. C
+C    NUI - MINIMUM NU VALUE IN THIS MANIFOLD.                          C
+C    NUF - MAXIMUM NU VALUE IN THIS MANIFOLD.                          C
+C    ELL(MNU,4) - ANGULAR TERMS FOR CLOSED BREIT EK(JA,JB;LL) TERMS    C
+C    ESS(MNU,4) - ANGULAR TERMS FOR CLOSED BREIT EK(JA,JB;SS) TERMS    C
+C    ESL(MNU,4) - ANGULAR TERMS FOR CLOSED BREIT EK(JA,JB;SL) TERMS    C
+C    GSL(MNU,4) - ANGULAR TERMS FOR CLOSED BREIT EK(JA,JB;SL) TERMS    C
+C**********************************************************************C
+      PARAMETER(MKP=13,MNU=MKP+1)
+C
+      DIMENSION SCOEF(4,2)
+C
+      COMMON/ANGL/BK(MNU,4),ELL(MNU,4),ESS(MNU,4),ESL(MNU,4),GSL(MNU,4)
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/XNUS/NUS(MNU),NUI,NUF,NUNUM
+C
+C     INITIALISE COEFFICIENT ARRAYS
+      DO LTEN=1,MNU
+        DO N=1,4
+          ELL(LTEN,N) = 0.0D0
+          ESS(LTEN,N) = 0.0D0
+          ESL(LTEN,N) = 0.0D0
+          GSL(LTEN,N) = 0.0D0
+        ENDDO
+        NUS(LTEN) = 0
+      ENDDO
+      NUNUM = 0
+C
+C     CALCULATE KQNA AND 2*JQNA VALUES FROM LQNA
+      KLA =-LQNA-1
+      KRA = LQNA
+      JLA = 2*IABS(KLA)-1
+      JRA = 2*IABS(KRA)-1
+C
+C     CALCULATE KQNB AND 2*JQNB VALUES FROM LQNB
+      KLB =-LQNB-1
+      KRB = LQNB
+      JLB = 2*IABS(KLB)-1
+      JRB = 2*IABS(KRB)-1
+C
+C     MAXIMUM AND MINIMUM TENSOR ORDERS WITHIN THIS BLOCK
+      JAMAX = JLA
+      IF(LQNA.EQ.0) THEN
+        JAMIN = JLA
+      ELSE
+        JAMIN = JRA
+      ENDIF
+C
+      JBMAX = JLB
+      IF(LQNA.EQ.0) THEN
+        JBMIN = JLB
+      ELSE
+        JBMIN = JRB
+      ENDIF
+C
+      NUI = IABS(
+C
+C     GENERATE LIST OF FACTORIALS
+      CALL FACTRLS
+C
+C**********************************************************************C
+C     (1) KQNA < 0 AND KQNB < 0 SO USE JLA AND JLB (CANNOT SKIP)       C
+C**********************************************************************C
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(JLA-JLB)/2
+      NUF =     (JLA+JLB)/2
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 1
+      DO NU=NUI,NUF
+C
+C       RAW SQUARED 3J-SYMBOL
+        RAW = SYM3JSQ(JLA,JLB,NU)
+C
+C       TEST WHETHER PARITY OF 'LQNA+LQNB+NU' IS ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.0.AND.NU.NE.0) THEN
+C       CASE 1: ANGULAR COEFFICIENTS OF ODD PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          RNU  = DFLOAT(NU*(NU+1))
+          COEF = DFLOAT((KLA+KLB)*(KLA+KLB))/RNU
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,1) = ELL(LTEN,1) + COEF*RAW
+          ESS(LTEN,1) = ESS(LTEN,1) + COEF*RAW
+          ESL(LTEN,1) = ESL(LTEN,1) + COEF*RAW
+C
+        ELSEIF(IPARAB.EQ.1) THEN
+C       CASE 2: ANGULAR COEFFICIENTS OF EVEN-PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          CALL BRCOEF0(SCOEF,KLA,KLB,NU)
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU-1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,1) = ELL(LTEN,1) - SCOEF(1,1)*RAW
+          ESL(LTEN,1) = ESL(LTEN,1) - SCOEF(2,1)*RAW
+          ESS(LTEN,1) = ESS(LTEN,1) - SCOEF(3,1)*RAW
+          GSL(LTEN,1) = GSL(LTEN,1) - SCOEF(4,1)*RAW
+C
+C         STEP PARAMETER FOR ADDITIONS TO COEFFICIENTS
+          IF(NU.GT.0) THEN
+            LTEN = LTEN+1
+          ENDIF
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU+1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,1) = ELL(LTEN,1) - SCOEF(1,2)*RAW
+          ESL(LTEN,1) = ESL(LTEN,1) - SCOEF(2,2)*RAW
+          ESS(LTEN,1) = ESS(LTEN,1) - SCOEF(3,2)*RAW
+          GSL(LTEN,1) = GSL(LTEN,1) - SCOEF(4,2)*RAW
+C
+        ENDIF
+C
+      ENDDO
+C
+C     ADJUST NUNUM IF NECESSARY
+      NUI   = MIN(NUI,NUS(   1))
+C      NUF   = MAX(NUF,NUS(LTEN))
+      NUNUM = MAX(LTEN,NUNUM)
+C
+C**********************************************************************C
+C     (2) KQNA < 0 AND KQNB > 0 SO USE JLA AND JRB (SKIP IF POSSIBLE)  C
+C**********************************************************************C
+C
+      IF(LQNB.EQ.0) GOTO 202
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(JLA-JRB)/2
+      NUF =     (JLA+JRB)/2
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 1
+      DO NU=NUI,NUF
+C
+C       RAW SQUARED 3J-SYMBOL
+        RAW = SYM3JSQ(JLA,JRB,NU)
+C
+C       TEST WHETHER PARITY OF 'LQNA+LQNB+NU' IS ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.0.AND.NU.NE.0) THEN
+C       CASE 1: ANGULAR COEFFICIENTS OF ODD PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          RNU  = DFLOAT(NU*(NU+1))
+          COEF = DFLOAT((KLA+KRB)*(KLA+KRB))/RNU
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,2) = ELL(LTEN,2) + COEF*RAW
+          ESS(LTEN,2) = ESS(LTEN,2) + COEF*RAW
+          ESL(LTEN,2) = ESL(LTEN,2) + COEF*RAW
+C
+        ELSEIF(IPARAB.EQ.1) THEN
+C       CASE 2: ANGULAR COEFFICIENTS OF EVEN-PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          CALL BRCOEF0(SCOEF,KLA,KRB,NU)
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU-1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,2) = ELL(LTEN,2) - SCOEF(1,1)*RAW
+          ESL(LTEN,2) = ESL(LTEN,2) - SCOEF(2,1)*RAW
+          ESS(LTEN,2) = ESS(LTEN,2) - SCOEF(3,1)*RAW
+          GSL(LTEN,2) = GSL(LTEN,2) - SCOEF(4,1)*RAW
+C
+C         STEP PARAMETER FOR ADDITIONS TO COEFFICIENTS
+          IF(NU.GT.0) THEN
+            LTEN = LTEN+1
+          ENDIF
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU+1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,2) = ELL(LTEN,2) - SCOEF(1,2)*RAW
+          ESL(LTEN,2) = ESL(LTEN,2) - SCOEF(2,2)*RAW
+          ESS(LTEN,2) = ESS(LTEN,2) - SCOEF(3,2)*RAW
+          GSL(LTEN,2) = GSL(LTEN,2) - SCOEF(4,2)*RAW
+C
+        ENDIF
+      ENDDO
+C
+C     ADJUST NUNUM IF NECESSARY
+      NUI   = MIN(NUI,NUS(   1))
+C      NUF   = MAX(NUF,NUS(LTEN))
+      NUNUM = MAX(LTEN,NUNUM)
+C
+202   CONTINUE
+C
+C**********************************************************************C
+C     (3) KQNA > 0 AND KQNB < 0 SO USE JRA AND JLB (SKIP IF POSSIBLE)  C
+C**********************************************************************C
+C
+      IF(LQNA.EQ.0) GOTO 203     
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(JRA-JLB)/2
+      NUF =     (JRA+JLB)/2
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 1
+      DO NU=NUI,NUF
+C
+C       RAW SQUARED 3J-SYMBOL
+        RAW = SYM3JSQ(JRA,JLB,NU)
+C
+C       TEST WHETHER PARITY OF 'LQNA+LQNB+NU' IS ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.0.AND.NU.NE.0) THEN
+C       CASE 1: ANGULAR COEFFICIENTS OF ODD PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          RNU  = DFLOAT(NU*(NU+1))
+          COEF = DFLOAT((KRA+KLB)*(KRA+KLB))/RNU
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,3) = ELL(LTEN,3) + COEF*RAW
+          ESS(LTEN,3) = ESS(LTEN,3) + COEF*RAW
+          ESL(LTEN,3) = ESL(LTEN,3) + COEF*RAW
+C
+        ELSEIF(IPARAB.EQ.1) THEN
+C       CASE 2: ANGULAR COEFFICIENTS OF EVEN-PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          CALL BRCOEF0(SCOEF,KRA,KLB,NU)
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU-1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,3) = ELL(LTEN,3) - SCOEF(1,1)*RAW
+          ESL(LTEN,3) = ESL(LTEN,3) - SCOEF(2,1)*RAW
+          ESS(LTEN,3) = ESS(LTEN,3) - SCOEF(3,1)*RAW
+          GSL(LTEN,3) = GSL(LTEN,3) - SCOEF(4,1)*RAW
+C
+C         STEP PARAMETER FOR ADDITIONS TO COEFFICIENTS
+          IF(NU.GT.0) THEN
+            LTEN = LTEN+1
+          ENDIF
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU+1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,3) = ELL(LTEN,3) - SCOEF(1,2)*RAW
+          ESL(LTEN,3) = ESL(LTEN,3) - SCOEF(2,2)*RAW
+          ESS(LTEN,3) = ESS(LTEN,3) - SCOEF(3,2)*RAW
+          GSL(LTEN,3) = GSL(LTEN,3) - SCOEF(4,2)*RAW
+C
+        ENDIF
+C
+      ENDDO
+C
+C     ADJUST NUNUM IF NECESSARY
+      NUI   = MIN(NUI,NUS(   1))
+C      NUF   = MAX(NUF,NUS(LTEN))
+      NUNUM = MAX(LTEN,NUNUM)
+C
+203   CONTINUE
+C
+C**********************************************************************C
+C     (4) KQNA > 0 AND KQNB > 0 SO USE JRA AND JRB (SKIP IF POSSIBLE)  C
+C**********************************************************************C
+C
+      IF(LQNA.EQ.0.OR.LQNB.EQ.0) GOTO 204
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(JRA-JRB)/2
+      NUF =     (JRA+JRB)/2
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 1
+      DO NU=NUI,NUF
+C
+C       RAW SQUARED 3J-SYMBOL
+        RAW = SYM3JSQ(JRA,JRB,NU)
+C
+C       TEST WHETHER PARITY OF 'LQNA+LQNB+NU' IS ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.0.AND.NU.NE.0) THEN
+C       CASE 1: ANGULAR COEFFICIENTS OF ODD PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          RNU  = DFLOAT(NU*(NU+1))
+          COEF = DFLOAT((KRA+KRB)*(KRA+KRB))/RNU
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,4) = ELL(LTEN,4) + COEF*RAW
+          ESS(LTEN,4) = ESS(LTEN,4) + COEF*RAW
+          ESL(LTEN,4) = ESL(LTEN,4) + COEF*RAW
+C
+        ELSEIF(IPARAB.EQ.1) THEN
+C       CASE 2: ANGULAR COEFFICIENTS OF EVEN-PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          CALL BRCOEF0(SCOEF,KRA,KRB,NU)
+C
+          NUS(LTEN) = NU-1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,4) = ELL(LTEN,4) - SCOEF(1,1)*RAW
+          ESL(LTEN,4) = ESL(LTEN,4) - SCOEF(2,1)*RAW
+          ESS(LTEN,4) = ESS(LTEN,4) - SCOEF(3,1)*RAW
+          GSL(LTEN,4) = GSL(LTEN,4) - SCOEF(4,1)*RAW
+C
+C         STEP PARAMETER FOR ADDITIONS TO COEFFICIENTS
+          IF(NU.GT.0) THEN
+            LTEN = LTEN+1
+          ENDIF
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU+1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,4) = ELL(LTEN,4) - SCOEF(1,2)*RAW
+          ESL(LTEN,4) = ESL(LTEN,4) - SCOEF(2,2)*RAW
+          ESS(LTEN,4) = ESS(LTEN,4) - SCOEF(3,2)*RAW
+          GSL(LTEN,4) = GSL(LTEN,4) - SCOEF(4,2)*RAW
+C
+        ENDIF
+C
+      ENDDO
+C
+C     ADJUST NUNUM IF NECESSARY
+      NUI   = MIN(NUI,NUS(   1))
+C      NUF   = MAX(NUF,NUS(LTEN))
+      NUNUM = MAX(LTEN,NUNUM)
+C
+204   CONTINUE
+C
+C     APPROPRIATE NUI GIVEN ODD SELECTION RULE
+      NUI = MOD(LQNA+LQNB+1,2)
+C
+      RETURN
+      END
+

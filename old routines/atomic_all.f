@@ -1,0 +1,4319 @@
+      SUBROUTINE ATOMIC
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C             AA   TTTTTTTT OOOOOO  MM       MM IIII CCCCCC            C
+C            AAAA     TT   OO    OO MMM     MMM  II CC    CC           C
+C           AA  AA    TT   OO    OO MMMM   MMMM  II CC                 C
+C          AA    AA   TT   OO    OO MM MM MM MM  II CC                 C
+C          AAAAAAAA   TT   OO    OO MM  MMM  MM  II CC                 C
+C          AA    AA   TT   OO    OO MM   M   MM  II CC    CC           C
+C          AA    AA   TT    OOOOOO  MM       MM IIII CCCCCC            C
+C                                                                      C
+C                       CONTROLLING ROUTINE FOR                        C
+C                          ** B E R T H A **                           C
+C -------------------------------------------------------------------- C
+C  ATOMIC PERFORMS A SINGLE-CENTER SCF PROCEDURE FOR EACH ATOM IN THE  C
+C  MOLECULE AND ASSEMBLES AN INITIAL COEFFICIENT MATRIX.               C
+C**********************************************************************C
+      PARAMETER(MDM=1200,MBS=26,MCT=15,MKP=13)
+C
+      CHARACTER*4  HMLTN
+      CHARACTER*16 HMS
+      CHARACTER*20 STAMP
+      CHARACTER*40 MOLCL,WFNFL,OUTFL
+C
+      COMPLEX*16 C(MDM,MDM)
+      COMPLEX*16 OVAP(MDM,MDM),HNUC(MDM,MDM),HKIN(MDM,MDM),
+     &           GDIR(MDM,MDM),GXCH(MDM,MDM),QDIR(MDM,MDM),
+     &           QXCH(MDM,MDM),BDIR(MDM,MDM),BXCH(MDM,MDM),
+     &           VUEH(MDM,MDM),FOCK(MDM,MDM)
+C
+      COMMON/COEF/C
+      COMMON/EIGN/EIGEN(MDM)
+      COMMON/ENRG/ETOT,ENUC,EONE,ECLG,ECLQ,EBRG,EBRQ,EHNC,EHKN,EGDR,
+     &            EGXC,EQDR,EQXC,EBDR,EBXC,EMDR,EMXC,EUEH
+      COMMON/FLNM/MOLCL,WFNFL,OUTFL
+      COMMON/MTRX/OVAP,HNUC,HKIN,VUEH,GDIR,GXCH,QDIR,QXCH,BDIR,BXCH,FOCK
+      COMMON/OCPD/IOCPN(MDM),IOCCM0
+      COMMON/PRMS/CV,HMLTN,ITREE,IMOL,INEW,IEQS,IERC,IPAR,ICOR,ILEV
+      COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(500),IOPN(6),NCLS,NOPN,NOELEC
+      COMMON/SPEC/EXPSET(MBS,MKP,MCT),COORD(3,MCT),ZNUC(MCT),AMASS(MCT),
+     &            CNUC(MCT),PNUC,LARGE(MCT,MKP,MKP+1),NFUNCT(MKP,MCT),
+     &            KVALS(MKP,MCT),IZNUC(MCT),IQNUC(MCT),LMAX(MCT),
+     &            NKAP(MCT),NCNT,NDIM,NSHIFT,NOCC,NVRT
+      COMMON/TATM/TTOT
+C
+C     PRINT A BIG SECTION HEADER
+      WRITE(6, *) ' '
+      WRITE(7, *) ' '
+      WRITE(6, *) REPEAT('#',72)
+      WRITE(7, *) REPEAT('#',72)
+      WRITE(6, *) REPEAT(' ',26),'ATOMIC HARTREE-FOCK SCF'
+      WRITE(7, *) REPEAT(' ',26),'ATOMIC HARTREE-FOCK SCF'
+      WRITE(6, *) REPEAT('#',72)
+      WRITE(7, *) REPEAT('#',72)
+      WRITE(6, *) ' '
+      WRITE(7, *) ' '
+C
+C     SPECIAL EXIT FOR ONE-ELECTRON PROBLEMS
+      IF(NOELEC.LE.1.AND.NCNT.NE.1) THEN
+        WRITE(6, *) 'This is a one-electron problem. Skip ATOMIC.'
+        WRITE(7, *) 'This is a one-electron problem. Skip ATOMIC.'
+        RETURN
+      ENDIF
+C
+C     RECORD TIME AT START OF ATOMIC CALCULATION
+      CALL CPU_TIME(TDUM)
+C
+C     INITIALISE MOLECULAR MATRICES
+      DO I=1,NDIM
+        DO J=1,NDIM
+          C(I,J)    = DCMPLX(0.0D0,0.0D0)
+          OVAP(I,J) = DCMPLX(0.0D0,0.0D0)
+        ENDDO
+      ENDDO
+C
+C     CALCULATE GAMMA FUNCTION VALUES FOR LATER USE
+      CALL GAMGEN
+C
+C     INITIALISE OCCUPATION COUNTER
+      IOCCM0 = 0
+C
+C     HARTREE-FOCK SCF PROCEDURE FOR EACH ISOLATED ATOM
+      DO ICNT=1,NCNT
+        CALL HFSCF0(ICNT)
+      ENDDO
+C
+C     SAVE EIGENVECTORS TO OUTPUT FILE
+      OPEN(UNIT=8,FILE=TRIM(WFNFL),STATUS='UNKNOWN')
+      REWIND(UNIT=10)
+      DO I=1,NDIM
+        WRITE(8, *) EIGEN(I),(C(J,I),J=1,NDIM)
+      ENDDO
+      CLOSE(UNIT=8)
+c
+C     GENERATE DENSITY MATRIX
+      CALL DENSTY0
+C
+C     TIME TAKEN FOR ATOMIC CALCULATION
+      CALL CPU_TIME(TTOT)
+      TTOT = TTOT - TDUM
+C
+C     DATE AND TIME AT END OF ITERATION
+      CALL TIMENOW(STAMP)
+C
+C     ATOMIC SCF SUMMARY HEADER
+      WRITE(6, *) REPEAT(' ',72)
+      WRITE(7, *) REPEAT(' ',72)
+      WRITE(6, *) REPEAT(' ',27),'Atomic SCF summary'
+      WRITE(7, *) REPEAT(' ',27),'Atomic SCF summary'
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+C
+C     PRODUCE SPECTRUM SUMMARY AND INCLUDE FIRST 6 VIRTUAL STATES
+      CALL SPECTRM(IOCCM0,0)
+C
+C     MOLECULAR ENERGIES
+20    FORMAT(1X,A,31X,F21.12)
+      WRITE(6, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
+      WRITE(7, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+      WRITE(6, *) 'Source',REPEAT(' ',60),'Energy'
+      WRITE(7, *) 'Source',REPEAT(' ',60),'Energy'
+      WRITE(6, *) REPEAT('-',72)
+      WRITE(7, *) REPEAT('-',72)
+      WRITE(6,20) 'Nucleus-nucleus  (N)',ENUC
+      WRITE(7,20) 'Nucleus-nucleus  (N)',ENUC
+      WRITE(6,20) 'One-electron     (H)',EONE
+      WRITE(7,20) 'One-electron     (H)',EONE
+      IF(HMLTN.EQ.'BARE') GOTO 202
+      WRITE(6,20) 'Coulomb (closed) (G)',ECLG
+      WRITE(7,20) 'Coulomb (closed) (G)',ECLG
+      IF(HMLTN.EQ.'NORL'.OR.HMLTN.EQ.'DHFR') GOTO 202
+      WRITE(6,20) 'Breit (closed)   (B)',EBRG
+      WRITE(7,20) 'Breit (closed)   (B)',EBRG
+202   CONTINUE
+      WRITE(6, *) REPEAT('-',72)
+      WRITE(7, *) REPEAT('-',72)
+      WRITE(6,20) 'Molecule total   (F)',ETOT
+      WRITE(7,20) 'Molecule total   (F)',ETOT
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+C
+C     CALCULATION TIME
+30    FORMAT(1X,A,26X,A)
+      WRITE(6,30) 'Total atomic SCF time         ',HMS(TTOT)
+      WRITE(7,30) 'Total atomic SCF time         ',HMS(TTOT)
+      WRITE(6, *) REPEAT('-',72)
+      WRITE(7, *) REPEAT('-',72)
+      WRITE(6,30) 'Time at end of calculation',STAMP
+      WRITE(7,30) 'Time at end of calculation',STAMP
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+      WRITE(6, *) ' '
+      WRITE(7, *) ' '
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE HFSCF0(ICNT)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C          HH    HH FFFFFFFF SSSSSS   CCCCCC  FFFFFFFF 000000          C
+C          HH    HH FF      SS    SS CC    CC FF      00   000         C
+C          HH    HH FF      SS       CC       FF      00  0000         C
+C          HHHHHHHH FFFFFF   SSSSSS  CC       FFFFFF  00 00 00         C
+C          HH    HH FF            SS CC       FF      0000  00         C
+C          HH    HH FF      SS    SS CC    CC FF      000   00         C
+C          HH    HH FF       SSSSSS   CCCCCC  FF       000000          C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  HFSCF PERFORMS AN ATOMIC SINGLE-DETERMINANT ITERATIVE SELF-         C
+C  CONSISTENT FIELD PROCEDURE OVER THE USER-SPECIFIED HAMILTONIAN.     C
+C  USES THE CLOSED-SHELL AVERAGE OF CONFIGURATION MODEL, WITH SUBSHELL C
+C  OCCUPATIONS DETERMINED EITHER MANUALLY OR BY THE AUFBAU ROUTINE.    C
+C -------------------------------------------------------------------- C
+C  INPUT:                                                              C
+C    ICNT - ATOMIC CENTER INDEX                                        C
+C -------------------------------------------------------------------- C
+C  DFNOTE: UNFINISHED -- BREIT INTERACTION STILL A MESS.               C
+C**********************************************************************C
+      PARAMETER(MDM=1200,MBS=26,MBD=2*MBS,MB2=MBS*MBS,MCT=15,MKP=13,
+     &                                    MNU=MKP+1,LWK=128*MBS,MIT=100)
+C
+      CHARACTER*1 ELLTERM,QSGN
+      CHARACTER*2 ELMNT(120),ELNM
+      CHARACTER*4 HMLTN
+      CHARACTER*8 ZWRT,QWRT,EWRT
+      CHARACTER*80 TITLE
+C
+      DIMENSION QE(MKP),QA(MKP),NORB(MKP,12),NUMOCC(MKP)
+      DIMENSION W1(MBD),W2(MBD),T(LWK)
+      DIMENSION O1(MBD,MBD),H1(MBD,MBD),U1(MBD,MBD),
+     &          O2(MBD,MBD),H2(MBD,MBD),U2(MBD,MBD)
+      DIMENSION DENLL(MB2,2*MKP+1),DFNLL(MB2,2*MKP+1),
+     &          DENSL(MB2,2*MKP+1),DFNSL(MB2,2*MKP+1),
+     &          DENSS(MB2,2*MKP+1),DFNSS(MB2,2*MKP+1),
+     &          DENLS(MB2,2*MKP+1),DFNLS(MB2,2*MKP+1)
+C
+      COMPLEX*16 C(MDM,MDM)
+      COMPLEX*16 OVAP(MDM,MDM),HNUC(MDM,MDM),HKIN(MDM,MDM),
+     &           GDIR(MDM,MDM),GXCH(MDM,MDM),QDIR(MDM,MDM),
+     &           QXCH(MDM,MDM),BDIR(MDM,MDM),BXCH(MDM,MDM),
+     &           VUEH(MDM,MDM),FOCK(MDM,MDM)
+C
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/BSXP/EXLA(MBS),EXLB(MBS)
+      COMMON/COEF/C
+      COMMON/DLST/DEN1(MB2,4),DEN2(MB2,4)
+      COMMON/EIGN/EIGEN(MDM)
+      COMMON/ENRG/ETOT,ENUC,EONE,ECLG,ECLQ,EBRG,EBRQ,EHNC,EHKN,EGDR,
+     &            EGXC,EQDR,EQXC,EBDR,EBXC,EMDR,EMXC,EUEH
+      COMMON/FILL/NCNF(MCT,MKP,MKP+1),NLVL(MCT,MKP),IFILL(MCT)
+      COMMON/GAOC/G11(MBD,MBD),G21(MBD,MBD),G12(MBD,MBD),G22(MBD,MBD),
+     &            B11(MBD,MBD),B21(MBD,MBD),B12(MBD,MBD),B22(MBD,MBD)
+      COMMON/MDLV/ELMNT
+      COMMON/MTRX/OVAP,HNUC,HKIN,VUEH,GDIR,GXCH,QDIR,QXCH,BDIR,BXCH,FOCK
+      COMMON/OCPD/IOCPN(MDM),IOCCM0
+      COMMON/PRMS/CV,HMLTN,ITREE,IMOL,INEW,IEQS,IERC,IPAR,ICOR,ILEV
+      COMMON/SPEC/EXPSET(MBS,MKP,MCT),COORD(3,MCT),ZNUC(MCT),AMASS(MCT),
+     &            CNUC(MCT),PNUC,LARGE(MCT,MKP,MKP+1),NFUNCT(MKP,MCT),
+     &            KVALS(MKP,MCT),IZNUC(MCT),IQNUC(MCT),LMAX(MCT),
+     &            NKAP(MCT),NCNT,NDIM,NSHIFT,NOCC,NVRT
+C
+C     CONVERGENCE TOLERANCE VALUE
+      IF(HMLTN.EQ.'NORL') THEN
+        ENRGTOL = 5.0D-12
+      ELSE
+        ENRGTOL = 5.0D-13
+      ENDIF
+C
+C     IMPORT ATOMIC CHARGE DETAILS
+      IZN  = IZNUC(ICNT)
+      ZCRG = ZNUC(ICNT)
+      ELNM = ELMNT(IZN)
+      ICRG = IQNUC(ICNT)
+      MLQN = LMAX(ICNT)
+C
+C     CONVERT IZN AND ICRG TO STRINGS AND WRITE TITLE
+      IF(IZN.LT.10) THEN
+        WRITE(ZWRT,'(A,I1)') 'Z = ',IZN
+      ELSEIF(IZN.LT.100) THEN
+        WRITE(ZWRT,'(A,I2)') 'Z = ',IZN
+      ELSE
+        WRITE(ZWRT,'(A,I3)') 'Z = ',IZN
+      ENDIF
+C
+      IF(ICRG.LT.10) THEN
+        WRITE(QWRT,'(A,I2)') 'Q = ',ICRG
+      ELSEIF(IZN.LT.100) THEN
+        WRITE(QWRT,'(A,I3)') 'Q = ',ICRG
+      ELSE
+        WRITE(QWRT,'(A,I4)') 'Q = ',ICRG
+      ENDIF
+C
+      IF(ICRG.GT.0) THEN
+        QSGN = '+'
+      ELSEIF(ICRG.LT.0) THEN
+        QSGN = '-'
+      ENDIF
+C
+      ICMD = IABS(ICRG)
+      IF(ICRG.EQ.0) THEN
+        WRITE(EWRT,'(A,A,A)') '(',TRIM(ELNM),')'
+      ELSEIF(ICMD.EQ.1) THEN
+        WRITE(EWRT,'(A,A,A,A,A)') '(',TRIM(ELNM),'^',QSGN,')'
+      ELSEIF(ICMD.LT.10) THEN
+        WRITE(EWRT,'(A,A,A,I1,A,A)') '(',TRIM(ELNM),'^',ICMD,QSGN,')'
+      ELSEIF(ICMD.LT.100) THEN
+        WRITE(EWRT,'(A,A,A,I2,A,A)') '(',TRIM(ELNM),'^',ICMD,QSGN,')'
+      ELSE
+        WRITE(EWRT,'(A,A,A,I2,A,A)') '(',TRIM(ELNM),'^',ICMD,QSGN,')'
+      ENDIF
+C
+C     PRINT TITLE SUMMARY FOR THIS ATOM
+20    FORMAT(17X,'Center',I3,':',3X,A,3X,A,3X,A)
+      WRITE(6, *) REPEAT(' ',72)
+      WRITE(7, *) REPEAT(' ',72)
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+      WRITE(6,20) ICNT,ZWRT,QWRT,EWRT
+      WRITE(7,20) ICNT,ZWRT,QWRT,EWRT
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+C
+C     READ OR GENERATE AUFBAU OCCUPANCY FOR THIS ATOM
+      IF(IFILL(ICNT).EQ.0) THEN
+        CALL AUFBAU(IZN,ICRG,NORB,NUMOCC,LMXCONF)
+      ELSE
+        LMXCONF = LMAX(ICNT)
+        DO LQN=1,LMXCONF+1
+          NUMOCC(LQN) = NLVL(ICNT,LQN)
+          DO N=1,NLVL(ICNT,LQN)
+            NORB(LQN,N) = NCNF(ICNT,LQN,N)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     IDENTIFY THE HIGHEST OCCUPIED SHELL
+      NMAX = 1
+      DO LQN=1,LMXCONF+1
+        IF(NUMOCC(LQN).GT.NMAX) THEN
+          NMAX = NUMOCC(LQN)
+        ENDIF
+      ENDDO
+C
+C     CHECK WHETHER THERE ARE SUFFICIENT BASIS FUNCTION TYPES
+      IF(MLQN.LT.LMXCONF) THEN
+        WRITE(6, *) 'In HFSCF0: insufficient angular types in basis.'
+        WRITE(7, *) 'In HFSCF0: insufficient angular types in basis.'
+        WRITE(6, *) 'MLQN = ',MLQN,' and LMXCONF = ',LMXCONF
+        WRITE(7, *) 'MLQN = ',MLQN,' and LMXCONF = ',LMXCONF
+        STOP
+      ENDIF
+C
+C     PRINT ATOMIC CONFIGURATION
+30    FORMAT(1X,A,2X,A,1X,'|',2X'NSHELL ',12(2X,I2))
+31    FORMAT(1X,'LQN = ',I1,3X,I2,2X,'|'1X,' OCC(',A,'):',A,12(2X,I2))
+C
+      IF(IFILL(ICNT).EQ.0) THEN
+        WRITE(6,30) 'Aufbau:','#fns',(N,N=1,12)
+        WRITE(7,30) 'Aufbau:','#fns',(N,N=1,12)
+      ELSE
+        WRITE(6,30) 'Manual:','#fns',(N,N=1,12)
+        WRITE(7,30) 'Manual:','#fns',(N,N=1,12)
+      ENDIF
+      WRITE(6, *) REPEAT('-',72)
+      WRITE(7, *) REPEAT('-',72)
+      DO LQN=0,LMAX(ICNT)
+        WRITE(6,31) LQN,NFUNCT(LQN+1,ICNT),ELLTERM(LQN),
+     &               REPEAT(' ',LQN*4),(NORB(LQN+1,J),J=1,NUMOCC(LQN+1))
+        WRITE(7,31) LQN,NFUNCT(LQN+1,ICNT),ELLTERM(LQN),
+     &               REPEAT(' ',LQN*4),(NORB(LQN+1,J),J=1,NUMOCC(LQN+1))
+      ENDDO
+C
+C     RESULTS FOR EACH ITERATION
+40    FORMAT(1X,A,10X,A,10X,A,13X,A,11X,A)
+41    FORMAT(I3,2X,F15.6,2X,F15.6,2X,F18.6,4X,ES12.5)
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+      WRITE(6,40) 'It','E1 (au)','E2 (au)','ET (au)','Ratio'
+      WRITE(7,40) 'It','E1 (au)','E2 (au)','ET (au)','Ratio'
+      WRITE(6, *) REPEAT('-',72)
+      WRITE(7, *) REPEAT('-',72)
+C
+C     IMPORT NUCLEAR RADIUS FOR THIS CENTER
+      PNUC = CNUC(ICNT)
+C
+C     INITIALISE A STORAGE BIN FOR PREVIOUS ATOMIC ENERGY
+      EPRV = 0.0D0
+C
+C**********************************************************************C
+C     ZERO-BODY PROBLEM: IZN-ICRG = 0. (NO ELECTRONS AROUND CENTER.)   C
+C**********************************************************************C
+C
+      IF(IZN.EQ.ICRG) THEN
+C
+C       NO OCCUPYING ELECTRON -> NO EIGENVALUE NEEDED
+C
+        EH = 0.0D0
+        EG = 0.0D0
+        EB = 0.0D0
+        ENEW = EH-EG-EB
+
+        WRITE(6,41) 1,EH,EG,ENEW,1.0D0
+        WRITE(7,41) 1,EH,EG,ENEW,1.0D0
+C
+        GOTO 1001
+C
+C**********************************************************************C
+C     ONE-BODY PROBLEM: IZN-ICRG = 1. (NO COULOMB ENERGY.)             C
+C**********************************************************************C
+C
+      ELSEIF(IZN-ICRG.EQ.1) THEN
+C
+C       IMPORT ORDERED ELECTRON OCCUPATION NUMBER
+        IOCCML = IOCCM0
+C
+C       GROUND STATE OF SINGLY-OCCUPIED ATOM: LQNA = 0
+        LQNA = 0
+C
+C       EFFECTIVE AND AVERAGE OCCUPATION NUMBERS FOR THIS LQNA ORBITAL
+C       A CLOSED SUBSHELL (NSHELL,LQNA) CONTAINS NCLS ELECTRONS
+        NCLS = 4*LQNA+2
+C
+C       CORRESPONDING RELATIVISTIC QUANTUM NUMBER
+        KAPA2 =-LQNA-1
+        IF(HMLTN.EQ.'NORL') THEN
+          RK2A2 = DFLOAT(NCLS)
+        ELSE
+          RK2A2 = DFLOAT(2*IABS(KAPA2))
+        ENDIF
+C
+C       IMPORT BASIS FUNCTION EXPONENTS
+        NBASA = NFUNCT(LQNA+1,ICNT)
+        DO IBAS=1,NBASA
+          EXLA(IBAS) = EXPSET(IBAS,LQNA+1,ICNT)
+        ENDDO
+C
+C       MATRIX DIMENSIONS FOR THIS LQNA BLOCK
+        IF(HMLTN.EQ.'NORL') THEN
+          NBLC = 0
+        ELSE
+          NBLC = NBASA
+        ENDIF
+        NMAT = NBASA+NBLC
+C
+C       GENERATE OVERLAP AND BARE DIRAC MATRICES
+        CALL OVRLP0(O2,EXLA,     KAPA2,NBASA)
+        CALL ONEEL0(H2,EXLA,ZCRG,KAPA2,NBASA)
+C
+C       ATOMIC UEHLING INTERACTION
+        IF(HMLTN.EQ.'DHFQ') THEN
+C
+C         GENERATE UEHLING MATRIX ELEMENTS
+          CALL UEHLING0(U2,EXLA,ZCRG,KAPA2,NBASA)
+C
+C         ADD UEHLING MATRIX ELEMENTS CONTRIBUTIONS TO FOCK MATRIX
+          DO IBAS=1,NMAT
+            DO JBAS=1,NMAT
+              H2(IBAS,JBAS) = H2(IBAS,JBAS) + U2(IBAS,JBAS)
+            ENDDO
+          ENDDO
+C
+        ENDIF
+C
+C       DIAGONALISE MATRIX (THIS NEEDS LAPACK LIBRARY)
+        CALL DSYGV(1,'V','U',NMAT,H2,MBD,O2,MBD,W2,T,LWK,INFO)
+        IF(INFO.NE.0) THEN
+          WRITE(6, *) 'In HFSCF0: eigenvalue solver DSYGV failed.',INFO
+          WRITE(7, *) 'In HFSCF0: eigenvalue solver DSYGV failed.',INFO
+          STOP
+        ENDIF
+C
+C       COEFFICIENT MATRIX ADDRESSES
+        IL1 = LARGE(ICNT,2*LQNA+1,1)
+        IL2 = LARGE(ICNT,2*LQNA+1,2)
+        IS1 = IL1 + NSHIFT
+        IS2 = IL2 + NSHIFT
+C
+C       EFFECTIVE OCCUPATION NUMBER
+        QF = 1.0D0/DSQRT(2.0D0)
+C
+C       COPY INTO MASTER COEFFICIENT LIST
+        DO IBAS=1,NBASA
+C
+C         LARGE COMPONENT OF KRAMERS PAIR
+          CL = QF*H2(IBAS      ,NBLC+1)
+          C(IL1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CL,0.0D0)
+          C(IL2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CL,0.0D0)
+C
+C         SMALL COMPONENT OF KRAMERS PAIR
+          IF(HMLTN.NE.'NORL') THEN
+            CS = QF*H2(IBAS+NBLC,NBLC+1)
+            C(IS1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CS,0.0D0)
+            C(IS2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CS,0.0D0)
+          ENDIF
+C
+        ENDDO
+C
+C       STORE LOWEST ENERGY EIGENVALUES TO MASTER LIST
+        EIGEN(IOCCML+NSHIFT+1) = W2(NBLC+1)
+        EIGEN(IOCCML+NSHIFT+2) = W2(NBLC+1)
+C
+C       INCREASE FOCK ADDRESS OF OCCUPIED ORBITALS (PAIR AT A TIME)
+        IOCCML = IOCCML+2
+C
+C       ONE- AND TWO-BODY ENERGIES
+        EH = W2(NBLC+1)
+C
+C       UEHLING INTERACTION ENERGIES FOR OCCUPIED ELECTRONS
+        M = 0
+        DO IBAS=1,NBASA
+          DO JBAS=1,NBASA
+            M = M+1
+C
+C           SMALL-COMPONENT ADDRESSES
+            KBAS = IBAS+NBLC
+            LBAS = JBAS+NBLC
+C
+C           ADD CONTRIBUTIONS TO UEHLING ENERGY
+            EU = EU + U2(IBAS,JBAS)*H2(IBAS,NBLC+1)*H2(JBAS,NBLC+1)
+            IF(HMLTN.NE.'NORL') THEN
+              EU = EU + U2(KBAS,LBAS)*H2(KBAS,NBLC+1)*H2(LBAS,NBLC+1)
+            ENDIF
+C
+          ENDDO
+        ENDDO
+C
+        EG = 0.0D0
+        EB = 0.0D0
+        ENEW = EH
+C
+C       WRITE RESULT
+        WRITE(6,41) 1,EH,0.0D0,ENEW,1.0D0
+        WRITE(7,41) 1,EH,0.0D0,ENEW,1.0D0
+C
+C       UPDATE FOCK LABEL FOR OCCUPATION COUNTER
+        IOCCM0 = IOCCML
+C
+C       EXIT TO CONVERGENCE
+        GOTO 1001
+C
+      ENDIF
+C
+C**********************************************************************C
+C     TWO-BODY PROBLEM: INTERACTING ELECTRONS. (TREAT WITH SCF.)       C
+C -------------------------------------------------------------------- C
+C     ENTER ITERATIVE SELF-CONSISTENT FIELD PROCEDURE (USE INDEX 1000) C
+C**********************************************************************C
+C
+      DO 1000 ITER=1,MIT
+      
+      IF(ITER.EQ.28) THEN
+C
+209     FORMAT(2X,'LA',1X,'LB',8X,'E(LL-SS)',8X,'E(SS-LL)',8X,
+     &                                          'E(SL-LS)',11X,'E_TOT')
+        WRITE(*,209)
+      WRITE(*,  *)
+C
+      ENDIF
+
+C       INITIALISE ONE-BODY AND TWO-BODY ENERGY COUNTERS
+        EH = 0.0D0
+        EU = 0.0D0
+        EG = 0.0D0
+        EB = 0.0D0
+C
+C       INITIALISE ELECTRON OCCUPATION COUNTER
+        IOCCML = IOCCM0
+C
+C**********************************************************************C
+C     ONE-ELECTRON PART: LOOP OVER BASIS FUNCTIONS I,J (USE INDEX 100) C
+C**********************************************************************C
+C
+C     LOOP OVER ALL OCCUPIED LQN VALUES
+      DO 100 LQNA=0,LMXCONF
+C
+C     RECORD LQNA VALUE AND READ BASIS FUNCTIONS FOR THIS LQN
+      NBASA = NFUNCT(LQNA+1,ICNT)
+      DO IBAS=1,NBASA
+        EXLA(IBAS) = EXPSET(IBAS,LQNA+1,ICNT)
+      ENDDO
+C
+C     MATRIX DIMENSIONS FOR THIS LQNA BLOCK
+      IF(HMLTN.EQ.'NORL') THEN
+        NBLC = 0
+      ELSE
+        NBLC = NBASA
+      ENDIF
+      NMAT = NBASA+NBLC
+C
+C     EFFECTIVE AND AVERAGE OCCUPATION NUMBERS FOR THIS LQNA ORBITAL
+C     A CLOSED SUBSHELL (NSHELL,LQNA) CONTAINS NCLS ELECTRONS
+      NCLS = 4*LQNA+2
+C
+C     FOR EACH OCCUPIED NSHELL OF THIS LQNA CLASS
+      DO IOCC=1,NUMOCC(LQNA+1)
+C
+C       NUMBER OF CHARGES IN THIS SUBSHELL (NSHELL,LQNA)
+        NQ = NORB(LQNA+1,IOCC)
+C
+C       IF SUBSHELL IS CLOSED THERE IS NO FRACTIONAL OCCUPANCY
+        IF(NQ.EQ.NCLS) THEN
+          QE(IOCC) = 1.0D0
+C       IF SUBSHELL IS OPEN, CONSTRUCT FRACTION (GRANT 6.6.24)
+        ELSE
+          QE(IOCC) = DFLOAT(NQ-1)/DFLOAT(NCLS-1)
+        ENDIF
+C
+C       ACTUAL FRACTIONAL SUBSHELL OCCUPANCY
+        IF(NQ.GT.0) THEN
+          QA(IOCC) = DFLOAT(NQ)/DFLOAT(NCLS)
+        ELSE
+          QA(IOCC) = 0.0D0
+        ENDIF
+C
+      ENDDO
+C
+C     POSITIVE KAPPA(A) CHOICE (APPLIES ONLY FOR LQNA > 0)
+      IF(LQNA.EQ.0.OR.HMLTN.EQ.'NORL') GOTO 130
+
+      KAPA1 = LQNA
+      RK2A1 = DFLOAT(2*IABS(KAPA1))
+C
+C     GENERATE OVERLAP AND BARE DIRAC MATRICES
+      CALL OVRLP0(O1,EXLA,     KAPA1,NBASA)
+      CALL ONEEL0(H1,EXLA,ZCRG,KAPA1,NBASA)
+C
+C     ATOMIC UEHLING INTERACTION
+      IF(HMLTN.EQ.'DHFQ') THEN
+C
+C       GENERATE UEHLING MATRIX ELEMENTS
+        CALL UEHLING0(U1,EXLA,ZCRG,KAPA1,NBASA)
+C
+C       ADD UEHLING MATRIX ELEMENTS CONTRIBUTIONS TO FOCK MATRIX
+        DO IBAS=1,NMAT
+          DO JBAS=1,NMAT
+            H1(IBAS,JBAS) = H1(IBAS,JBAS) + U1(IBAS,JBAS)
+          ENDDO
+        ENDDO
+C
+      ENDIF
+C
+130   CONTINUE
+C
+C     NEGATIVE KAPPA(A) CHOICE (APPLIES TO ALL LQNA VALUES)
+      KAPA2 =-LQNA-1
+      IF(HMLTN.EQ.'NORL') THEN
+        RK2A2 = DFLOAT(NCLS)
+      ELSE
+        RK2A2 = DFLOAT(2*IABS(KAPA2))
+      ENDIF
+C
+C     GENERATE OVERLAP AND BARE DIRAC MATRICES
+      CALL OVRLP0(O2,EXLA,     KAPA2,NBASA)
+      CALL ONEEL0(H2,EXLA,ZCRG,KAPA2,NBASA)
+C
+C     ATOMIC UEHLING INTERACTION
+      IF(HMLTN.EQ.'DHFQ') THEN
+C
+C       GENERATE UEHLING MATRIX ELEMENTS
+        CALL UEHLING0(U2,EXLA,ZCRG,KAPA2,NBASA)
+C
+C       ADD UEHLING MATRIX ELEMENTS CONTRIBUTIONS TO FOCK MATRIX
+        DO IBAS=1,NMAT
+          DO JBAS=1,NMAT
+            H2(IBAS,JBAS) = H2(IBAS,JBAS) + U2(IBAS,JBAS)
+          ENDDO
+        ENDDO
+C
+      ENDIF
+C
+C     SKIP SCF INTERACTIONS IN FIRST ITERATION
+      IF(ITER.EQ.1) GOTO 150
+C
+C     INITIALISE RELEVANT COUNTERS AND ARRAYS
+      RK2B1 = 0.0D0
+      RK2B2 = 0.0D0
+C
+C**********************************************************************C
+C     TWO-ELECTRON PART: LOOP OVER BASIS FUNCTIONS K,L (USE INDEX 200) C
+C**********************************************************************C
+C
+C     LOOP OVER ALL OCCUPIED LQN VALUES
+      DO 200 LQNB=0,LMXCONF
+C
+C     RECORD LQNB VALUE AND READ BASIS FUNCTIONS FOR THIS LQN
+      NBASB = NFUNCT(LQNB+1,ICNT)
+      DO JBAS=1,NBASB
+        EXLB(JBAS) = EXPSET(JBAS,LQNB+1,ICNT)
+      ENDDO
+C
+C     NUMBER OF BASIS FUNCTION OVERLAPS IN THIS BLOCK
+      MAXM = NBASB*NBASB
+C
+C     POSITIVE KAPPA(B) CHOICE (APPLIES ONLY FOR LQNB > 0)
+      IF(LQNB.EQ.0.OR.HMLTN.EQ.'NORL') GOTO 230
+C
+C     ANGULAR QUANTUM NUMBER AND DEGENERACY
+      KAPB1 = LQNB
+      RK2B1 = DFLOAT(2*IABS(KAPB1))
+C
+C     RELEVANT DENSITY MATRIX DEPENDS ON LQNA AND LQNB
+      IF(LQNA.EQ.LQNB) THEN
+        DO M=1,MAXM
+          DEN1(M,1) = DENLL(M,2*LQNB  )
+          DEN1(M,2) = DENSL(M,2*LQNB  )
+          DEN1(M,3) = DENSS(M,2*LQNB  )
+          DEN1(M,4) = DENLS(M,2*LQNB  )
+        ENDDO
+      ELSEIF(LQNA.NE.LQNB) THEN
+        DO M=1,MAXM
+          DEN1(M,1) = DFNLL(M,2*LQNB  )
+          DEN1(M,2) = DFNSL(M,2*LQNB  )
+          DEN1(M,3) = DFNSS(M,2*LQNB  )
+          DEN1(M,4) = DFNLS(M,2*LQNB  )
+        ENDDO
+      ENDIF
+C
+230   CONTINUE
+C
+C     NEGATIVE KAPPA(B) CHOICE (APPLIES TO ALL LQNB VALUES)
+C
+C     ANGULAR QUANTUM NUMBER AND DEGENERACY
+      KAPB2 =-LQNB-1
+      IF(HMLTN.EQ.'NORL') THEN
+        RK2B2 = DFLOAT(4*LQNB+2)
+      ELSE
+        RK2B2 = DFLOAT(2*IABS(KAPB2))
+      ENDIF
+C
+C     RELEVANT DENSITY MATRIX DEPENDS ON LQNA AND LQNB
+      IF(LQNA.EQ.LQNB) THEN
+        DO M=1,MAXM
+          DEN2(M,1) = DENLL(M,2*LQNB+1)
+          IF(HMLTN.NE.'NORL') THEN
+            DEN2(M,2) = DENSL(M,2*LQNB+1)
+            DEN2(M,3) = DENSS(M,2*LQNB+1)
+            DEN2(M,4) = DENLS(M,2*LQNB+1)
+          ENDIF
+        ENDDO
+      ELSEIF(LQNA.NE.LQNB) THEN
+        DO M=1,MAXM
+          DEN2(M,1) = DFNLL(M,2*LQNB+1)
+          IF(HMLTN.NE.'NORL') THEN
+            DEN2(M,2) = DFNSL(M,2*LQNB+1)
+            DEN2(M,3) = DFNSS(M,2*LQNB+1)
+            DEN2(M,4) = DFNLS(M,2*LQNB+1)
+          ENDIF
+        ENDDO
+      ENDIF
+C
+C**********************************************************************C
+C     GENERATE ATOMIC MEAN-FIELD COULOMB MATRIX                        C
+C**********************************************************************C
+C
+C     EVALUATE CLOSED-SHELL ELECTRON REPULSION ANGULAR INTEGRALS
+      CALL ANGCLM0
+C
+C     GENERATE THE MEAN-FIELD ATOMIC COULOMB MATRIX OVER DENSITIES
+      CALL COULOMB0
+C
+C     ADD COULOMB MATRIX ELEMENTS CONTRIBUTIONS TO FOCK MATRIX
+      DO IBAS=1,NMAT
+        DO JBAS=1,NMAT
+C
+          IF(HMLTN.EQ.'NORL') THEN
+C         NON-RELATIVISTIC COULOMB MATRIX
+C
+            H2(IBAS,JBAS) = H2(IBAS,JBAS) + RK2B2*G22(IBAS,JBAS)
+C
+          ELSE
+C         RELATIVISTIC COULOMB MATRIX
+C
+            H1(IBAS,JBAS) = H1(IBAS,JBAS) + RK2B1*G11(IBAS,JBAS)
+     &                                    + RK2B2*G12(IBAS,JBAS)
+            H2(IBAS,JBAS) = H2(IBAS,JBAS) + RK2B1*G21(IBAS,JBAS)
+     &                                    + RK2B2*G22(IBAS,JBAS)
+C
+          ENDIF
+C
+        ENDDO
+      ENDDO
+C
+C     TWO-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+      M = 0
+      DO IBAS=1,NBASA
+        DO JBAS=1,NBASA
+          M = M+1
+C
+          IF(HMLTN.EQ.'NORL') THEN
+C         NON-RELATIVISTIC COULOMB ENERGY
+C
+            EG = EG + RK2A2*RK2B2*G22(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+C
+          ELSE
+C         RELATIVISTIC  COULOMB ENERGY
+C
+C           SMALL COMPONENT BLOCK ADDRESSES
+            KBAS = IBAS+NBASA
+            LBAS = JBAS+NBASA
+C
+C           LL BLOCK
+            EG = EG
+     &         +       RK2A1*RK2B1*G11(IBAS,JBAS)*DFNLL(M,2*LQNA  )
+     &         +       RK2A1*RK2B2*G12(IBAS,JBAS)*DFNLL(M,2*LQNA  )
+     &         +       RK2A2*RK2B1*G21(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+     &         +       RK2A2*RK2B2*G22(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+C
+C           SL BLOCK
+            EG = EG
+     &         + 2.0D0*RK2A1*RK2B1*G11(KBAS,JBAS)*DFNSL(M,2*LQNA  )
+     &         + 2.0D0*RK2A1*RK2B2*G12(KBAS,JBAS)*DFNSL(M,2*LQNA  )
+     &         + 2.0D0*RK2A2*RK2B1*G21(KBAS,JBAS)*DFNSL(M,2*LQNA+1)
+     &         + 2.0D0*RK2A2*RK2B2*G22(KBAS,JBAS)*DFNSL(M,2*LQNA+1)
+C
+C           SS BLOCK
+            EG = EG
+     &         +       RK2A1*RK2B1*G11(KBAS,LBAS)*DFNSS(M,2*LQNA  )
+     &         +       RK2A1*RK2B2*G12(KBAS,LBAS)*DFNSS(M,2*LQNA  )
+     &         +       RK2A2*RK2B1*G21(KBAS,LBAS)*DFNSS(M,2*LQNA+1)
+     &         +       RK2A2*RK2B2*G22(KBAS,LBAS)*DFNSS(M,2*LQNA+1)
+C
+          ENDIF
+C
+        ENDDO
+      ENDDO
+C
+C**********************************************************************C
+C     GENERATE ATOMIC MEAN-FIELD BREIT MATRIX                          C
+C**********************************************************************C
+C
+C     GENERATE THE MEAN-FIELD ATOMIC BREIT MATRIX
+C     DFNOTE: BREIT0 NOT WORKING YET
+      IF(ITER.NE.28) GOTO 250
+c      IF(LQNA.NE.0.OR.LQNB.NE.0) GOTO 250
+C
+C      IF(HMLTN.NE.'DHFB'.AND.HMLTN.NE.'DHFQ') GOTO 250
+C
+C     EVALUATE CLOSED-SHELL BREIT INTERACTION ANGULAR INTEGRALS
+      CALL ANGBRT0
+C
+C     GENERATE THE MEAN-FIELD ATOMIC BREIT MATRIX OVER DENSITIES
+      CALL BREIT0
+C
+      GOTO 251
+C
+C     ADD TWO-PARTICLE CONTRIBUTIONS TO FOCK MATRIX
+      DO IBAS=1,NMAT
+        DO JBAS=1,NMAT
+C
+          H1(IBAS,JBAS) = H1(IBAS,JBAS) + RK2B1*B11(IBAS,JBAS)
+     &                                  + RK2B2*B12(IBAS,JBAS)
+          H2(IBAS,JBAS) = H2(IBAS,JBAS) + RK2B1*B21(IBAS,JBAS)
+     &                                  + RK2B2*B22(IBAS,JBAS)
+C
+        ENDDO
+      ENDDO
+C
+251   CONTINUE
+C
+C     TWO-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+      M = 0
+      DO IBAS=1,NBASA
+        DO JBAS=1,NBASA
+          M = M+1
+C
+C         SMALL COMPONENT BLOCK ADDRESSES
+          KBAS = IBAS+NBASA
+          LBAS = JBAS+NBASA
+C
+C         LL BLOCK
+          EB = EB
+     &       +       RK2A1*RK2B1*B11(IBAS,JBAS)*DFNLL(M,2*LQNA  )
+     &       +       RK2A1*RK2B2*B12(IBAS,JBAS)*DFNLL(M,2*LQNA  )
+     &       +       RK2A2*RK2B1*B21(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+     &       +       RK2A2*RK2B2*B22(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+C
+C         SL BLOCK
+          EB = EB
+     &       + 2.0D0*RK2A1*RK2B1*B11(KBAS,JBAS)*DFNSL(M,2*LQNA  )
+     &       + 2.0D0*RK2A1*RK2B2*B12(KBAS,JBAS)*DFNSL(M,2*LQNA  )
+     &       + 2.0D0*RK2A2*RK2B1*B21(KBAS,JBAS)*DFNSL(M,2*LQNA+1)
+     &       + 2.0D0*RK2A2*RK2B2*B22(KBAS,JBAS)*DFNSL(M,2*LQNA+1)
+C
+C         SS BLOCK
+          EB = EB
+     &       +       RK2A1*RK2B1*B11(KBAS,LBAS)*DFNSS(M,2*LQNA  )
+     &       +       RK2A1*RK2B2*B12(KBAS,LBAS)*DFNSS(M,2*LQNA  )
+     &       +       RK2A2*RK2B1*B21(KBAS,LBAS)*DFNSS(M,2*LQNA+1)
+     &       +       RK2A2*RK2B2*B22(KBAS,LBAS)*DFNSS(M,2*LQNA+1)
+C
+        ENDDO
+      ENDDO
+C
+210   FORMAT(1X,'(',I2,',',I2,')',2X,F13.10,3X,F13.10,3X,F13.10,
+     &                                                        3X,F13.10)
+C
+      EBLL = 0.0D0
+      EBSL = 0.0D0
+      EBSS = 0.0D0
+C
+C     TWO-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+      M = 0
+      DO IBAS=1,NBASA
+        DO JBAS=1,NBASA
+          M = M+1
+C
+C         SMALL COMPONENT BLOCK ADDRESSES
+          KBAS = IBAS+NBASA
+          LBAS = JBAS+NBASA
+C
+C         LL BLOCK
+          EBLL = EBLL
+     &       +       RK2A1*RK2B1*B11(IBAS,JBAS)*DFNLL(M,2*LQNA  )
+     &       +       RK2A1*RK2B2*B12(IBAS,JBAS)*DFNLL(M,2*LQNA  )
+     &       +       RK2A2*RK2B1*B21(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+     &       +       RK2A2*RK2B2*B22(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+C
+C         SL BLOCK
+          EBSL = EBSL
+     &       +       RK2A1*RK2B1*B11(KBAS,JBAS)*DFNSL(M,2*LQNA  )
+     &       +       RK2A1*RK2B2*B12(KBAS,JBAS)*DFNSL(M,2*LQNA  )
+     &       +       RK2A2*RK2B1*B21(KBAS,JBAS)*DFNSL(M,2*LQNA+1)
+     &       +       RK2A2*RK2B2*B22(KBAS,JBAS)*DFNSL(M,2*LQNA+1)
+C
+C         SS BLOCK
+          EBSS = EBSS
+     &       +       RK2A1*RK2B1*B11(KBAS,LBAS)*DFNSS(M,2*LQNA  )
+     &       +       RK2A1*RK2B2*B12(KBAS,LBAS)*DFNSS(M,2*LQNA  )
+     &       +       RK2A2*RK2B1*B21(KBAS,LBAS)*DFNSS(M,2*LQNA+1)
+     &       +       RK2A2*RK2B2*B22(KBAS,LBAS)*DFNSS(M,2*LQNA+1)
+C
+        ENDDO
+      ENDDO
+C
+      EBLL = EBLL*0.5d0
+      EBSS = EBSS*0.5d0
+      EBSL = EBSL*0.5d0
+      WRITE(*,210) LQNA,LQNB,EBLL,EBSS,EBSL,EBLL+EBSS+EBSL+EBSL
+      WRITE(*,  *)
+C
+250   CONTINUE
+C
+C**********************************************************************C
+C     FINISHED GENERATING TWO-ELECTRON INTEGRALS                       C
+C**********************************************************************C
+C
+C     END LOOP OVER LQNS FOR ORBITAL B
+200   CONTINUE
+C
+C       UEHLING INTERACTION ENERGIES FOR OCCUPIED ELECTRONS
+        IF(HMLTN.EQ.'DHFQ') THEN
+C
+          M = 0
+          DO IBAS=1,NBASA
+            DO JBAS=1,NBASA
+              M = M+1
+C
+              IF(HMLTN.EQ.'NORL') THEN
+C             NON-RELATIVISTIC UEHLING ENERGY
+C
+                EU = EU + RK2A2*U2(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+C
+              ELSE
+C             RELATIVISTIC UEHLING ENERGY
+C
+C               SMALL COMPONENT BLOCK ADDRESSES
+                KBAS = IBAS+NBASA
+                LBAS = JBAS+NBASA
+C
+C               LL BLOCK
+                EU = EU + RK2A1*U1(IBAS,JBAS)*DFNLL(M,2*LQNA  )
+     &                  + RK2A2*U2(IBAS,JBAS)*DFNLL(M,2*LQNA+1)
+C
+C               SS BLOCK
+                EU = EU + RK2A1*U1(KBAS,LBAS)*DFNSS(M,2*LQNA  )
+     &                  + RK2A2*U2(KBAS,LBAS)*DFNSS(M,2*LQNA+1)
+C
+              ENDIF
+C
+            ENDDO
+          ENDDO
+C
+        ENDIF
+C
+C     FINISH GENERATING SCF CONTRIBUTIONS
+150   CONTINUE
+C
+C     FINISHED CALCULATING OVERLAP COMBINATIONS BETWEEN THIS LQNA
+C     VALUE AND ALL POSSIBLE LQNB VALUES
+C
+C**********************************************************************C
+C     MATRIX DIAGONALISATION AND COEFFICIENT MATRIX UPDATES            C
+C**********************************************************************C
+C
+C     POSITIVE KAPPA(A) CHOICE (APPLIES ONLY FOR LQNA > 0)
+      IF(LQNA.EQ.0.OR.HMLTN.EQ.'NORL') GOTO 140
+C
+C     DIAGONALISE FOCK MATRIX (THIS NEEDS LAPACK LIBRARY)
+      CALL DSYGV(1,'V','U',NMAT,H1,MBD,O1,MBD,W1,T,LWK,INFO)
+      IF(INFO.NE.0) THEN
+        WRITE(6, *) 'In HFSCF0: eigenvalue solver DSYGV failed.',INFO
+        WRITE(7, *) 'In HFSCF0: eigenvalue solver DSYGV failed.',INFO
+        STOP
+      ENDIF
+C
+C     ATOMIC SELECTION RULE: ORTHOGONALITY IN BLOCKS OF KQN -> KA = KB
+C
+C     BEGIN LOOP OVER MQNA VALUES
+      DO IMVAL=1,IABS(KAPA1)
+C
+C       COEFFICIENT MATRIX ADDRESSES
+        IL1 = LARGE(ICNT,2*LQNA  ,IMVAL*2-1)
+        IL2 = LARGE(ICNT,2*LQNA  ,IMVAL*2  )
+        IS1 = IL1 + NSHIFT
+        IS2 = IL2 + NSHIFT
+C
+C       COPY INTO MASTER COEFFICIENT LIST IF QA IS POSITIVE
+        DO IOCC=1,NUMOCC(LQNA+1)
+C
+C         EFFECTIVE OCCUPATION NUMBER
+          QF = DSQRT(QA(IOCC))
+C
+C         COPY INTO MASTER COEFFICIENT LIST
+          DO IBAS=1,NBASA
+C
+C           LARGE COMPONENT OF KRAMERS PAIR
+            CL = QF*H1(IBAS      ,NBASA+IOCC)
+            C(IL1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CL,0.0D0)
+            C(IL2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CL,0.0D0)
+C
+C           SMALL COMPONENT OF KRAMERS PAIR
+            CS = QF*H1(IBAS+NBASA,NBASA+IOCC)
+            C(IS1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CS,0.0D0)
+            C(IS2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CS,0.0D0)
+C
+          ENDDO
+C
+C         STORE LOWEST ENERGY EIGENVALUES TO MASTER LIST
+          EIGEN(IOCCML+NSHIFT+1) = W1(NBASA+IOCC)
+          EIGEN(IOCCML+NSHIFT+2) = W1(NBASA+IOCC)
+C
+C         INCREASE FOCK ADDRESS OF OCCUPIED ORBITALS (PAIR AT A TIME)
+          IOCCML = IOCCML+2
+C
+        ENDDO
+      ENDDO
+C
+C     BUILD ATOMIC CHARGE DENSITY MATRIX FOR THIS KQNA BLOCK
+      M = 0
+      DO IBAS=1,NBASA
+        DO JBAS=1,NBASA
+          M = M+1
+C
+C         INITIALISE ATOMIC DENSITY LISTS FOR THIS BLOCK
+          DENLL(M,2*LQNA  ) = 0.0D0
+          DENSL(M,2*LQNA  ) = 0.0D0
+          DENSS(M,2*LQNA  ) = 0.0D0
+          DENLS(M,2*LQNA  ) = 0.0D0
+C
+          DFNLL(M,2*LQNA  ) = 0.0D0
+          DFNSL(M,2*LQNA  ) = 0.0D0
+          DFNSS(M,2*LQNA  ) = 0.0D0
+          DFNLS(M,2*LQNA  ) = 0.0D0
+C
+C         LOOP OVER ALL OCCUPIED SHELLS OF THIS KQN TYPE
+          DO IOCC=1,NUMOCC(LQNA+1)
+            
+C           DENSITY OVERLAPS FROM EIGENVECTOR PRODUCTS
+            DLL = H1(IBAS     ,NBLC+IOCC)*H1(JBAS     ,NBLC+IOCC)
+            DSL = H1(IBAS+NBLC,NBLC+IOCC)*H1(JBAS     ,NBLC+IOCC)
+            DSS = H1(IBAS+NBLC,NBLC+IOCC)*H1(JBAS+NBLC,NBLC+IOCC)
+            DLS = H1(IBAS     ,NBLC+IOCC)*H1(JBAS     ,NBLC+IOCC)
+C
+C           ADD DENSITY CONTRIBUTIONS TO ATOMIC LIST
+            DENLL(M,2*LQNA  ) = DENLL(M,2*LQNA  ) + QE(IOCC)*DLL
+            DENSL(M,2*LQNA  ) = DENSL(M,2*LQNA  ) + QE(IOCC)*DSL
+            DENSS(M,2*LQNA  ) = DENSS(M,2*LQNA  ) + QE(IOCC)*DSS
+            DENLS(M,2*LQNA  ) = DENLS(M,2*LQNA  ) + QE(IOCC)*DLS
+C
+            DFNLL(M,2*LQNA  ) = DFNLL(M,2*LQNA  ) + QA(IOCC)*DLL
+            DFNSL(M,2*LQNA  ) = DFNSL(M,2*LQNA  ) + QA(IOCC)*DSL
+            DFNSS(M,2*LQNA  ) = DFNSS(M,2*LQNA  ) + QA(IOCC)*DSS
+            DFNLS(M,2*LQNA  ) = DFNLS(M,2*LQNA  ) + QA(IOCC)*DLS
+C
+          ENDDO
+C
+        ENDDO
+      ENDDO
+C
+C     ONE-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+      DO IOCC=1,NUMOCC(LQNA+1)
+        EH = EH + QA(IOCC)*RK2A1*W1(NBLC+IOCC)
+      ENDDO
+C
+140   CONTINUE
+C
+C     NEGATIVE KAPPA(A) CHOICE (APPLIES TO ALL LQNA VALUES)
+C
+C     DIAGONALISE FOCK MATRIX (THIS NEEDS LAPACK LIBRARY)
+      CALL DSYGV(1,'V','U',NMAT,H2,MBD,O2,MBD,W2,T,LWK,INFO)
+      IF(INFO.NE.0) THEN
+        WRITE(6, *) 'In HFSCF0: eigenvalue solver DSYGV failed.',INFO
+        WRITE(7, *) 'In HFSCF0: eigenvalue solver DSYGV failed.',INFO
+        STOP
+      ENDIF
+C
+C     ATOMIC SELECTION RULE: ORTHOGONALITY IN BLOCKS OF KQN -> KA = KB
+C
+C     BEGIN LOOP OVER MQNA VALUES
+      DO IMVAL=1,IABS(KAPA2)
+C
+C       COEFFICIENT MATRIX ADDRESSES
+        IL1 = LARGE(ICNT,2*LQNA+1,IMVAL*2-1)
+        IL2 = LARGE(ICNT,2*LQNA+1,IMVAL*2  )
+        IS1 = IL1 + NSHIFT
+        IS2 = IL2 + NSHIFT
+C
+C       LOOP OVER ALL OCCUPIED PRINCIPAL SHELLS N FOR THIS KQNA
+        DO IOCC=1,NUMOCC(LQNA+1)
+C
+C         EFFECTIVE OCCUPATION NUMBER
+          QF = DSQRT(QA(IOCC))
+C
+C         COPY INTO MASTER COEFFICIENT LIST
+          DO IBAS=1,NBASA
+C
+C           LARGE COMPONENT OF KRAMERS PAIR
+            CL = QF*H2(IBAS     ,NBLC+IOCC)
+            C(IL1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CL,0.0D0)
+            C(IL2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CL,0.0D0)
+C
+C           SMALL COMPONENT OF KRAMERS PAIR
+            IF(HMLTN.NE.'NORL') THEN
+              CS = QF*H2(IBAS+NBLC,NBLC+IOCC)
+              C(IS1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CS,0.0D0)
+              C(IS2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CS,0.0D0)
+            ENDIF
+C
+          ENDDO
+C
+C         STORE LOWEST ENERGY EIGENVALUES TO MASTER LIST
+          EIGEN(IOCCML+NSHIFT+1) = W2(NBLC+IOCC)
+          EIGEN(IOCCML+NSHIFT+2) = W2(NBLC+IOCC)
+C
+C         INCREASE FOCK ADDRESS OF OCCUPIED ORBITALS (PAIR AT A TIME)
+          IOCCML = IOCCML+2
+C
+        ENDDO
+      ENDDO
+C
+C     NON-RELATIVISTIC SPECIAL CASE: ALSO FILL IN THE +KQNA BLOCK
+      IF(HMLTN.EQ.'NORL'.AND.LQNA.GE.1) THEN
+C
+C       BEGIN LOOP OVER MQNA VALUES IN +KQNA BLOCK
+        DO IMVAL=1,IABS(KVALS(2*LQNA  ,ICNT))
+C
+C         COEFFICIENT MATRIX ADDRESSES
+          IL1 = LARGE(ICNT,2*LQNA  ,IMVAL*2-1)
+          IL2 = LARGE(ICNT,2*LQNA  ,IMVAL*2  )
+C
+C         LOOP OVER ALL OCCUPIED PRINCIPAL SHELLS N FOR THIS KQNA
+          DO IOCC=1,NUMOCC(LQNA+1)
+C
+C           EFFECTIVE OCCUPATION NUMBER
+            QF = DSQRT(QA(IOCC))
+C
+C           COPY INTO MASTER COEFFICIENT LIST
+            DO IBAS=1,NBASA
+C
+C             LARGE COMPONENT OF KRAMERS PAIR
+              CL = QF*H2(IBAS     ,NBLC+IOCC)
+              C(IL1+IBAS,IOCCML+NSHIFT+1) = DCMPLX(CL,0.0D0)
+              C(IL2+IBAS,IOCCML+NSHIFT+2) = DCMPLX(CL,0.0D0)
+C
+            ENDDO
+C
+C         STORE LOWEST ENERGY EIGENVALUES TO MASTER LIST
+          EIGEN(IOCCML+NSHIFT+1) = W2(NBLC+IOCC)
+          EIGEN(IOCCML+NSHIFT+2) = W2(NBLC+IOCC)
+C
+C         INCREASE FOCK ADDRESS OF OCCUPIED ORBITALS (PAIR AT A TIME)
+          IOCCML = IOCCML+2
+C
+          ENDDO
+C
+        ENDDO
+      ENDIF
+C
+C     BUILD ATOMIC CHARGE DENSITY MATRIX FOR THIS KQNA BLOCK
+      M = 0
+      DO IBAS=1,NBASA
+        DO JBAS=1,NBASA
+          M = M+1
+C
+C         INITIALISE ATOMIC DENSITY LISTS FOR THIS BLOCK
+          DENLL(M,2*LQNA+1) = 0.0D0
+          DFNLL(M,2*LQNA+1) = 0.0D0
+C
+          IF(HMLTN.NE.'NORL') THEN
+            DENSL(M,2*LQNA+1) = 0.0D0
+            DFNSL(M,2*LQNA+1) = 0.0D0
+C
+            DENSS(M,2*LQNA+1) = 0.0D0
+            DFNSS(M,2*LQNA+1) = 0.0D0
+C
+            DENLS(M,2*LQNA+1) = 0.0D0
+            DFNLS(M,2*LQNA+1) = 0.0D0
+          ENDIF
+C
+C         LOOP OVER ALL OCCUPIED SHELLS OF THIS KQN TYPE
+          DO IOCC=1,NUMOCC(LQNA+1)
+C
+C           LL DENSITY CONTRIBUTIONS
+            DLL = H2(IBAS     ,NBLC+IOCC)*H2(JBAS     ,NBLC+IOCC)
+            DENLL(M,2*LQNA+1) = DENLL(M,2*LQNA+1) + QE(IOCC)*DLL
+            DFNLL(M,2*LQNA+1) = DFNLL(M,2*LQNA+1) + QA(IOCC)*DLL
+C
+            IF(HMLTN.NE.'NORL') THEN
+C
+C             SL DENSITY CONTRIBUTIONS
+              DSL = H2(IBAS+NBLC,NBLC+IOCC)*H2(JBAS     ,NBLC+IOCC)
+              DENSL(M,2*LQNA+1) = DENSL(M,2*LQNA+1) + QE(IOCC)*DSL
+              DFNSL(M,2*LQNA+1) = DFNSL(M,2*LQNA+1) + QA(IOCC)*DSL
+C
+C             SS DENSITY CONTRIBUTIONS
+              DSS = H2(IBAS+NBLC,NBLC+IOCC)*H2(JBAS+NBLC,NBLC+IOCC)
+              DENSS(M,2*LQNA+1) = DENSS(M,2*LQNA+1) + QE(IOCC)*DSS
+              DFNSS(M,2*LQNA+1) = DFNSS(M,2*LQNA+1) + QA(IOCC)*DSS
+C
+C             LS DENSITY CONTRIBUTIONS
+              DLS = H2(IBAS     ,NBLC+IOCC)*H2(JBAS+NBLC,NBLC+IOCC)
+              DENLS(M,2*LQNA+1) = DENLS(M,2*LQNA+1) + QE(IOCC)*DLS
+              DFNLS(M,2*LQNA+1) = DFNLS(M,2*LQNA+1) + QA(IOCC)*DLS
+C
+            ENDIF
+C
+          ENDDO
+        ENDDO
+      ENDDO
+C
+C     ONE-BODY EIGENVALUE ENERGIES FOR OCCUPIED ELECTRONS
+      DO IOCC=1,NUMOCC(LQNA+1)
+        EH = EH + QA(IOCC)*RK2A2*W2(NBLC+IOCC)
+      ENDDO
+C
+C     END LOOP OVER LQNA VALUES
+100   CONTINUE
+C
+C     COULOMB AND BREIT ENERGIES HAVE BEEN DOUBLE-COUNTED
+      EG = EG/2.0D0
+      EB = EB/2.0D0
+C
+      E2 = EG+EB
+C
+C     TOTAL ATOMIC ENERGY IN THIS ITERATION
+      ENEW = EH-EG-EB
+C
+C     RELATIVE CHANGE IN ENERGY
+      ETEST = DABS((EPRV-ENEW)/ENEW)
+C
+C     WRITE THE ITERATION NUMBER AND THE TOTAL ENERGY
+      WRITE(6,41) ITER,EH,E2,ENEW,ETEST
+      WRITE(7,41) ITER,EH,E2,ENEW,ETEST
+C
+C     SUCCESSFUL CONVERGENCE
+      IF(ETEST.LE.ENRGTOL) THEN
+        GOTO 1001
+      ELSE
+        EPRV = ENEW
+      ENDIF
+C
+C     BARE NUCLEUS APPROXIMATION
+      IF(HMLTN.EQ.'BARE') GOTO 1001
+      
+      IF(ITER.EQ.28) GOTO 1001
+C
+C     END LOOP OVER ITERATIONS
+1000  CONTINUE
+C
+C     WARN USER THAT ATOMIC SCF DID NOT CONVERGE
+      WRITE(6, *) REPEAT('-',72)
+      WRITE(7, *) REPEAT('-',72)
+      WRITE(6, *) 'In HFSCF0: no convergence in ',ITER,' iterations.'
+      WRITE(7, *) 'In HFSCF0: no convergence in ',ITER,' iterations.'
+C
+C     COVERGENCE SUCCESSFUL
+1001  CONTINUE
+C
+C**********************************************************************C
+C     CONSTRUCT MOLECULAR OVERLAP MATRIX                               C
+C**********************************************************************C
+C
+C     LOOP OVER ALL OCCUPIED LQN VALUES
+      DO 101 LQNA=0,LMXCONF
+C
+C     IMPORT BASIS FUNCTION EXPONENTS
+      NBASA = NFUNCT(LQNA+1,ICNT)
+      DO IBAS=1,NBASA
+        EXLA(IBAS) = EXPSET(IBAS,LQNA+1,ICNT)
+      ENDDO
+C
+C     ONLY NEED 'KQN =+LQN' IN SOME CASES
+      IF(LQNA.EQ.0) GOTO 131
+C
+C     FIRST RELATIVISTIC QUANTUM NUMBER
+      KAPA1 = LQNA
+C
+C     GENERATE OVERLAP MATRIX
+      CALL OVRLP0(O1,EXLA,KAPA1,NBASA)
+C
+131   CONTINUE
+C
+C     NEED 'KQN =-LQN-1' ALWAYS
+C
+C     SECOND RELATIVISTIC QUANTUM NUMBER
+      KAPA2 =-LQNA-1
+C
+C     GENERATE OVERLAP MATRIX
+      CALL OVRLP0(O2,EXLA,KAPA2,NBASA)
+C
+C     NOW FILL IN THESE OVERLAP MATRICES...
+C
+C     ONLY NEED 'KQN =+LQN' IN SOME CASES
+      IF(LQNA.EQ.0) GOTO 141
+C
+C     BEGIN LOOP OVER MQNA VALUES
+      DO IMVAL=1,IABS(KAPA1)
+C
+C       COEFFICIENT MATRIX ADDRESSES FOR 'KQN =+LQN' CHOICE
+        IL1 = LARGE(ICNT,2*LQNA  ,IMVAL*2-1)
+        IL2 = LARGE(ICNT,2*LQNA  ,IMVAL*2  )
+        IS1 = IL1 + NSHIFT
+        IS2 = IL2 + NSHIFT
+C
+C       TRANSFER OVERLAP MATRIX TO COMMON ARRAY
+        DO IBAS=1,NBASA
+          DO JBAS=1,NBASA
+C
+C           SMALL COMPONENT BLOCK ADDRESSES
+            KBAS = IBAS+NBASA
+            LBAS = JBAS+NBASA
+C
+C           MATRIX ELEMENTS
+            OVAP(IL1+IBAS,IL1+JBAS) = DCMPLX(O1(IBAS,JBAS),0.0D0)
+            OVAP(IL2+IBAS,IL2+JBAS) = DCMPLX(O1(IBAS,JBAS),0.0D0)
+
+            IF(HMLTN.NE.'NORL') THEN
+              OVAP(IS1+IBAS,IS1+JBAS) = DCMPLX(O1(KBAS,LBAS),0.0D0)
+              OVAP(IS2+IBAS,IS2+JBAS) = DCMPLX(O1(KBAS,LBAS),0.0D0)
+            ENDIF
+C
+          ENDDO
+        ENDDO
+      ENDDO
+C
+141   CONTINUE
+C
+C     NEED 'KQN =-LQN-1' ALWAYS
+C
+C     BEGIN LOOP OVER MQNA VALUES
+      DO IMVAL=1,IABS(KAPA2)
+C
+C       COEFFICIENT MATRIX ADDRESSES FOR 'KQN =+LQN' CHOICE
+        IL1 = LARGE(ICNT,2*LQNA+1,IMVAL*2-1)
+        IL2 = LARGE(ICNT,2*LQNA+1,IMVAL*2  )
+        IS1 = IL1 + NSHIFT
+        IS2 = IL2 + NSHIFT
+C
+C       TRANSFER OVERLAP MATRIX TO COMMON ARRAY
+        DO IBAS=1,NBASA
+          DO JBAS=1,NBASA
+C
+C           SMALL COMPONENT BLOCK ADDRESSES
+            KBAS = IBAS+NBASA
+            LBAS = JBAS+NBASA
+C
+C           MATRIX ELEMENTS
+            OVAP(IL1+IBAS,IL1+JBAS) = DCMPLX(O2(IBAS,JBAS),0.0D0)
+            OVAP(IL2+IBAS,IL2+JBAS) = DCMPLX(O2(IBAS,JBAS),0.0D0)
+C
+            IF(HMLTN.NE.'NORL') THEN
+              OVAP(IS1+IBAS,IS1+JBAS) = DCMPLX(O2(KBAS,LBAS),0.0D0)
+              OVAP(IS2+IBAS,IS2+JBAS) = DCMPLX(O2(KBAS,LBAS),0.0D0)
+            ENDIF
+C
+          ENDDO
+        ENDDO
+      ENDDO
+C
+C     END LOOP OVER LQN VALUES
+101   CONTINUE
+C
+C**********************************************************************C
+C     WRITTEN SUMMARY                                                  C
+C**********************************************************************C
+C
+C     SUMMARY OF ENERGY CONTRIBUTIONS
+50    FORMAT(1X,A,24X,F19.12)
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+      WRITE(6, *) REPEAT(' ',20),'Atomic energies (Hartree units)'
+      WRITE(7, *) REPEAT(' ',20),'Atomic energies (Hartree units)'
+      WRITE(6, *) REPEAT('-',72)
+      WRITE(7, *) REPEAT('-',72)
+      WRITE(6,50) 'One-electron energy          ',EH
+      WRITE(7,50) 'One-electron energy          ',EH
+      WRITE(6,50) 'Two-electron energy (Coulomb)',EG
+      WRITE(7,50) 'Two-electron energy (Coulomb)',EG
+      IF(HMLTN.NE.'DHFB'.AND.HMLTN.NE.'DHFQ') GOTO 500
+      WRITE(6,50) 'Two-electron energy (Breit)  ',EB
+      WRITE(7,50) 'Two-electron energy (Breit)  ',EB
+500   CONTINUE
+      WRITE(6,50) 'Total energy                 ',ENEW
+      WRITE(7,50) 'Total energy                 ',ENEW
+      WRITE(6, *) REPEAT('=',72)
+      WRITE(7, *) REPEAT('=',72)
+      WRITE(6, *) REPEAT(' ',72)
+      WRITE(7, *) REPEAT(' ',72)
+C
+C     UPDATE COUNTER FOR HIGHEST OCCUPIED ATOMIC ORBITAL
+      IOCCM0 = IOCCML
+C
+C     ADD RESULTS FROM THIS ATOM TO MOLECULAR ENERGY
+      ETOT = ETOT + ENEW
+      EONE = EONE + EH
+      ECLG = ECLG + EG
+      EBRG = EBRG + EB
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE OVRLP0(OVAP,EXL,KQN,NBAS)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C          OOOOOO  VV    VV RRRRRRR  LL      PPPPPPP   000000          C
+C         OO    OO VV    VV RR    RR LL      PP    PP 00   000         C
+C         OO    OO VV    VV RR    RR LL      PP    PP 00  0000         C
+C         OO    OO VV    VV RR    RR LL      PP    PP 00 00 00         C
+C         OO    OO  VV  VV  RRRRRRR  LL      PPPPPPP  0000  00         C
+C         OO    OO   VVVV   RR    RR LL      PP       000   00         C
+C          OOOOOO     VV    RR    RR LLLLLLL PP        000000          C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  OVRLP0 CALCULATES THE ATOMIC OVERLAP MATRIX FOR SYMMETRY TYPE KQN.  C
+C**********************************************************************C
+      PARAMETER(MBS=26,MBD=2*MBS,MCT=15,MKP=13)
+C
+      CHARACTER*4 HMLTN
+C
+      DIMENSION RN(MBS*MBS,4),OVAP(MBD,MBD),EXL(MBS)
+C
+      COMMON/GAMA/GAMLOG(50),GAMHLF(50)
+      COMMON/PRMS/CV,HMLTN,ITREE,IMOL,INEW,IEQS,IERC,IPAR,ICOR,ILEV
+      COMMON/SPEC/EXPSET(MBS,MKP,MCT),COORD(3,MCT),ZNUC(MCT),AMASS(MCT),
+     &            CNUC(MCT),PNUC,LARGE(MCT,MKP,MKP+1),NFUNCT(MKP,MCT),
+     &            KVALS(MKP,MCT),IZNUC(MCT),IQNUC(MCT),LMAX(MCT),
+     &            NKAP(MCT),NCNT,NDIM,NSHIFT,NOCC,NVRT
+C
+C     DETERMINE THE LQN
+      IF(KQN.LT.0) THEN
+        LQN =-KQN-1
+      ELSE
+        LQN = KQN
+      ENDIF
+      RL = DFLOAT(LQN)
+C
+C     GENERATE NORMALISATION FACTORS FOR THESE EXPONENTS
+      CALL RNORM0(RN,EXL,NBAS,LQN)
+C
+C     LOOP OVER PAIRS OF BASIS FUNCTIONS WITHIN THIS KQN BLOCK
+      M = 0
+      DO IBAS=1,NBAS
+        EI = EXL(IBAS)
+        DO JBAS=1,NBAS
+          M   = M+1
+          EJ  = EXL(JBAS)
+          EIJ = EI+EJ
+          EPR = EI*EJ
+          T32 = RL+1.5D0
+          T52 = RL+2.5D0
+          E32 = EIJ**T32
+          E52 = EIJ**T52
+          SLL = 0.5D0*RN(M,1)*GAMHLF(2*LQN+3)/E32
+          SSS = 2.0D0*RN(M,3)*GAMHLF(2*LQN+5)*EPR/E52
+C
+C         OVERLAP MATRIX ELEMENTS
+          OVAP(IBAS     ,JBAS     ) = SLL
+          IF(HMLTN.EQ.'NORL') GOTO 50
+          OVAP(IBAS+NBAS,JBAS     ) = 0.0D0
+          OVAP(JBAS     ,IBAS+NBAS) = 0.0D0
+          OVAP(IBAS+NBAS,JBAS+NBAS) = SSS
+50        CONTINUE
+C
+        ENDDO
+      ENDDO
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE ONEEL0(HMAT,EXL,ZCRG,KQN,NBAS)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C          OOOOOO  NN    NN EEEEEEEE EEEEEEEE LL      000000           C
+C         OO    OO NNN   NN EE       EE       LL     00   000          C
+C         OO    OO NNNN  NN EE       EE       LL     00  0000          C
+C         OO    OO NN NN NN EEEEEE   EEEEEE   LL     00 00 00          C
+C         OO    OO NN  NNNN EE       EE       LL     0000  00          C
+C         OO    OO NN   NNN EE       EE       LL     000   00          C
+C          OOOOOO  NN    NN EEEEEEEE EEEEEEEE LLLLLLL 000000           C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  ONEEL0 CALCULATES THE ATOMIC DIRAC AND OVERLAP MATRICES FOR         C
+C  SYMMETRY TYPE KQN, USING EVEN-TEMPERED SGTFS.                       C
+C**********************************************************************C
+      PARAMETER(MBS=26,MBD=2*MBS,MCT=15,MKP=13)
+C
+      CHARACTER*4 HMLTN
+C
+      DIMENSION RN(MBS*MBS,4),HMAT(MBD,MBD),EXL(MBS)
+C
+      COMMON/GAMA/GAMLOG(50),GAMHLF(50)
+      COMMON/PRMS/CV,HMLTN,ITREE,IMOL,INEW,IEQS,IERC,IPAR,ICOR,ILEV
+      COMMON/SPEC/EXPSET(MBS,MKP,MCT),COORD(3,MCT),ZNUC(MCT),AMASS(MCT),
+     &            CNUC(MCT),PNUC,LARGE(MCT,MKP,MKP+1),NFUNCT(MKP,MCT),
+     &            KVALS(MKP,MCT),IZNUC(MCT),IQNUC(MCT),LMAX(MCT),
+     &            NKAP(MCT),NCNT,NDIM,NSHIFT,NOCC,NVRT
+C
+C     DETERMINE THE LQN
+      IF(KQN.LT.0) THEN
+        LQN =-KQN-1
+      ELSE
+        LQN = KQN
+      ENDIF
+      RL = DFLOAT(LQN)
+      G  = DFLOAT(2*LQN+1)
+C
+C     GENERATE NORMALISATION FACTORS FOR THESE EXPONENTS
+      CALL RNORM0(RN,EXL,NBAS,LQN)
+C
+C     LOOP OVER PAIRS OF BASIS FUNCTIONS WITHIN THIS KQN BLOCK
+      M = 0
+      DO IBAS=1,NBAS
+        EI = EXL(IBAS)
+        DO JBAS=1,NBAS
+          M    = M+1
+          EJ   = EXL(JBAS)
+          EIJ  = EI+EJ
+          EPR  = EI*EJ
+          T52  = RL+2.5D0
+          E52  = EIJ**T52
+C
+C         LL OVERLAP
+          ULL =-ZCRG*RN(M,1)*BNUCINT0(2*LQN+1,EIJ)
+          IF(HMLTN.EQ.'NORL') THEN
+            PLL = RN(M,1)*GAMHLF(2*LQN+5)*EPR/E52
+          ELSE
+            PLL = 0.0D0
+          ENDIF
+C
+C         TRANSFER INTO ARRAY
+          HMAT(IBAS,JBAS) = ULL + PLL
+C
+C         LS,SL AND SS OVERLAPS
+          IF(HMLTN.EQ.'NORL') GOTO 50
+C
+C         SMALL COMPONENT BLOCK ADDRESSES
+          KBAS = IBAS+NBAS
+          LBAS = JBAS+NBAS
+C
+C         OVERLAPS, KINETIC ELEMENTS AND SS POTENTIAL INTEGRALS
+          SSS = 2.0D0*RN(M,3)*GAMHLF(2*LQN+5)*EPR/E52
+          PSL = 2.0D0*RN(M,2)*GAMHLF(2*LQN+5)*EPR/E52
+C
+          VSA  = 4.0D0*EPR*BNUCINT0(2*LQN+3,EIJ)
+          IF(KQN.GT.0) THEN
+            VSN =-2.0D0*EIJ*G*BNUCINT0(2*LQN+1,EIJ)
+     &                   +G*G*BNUCINT0(2*LQN-1,EIJ)
+          ELSE
+            VSN = 0.0D0
+          ENDIF
+          USS =-ZCRG*RN(M,3)*(VSA+VSN)
+C
+C         TRANSFER INTO ARRAY
+          HMAT(KBAS,JBAS) = CV*PSL
+          HMAT(JBAS,KBAS) = HMAT(KBAS,JBAS)
+          HMAT(KBAS,LBAS) = USS-2.0D0*CV*CV*SSS
+C
+50        CONTINUE
+C
+        ENDDO
+      ENDDO
+C
+      RETURN
+      END
+C
+C
+      FUNCTION BNUCINT0(N,ZETA)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C  BBBBBBB  NN    NN UU    UU  CCCCCC IIII NN    NN TTTTTTTT 000000    C
+C  BB    BB NNN   NN UU    UU CC    CC II  NNN   NN    TT   00   000   C
+C  BB    BB NNNN  NN UU    UU CC       II  NNNN  NN    TT   00  0000   C
+C  BBBBBBB  NN NN NN UU    UU CC       II  NN NN NN    TT   00 00 00   C
+C  BB    BB NN  NNNN UU    UU CC       II  NN  NNNN    TT   0000  00   C
+C  BB    BB NN   NNN UU    UU CC    CC II  NN   NNN    TT   000   00   C
+C  BBBBBBB  NN    NN  UUUUUU   CCCCCC IIII NN    NN    TT    000000    C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  BNUCINT0 CALCULATES A ONE-CENTER BARE NUCLEAR ATTRACTION INTEGRAL   C
+C  GIVEN EXPONENT SUM ZETA, ORDER N (RADIAL POWER) AND LOCAL NUCLEAR   C
+C  WIDTH PNUC. MAXIMUM ORDER IS N=21, SO TREATS LQNMAX=8 (k-TYPE).     C
+C -------------------------------------------------------------------- C
+C  BNUCINT0(N,ZETA) = INT{R^N*EXP(-ZETA*R^2)*ERF(SQRT(PNUC)*R)}.       C
+C**********************************************************************C
+      PARAMETER(MBS=26,MCT=15,MKP=13)
+C
+      COMMON/SPEC/EXPSET(MBS,MKP,MCT),COORD(3,MCT),ZNUC(MCT),AMASS(MCT),
+     &            CNUC(MCT),PNUC,LARGE(MCT,MKP,MKP+1),NFUNCT(MKP,MCT),
+     &            KVALS(MKP,MCT),IZNUC(MCT),IQNUC(MCT),LMAX(MCT),
+     &            NKAP(MCT),NCNT,NDIM,NSHIFT,NOCC,NVRT
+C
+C     ROUTINE ONLY ALLOWS ODD PARAMETERS N
+      IF(MOD(N,2).NE.1) THEN
+        WRITE(6, *) 'In BNUCINT0: order N must be odd. N = ',N
+        WRITE(7, *) 'In BNUCINT0: order N must be odd. N = ',N
+      ENDIF
+C
+C     FACTORS NEEDED FOR ALL PARAMETERS N
+      X   = ZETA/PNUC
+      X5  = X*X*X*X*X
+      T0  = PNUC+ZETA
+      RAT = PNUC/T0
+      TRM = 0.5D0*DSQRT(PNUC)/ZETA/DSQRT(T0)
+      DO I=1,(N-1)/2
+        TRM = 0.5D0*TRM*RAT/ZETA
+      ENDDO
+C
+      IF(N.EQ.1) THEN
+        TRM = TRM
+      ELSEIF(N.EQ.3) THEN
+        VA  = 2.0D0 + 3.0D0*X
+        TRM = TRM*VA
+      ELSEIF(N.EQ.5) THEN
+        VA  = 8.0D0 + 20.0D0*X + 15.0D0*X*X
+        TRM = TRM*VA
+      ELSEIF(N.EQ.7) THEN
+        VA  = 16.0D0 + 56.0D0*X + 70.0D0*X*X + 35.0D0*X*X*X
+        TRM = 3.0D0*TRM*VA
+      ELSEIF(N.EQ.9) THEN
+        VA  = 128.0D0 + 576.0D0*X + 1008.0D0*X*X + 840.0D0*X*X*X
+        VB  = 315.0D0*X*X*X*X
+        TRM = 3.0D0*TRM*(VA+VB)
+      ELSEIF(N.EQ.11) THEN
+        VA  = 256.0D0 + 1408.0D0*X + 3168.0D0*X*X + 3696.0D0*X*X*X
+        VB  = 2310.0D0*X*X*X*X + 693.0D0*X*X*X*X*X
+        TRM = 15.0D0*TRM*(VA+VB)
+      ELSEIF(N.EQ.13) THEN
+        VA  = 1024.0D0 + 6656.0D0*X + 18304.0D0*X*X
+        VB  = 27456.0D0*X*X*X + 24024.0D0*X*X*X*X
+        VC  = 12012.0D0*X5 + 3003.0D0*X5*X
+        TRM = 45.0D0*TRM*(VA+VB+VC)
+      ELSEIF(N.EQ.15) THEN
+        VA  = 2048.0D0 + 15360.0D0*X + 49920.0D0*X*X
+        VB  = 91520.0D0*X*X*X+ 102960.0D0*X*X*X*X + 72072.0D0*X5
+        VC  = 30030.0D0*X5*X + 6435.0D0*X5*X*X
+        TRM = 315.0D0*TRM*(VA+VB+VC)
+      ELSEIF(N.EQ.17) THEN
+        VA  = 32768.0D0 + 278528.0D0*X + 1044480.0D0*X*X
+        VB  = 2263040.0D0*X*X*X + 3111680.0D0*X*X*X*X
+        VC  = 2800512.0D0*X5 + 1633632.0D0*X5*X + 583440.0D0*X5*X*X
+        VD  = 109395.0D0*X5*X*X*X
+        TRM = 315.0D0*TRM*(VA+VB+VC+VD)
+      ELSEIF(N.EQ.19) THEN
+        VA  = 65536.0D0 + 6222592.0D0*X + 2646016.0D0*X*X
+        VB  = 6615040.0D0*X*X*X + 10749440.0D0*X*X*X*X
+        VC  = 11824384.0D0*X5 + 8868288.0D0*X5*X + 4434144.0D0*X5*X*X
+        VD  = 1385670.0D0*X5*X*X*X + 230945.0D0*X5*X*X*X*X
+        TRM = 2835.0D0*TRM*(VA+VB+VC+VD)
+      ELSEIF(N.EQ.21) THEN
+        VA  = 262144.0D0 + 2752512.0D0*X + 13074432.0D0*X*X
+        VB  = 37044224.0D0*X*X*X + 69457920.0D0*X*X*X*X
+        VC  = 90295296.0D0*X5 + 82770688.0D0*X5*X
+        VD  = 53209728.0D0*X5*X*X + 23279256.0D0*X5*X*X*X
+        VE  = 6466460.0D0*X5*X*X*X*X + 969969.0D0*X5*X5
+        TRM = 14175.0D0*TRM*(VA+VB+VC+VD+VE)
+      ELSE
+        WRITE(6, *) 'In BNUCINT0: order N too large. N = ',N
+        WRITE(7, *) 'In BNUCINT0: order N too large. N = ',N
+      ENDIF
+C
+C     TRANSFER DATA TO BNUCINT0
+      BNUCINT0 = TRM
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE COULOMB0
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C    CCCCCC   OOOOOO  UU    UU LL      MM       MM BBBBBBB   000000    C
+C   CC    CC OO    OO UU    UU LL      MMM     MMM BB    BB 00   000   C
+C   CC       OO    OO UU    UU LL      MMMM   MMMM BB    BB 00  0000   C
+C   CC       OO    OO UU    UU LL      MM MM MM MM BBBBBBB  00 00 00   C
+C   CC       OO    OO UU    UU LL      MM  MMM  MM BB    BB 0000  00   C
+C   CC    CC OO    OO UU    UU LL      MM   M   MM BB    BB 000   00   C
+C    CCCCCC   OOOOOO   UUUUUU  LLLLLLL MM       MM BBBBBBB   000000    C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  COULOMB0 CONSTRUCTS THE ATOMIC COULOMB MATRIX FROM RADIAL DIRECT    C
+C  AND EXCHANGE INTEGRALS AND A MEAN-FIELD CHARGE DENSITY.             C
+C**********************************************************************C
+      PARAMETER(MBS=26,MBD=2*MBS,MB2=MBS*MBS,MKP=13,MNU=MKP+1,
+     &                                                      MAB=2*MNU+6)
+C
+      CHARACTER*4 HMLTN
+C
+      DIMENSION RN(MB2,4)
+C
+      COMMON/BSIJ/EIJ(0:5),RNIJ(3),EI,EJ
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/BSXP/EXLA(MBS),EXLB(MBS)
+      COMMON/CLRE/RKLLLL(MB2,4),RKSSSS(MB2,4),RKSLSL(MB2,4),
+     &            RJLLLL(MB2,4),RJSSSS(MB2,4),RJLLSS(MB2,4),
+     &            RJSSLL(MB2,4)
+      COMMON/DLST/DEN1(MB2,4),DEN2(MB2,4)
+      COMMON/GAOC/G11(MBD,MBD),G21(MBD,MBD),G12(MBD,MBD),G22(MBD,MBD),
+     &            B11(MBD,MBD),B21(MBD,MBD),B12(MBD,MBD),B22(MBD,MBD)
+      COMMON/PRMS/CV,HMLTN,ITREE,IMOL,INEW,IEQS,IERC,IPAR,ICOR,ILEV
+C
+C     INITIALISE COULOMB MATRIX
+      DO IBAS=1,MBD
+        DO JBAS=1,MBD
+          G11(IBAS,JBAS) = 0.0D0
+          G21(IBAS,JBAS) = 0.0D0
+          G12(IBAS,JBAS) = 0.0D0
+          G22(IBAS,JBAS) = 0.0D0
+        ENDDO
+      ENDDO
+C
+C     GENERATE 'KL' EXPONENT POWERS FOR LATER BETA-INTEGRAL GENERATION
+      CALL KLSET
+C
+C     GENERATE A BATCH OF NORMALISATION CONSTANTS
+      CALL RNORM0(RN,EXLA,NBASA,LQNA)
+C
+C     ITERATE OVER ALL MATRIX ELEMENTS
+      IJ = 0
+      DO IBAS=1,NBASA
+        EI = EXLA(IBAS)
+        DO JBAS=1,NBASA
+C
+C         BASIS EXPONENT COMBINATIONS FOR LATER B-INTEGRAL GENERATION
+          IJ = IJ+1
+C
+          EJ = EXLA(JBAS)
+          EIJ0 = EI+EJ
+          EIJR = DSQRT(EIJ0)
+          EIJA = EIJ0**(-LQNA)
+          DO N=0,5
+            EIJ(N) = EIJA
+            EIJA   = EIJA/EIJR
+          ENDDO
+          RNIJ(1) = RN(IJ,1)
+          RNIJ(2) = RN(IJ,2)
+          RNIJ(3) = RN(IJ,3)
+C
+C         GENERATE BATCH OF RADIAL INTEGRALS (J AND K MATRICES)
+          CALL ERI0
+C
+          IF(HMLTN.EQ.'NORL') THEN
+C         NON-RELATIVISTIC HAMILTONIAN
+C
+C           INITIALISE COUNTER
+            GLL = 0.0D0
+C
+C           BUILD THE FOCK MATRIX
+            DO M=1,MAXM
+              GLL = GLL + RJLLLL(M,4)*DEN2(M,1) - RKLLLL(M,4)*DEN2(M,1)
+            ENDDO
+C
+C           TRANSFER COUNTER VALUE TO COULOMB MATRIX
+            G22(IBAS,JBAS) = GLL
+C
+          ELSE
+C         RELATIVISTIC HAMILTONIAN
+C
+C           SMALL-COMPONENT MATRIX ADDRESSES
+            KBAS = IBAS + NBASA
+            LBAS = JBAS + NBASA
+C
+C    (11)   KQNA > 0 AND KQNB > 0 CONTRIBUTIONS (SKIP IF POSSIBLE)
+            IF(LQNA.EQ.0.OR.LQNB.EQ.0) GOTO 10
+C
+C           INITIALISE COUNTERS
+            GLL = 0.0D0
+            GSL = 0.0D0
+            GSS = 0.0D0
+C
+C           SUM OVER MEAN FIELD CONTRIBUTIONS FOR THIS BASIS PAIR
+            DO M=1,MAXM
+              GLL = GLL + RJLLLL(M,1)*DEN1(M,1) - RKLLLL(M,1)*DEN1(M,1)
+     &                  + RJLLSS(M,1)*DEN1(M,3)
+              GSL = GSL                         - RKSLSL(M,1)*DEN1(M,2)
+              GSS = GSS + RJSSSS(M,1)*DEN1(M,3) - RKSSSS(M,1)*DEN1(M,3)
+     &                  + RJSSLL(M,1)*DEN1(M,1)
+            ENDDO
+C
+C           TRANSFER COUNTER VALUES TO COULOMB MATRIX
+            G11(IBAS,JBAS) = GLL
+            G11(KBAS,JBAS) = GSL
+            G11(JBAS,KBAS) = GSL
+            G11(KBAS,LBAS) = GSS
+C
+10          CONTINUE
+C
+C    (21)   KQNA < 0 AND KQNB > 0 CONTRIBUTIONS (SKIP IF POSSIBLE)
+            IF(LQNB.EQ.0) GOTO 11
+C
+C           INITIALISE COUNTERS
+            GLL = 0.0D0
+            GSL = 0.0D0
+            GSS = 0.0D0
+C
+            DO M=1,MAXM
+              GLL = GLL + RJLLLL(M,2)*DEN1(M,1) - RKLLLL(M,2)*DEN1(M,1)
+     &                  + RJLLSS(M,2)*DEN1(M,3)
+              GSL = GSL                         - RKSLSL(M,2)*DEN1(M,2)
+              GSS = GSS + RJSSSS(M,2)*DEN1(M,3) - RKSSSS(M,2)*DEN1(M,3)
+     &                  + RJSSLL(M,2)*DEN1(M,1)
+            ENDDO
+C
+C           TRANSFER COUNTER VALUES TO COULOMB MATRIX
+            G21(IBAS,JBAS) = GLL
+            G21(KBAS,JBAS) = GSL
+            G21(JBAS,KBAS) = GSL
+            G21(KBAS,LBAS) = GSS
+C
+11          CONTINUE
+C
+C    (12)   KQNA > 0 AND KQNB < 0 CONTRIBUTIONS (SKIP IF POSSIBLE)
+            IF(LQNA.EQ.0) GOTO 12
+C
+C           INITIALISE COUNTERS
+            GLL = 0.0D0
+            GSL = 0.0D0
+            GSS = 0.0D0
+C
+            DO M=1,MAXM
+              GLL = GLL + RJLLLL(M,3)*DEN2(M,1) - RKLLLL(M,3)*DEN2(M,1)
+     &                  + RJLLSS(M,3)*DEN2(M,3)
+              GSL = GSL                         - RKSLSL(M,3)*DEN2(M,2)
+              GSS = GSS + RJSSSS(M,3)*DEN2(M,3) - RKSSSS(M,3)*DEN2(M,3)
+     &                  + RJSSLL(M,3)*DEN2(M,1)
+            ENDDO
+C
+C           TRANSFER COUNTER VALUES TO COULOMB MATRIX
+            G12(IBAS,JBAS) = GLL
+            G12(KBAS,JBAS) = GSL
+            G12(JBAS,KBAS) = GSL
+            G12(KBAS,LBAS) = GSS
+C
+12          CONTINUE
+C
+C    (22)   KQNA < 0 AND KQNB < 0  CONTRIBUTIONS (CANNOT SKIP)
+C
+C           INITIALISE COUNTERS
+            GLL = 0.0D0
+            GSL = 0.0D0
+            GSS = 0.0D0
+C
+            DO M=1,MAXM
+              GLL = GLL + RJLLLL(M,4)*DEN2(M,1) - RKLLLL(M,4)*DEN2(M,1)
+     &                  + RJLLSS(M,4)*DEN2(M,3)
+              GSL = GSL                         - RKSLSL(M,4)*DEN2(M,2)
+              GSS = GSS + RJSSSS(M,4)*DEN2(M,3) - RKSSSS(M,4)*DEN2(M,3)
+     &                  + RJSSLL(M,4)*DEN2(M,1)
+            ENDDO
+C
+C           TRANSFER COUNTER VALUES TO COULOMB MATRIX
+            G22(IBAS,JBAS) = GLL
+            G22(KBAS,JBAS) = GSL
+            G22(JBAS,KBAS) = GSL
+            G22(KBAS,LBAS) = GSS
+C
+          ENDIF
+C
+        ENDDO
+      ENDDO
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE BREIT0
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C           BBBBBBB  RRRRRRR  EEEEEEEE IIII TTTTTTTT 000000            C
+C           BB    BB RR    RR EE        II     TT   00   000           C
+C           BB    BB RR    RR EE        II     TT   00  0000           C
+C           BBBBBBB  RR    RR EEEEEE    II     TT   00 00 00           C
+C           BB    BB RRRRRRR  EE        II     TT   0000  00           C
+C           BB    BB RR    RR EE        II     TT   000   00           C
+C           BBBBBBB  RR    RR EEEEEEEE IIII    TT    000000            C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  BREIT0 CONSTRUCTS THE ATOMIC BREIT MATRIX FROM RADIAL DIRECT AND    C
+C  EXCHANGE INTEGRALS AND A MEAN-FIELD CHARGE DENSITY.                 C
+C -------------------------------------------------------------------- C
+C  DFNOTE: NOT FINISHED YET. EXCHANGE TERMS INCORRECT FOR S-TYPE GTFS. C
+C**********************************************************************C
+      PARAMETER(MBS=26,MBD=2*MBS,MB2=MBS*MBS,MKP=13,MNU=MKP+1,
+     &                                                      MAB=2*MNU+6)
+C
+      DIMENSION RN(MB2,4)
+C
+      COMMON/BSIJ/EIJ(0:5),RNIJ(3),EI,EJ
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/BSXP/EXLA(MBS),EXLB(MBS)
+      COMMON/BTRE/RKLLSS(MB2,4),RKSLLS(MB2,4),RKSSLL(MB2,4),
+     &            RMSLLS(MB2,4)
+      COMMON/DLST/DEN1(MB2,4),DEN2(MB2,4)
+      COMMON/GAOC/G11(MBD,MBD),G21(MBD,MBD),G12(MBD,MBD),G22(MBD,MBD),
+     &            B11(MBD,MBD),B21(MBD,MBD),B12(MBD,MBD),B22(MBD,MBD)
+      COMMON/KPTB/IBAS,JBAS
+C
+C     INITIALISE BREIT MATRIX
+      DO IBAS=1,MBD
+        DO JBAS=1,MBD
+          B11(IBAS,JBAS) = 0.0D0
+          B21(IBAS,JBAS) = 0.0D0
+          B12(IBAS,JBAS) = 0.0D0
+          B22(IBAS,JBAS) = 0.0D0
+        ENDDO
+      ENDDO
+C
+C     GENERATE 'KL' EXPONENT POWERS FOR LATER BETA-INTEGRAL GENERATION
+      CALL KLSET
+C
+C     GENERATE A BATCH OF NORMALISATION CONSTANTS
+      CALL RNORM0(RN,EXLA,NBASA,LQNA)
+C
+C     ITERATE OVER ALL MATRIX ELEMENTS
+      IJ = 0
+      DO IBAS=1,NBASA
+        EI = EXLA(IBAS)
+        DO JBAS=1,NBASA
+C
+C         BASIS EXPONENT COMBINATIONS FOR LATER B-INTEGRAL GENERATION
+          IJ = IJ+1
+          EJ = EXLA(JBAS)
+          RNIJ(1) = RN(IJ,1)
+          RNIJ(2) = RN(IJ,2)
+          RNIJ(3) = RN(IJ,3)
+C
+C         GENERATE BATCH OF RADIAL INTEGRALS (J AND K MATRICES)
+          CALL BII0
+C
+C         SMALL-COMPONENT MATRIX ADDRESSES
+          KBAS = IBAS + NBASA
+          LBAS = JBAS + NBASA
+C
+C    (11) KQNA > 0 AND KQNB > 0 CONTRIBUTIONS (SKIP IF POSSIBLE)
+          IF(LQNA.EQ.0.OR.LQNB.EQ.0) GOTO 10
+C
+C         INITIALISE COUNTERS
+          BLL = 0.0D0
+          BSL = 0.0D0
+          BSS = 0.0D0
+C
+C         SUM OVER MEAN FIELD CONTRIBUTIONS FOR THIS BASIS PAIR
+          DO M=1,MAXM
+            BLL = BLL + RKLLSS(M,1)*DEN1(M,3)
+            BSL = BSL + RKSLLS(M,1)*DEN1(M,4) + RMSLLS(M,1)*DEN1(M,4)
+            BSS = BSS + RKSSLL(M,1)*DEN1(M,1)
+          ENDDO
+C
+C         TRANSFER COUNTER VALUES TO BREIT MATRIX
+          B11(IBAS,JBAS) = BLL
+          B11(KBAS,JBAS) = BSL
+          B11(JBAS,KBAS) = BSL
+          B11(KBAS,LBAS) = BSS
+C
+10        CONTINUE
+C
+C    (21) KQNA < 0 AND KQNB > 0 CONTRIBUTIONS (SKIP IF POSSIBLE)
+          IF(LQNB.EQ.0) GOTO 11
+C
+C         INITIALISE COUNTERS
+          BLL = 0.0D0
+          BSL = 0.0D0
+          BSS = 0.0D0
+C
+          DO M=1,MAXM
+            BLL = BLL + RKLLSS(M,2)*DEN1(M,3)
+            BSL = BSL + RKSLLS(M,2)*DEN1(M,4) + RMSLLS(M,2)*DEN1(M,4)
+            BSS = BSS + RKSSLL(M,2)*DEN1(M,1)
+          ENDDO
+C
+C         TRANSFER COUNTER VALUES TO BREIT MATRIX
+          B21(IBAS,JBAS) = BLL
+          B21(KBAS,JBAS) = BSL
+          B21(JBAS,KBAS) = BSL
+          B21(KBAS,LBAS) = BSS
+C
+11        CONTINUE
+C
+C    (12) KQNA > 0 AND KQNB < 0 CONTRIBUTIONS (SKIP IF POSSIBLE)
+          IF(LQNA.EQ.0) GOTO 12
+C
+C         INITIALISE COUNTERS
+          BLL = 0.0D0
+          BSL = 0.0D0
+          BSS = 0.0D0
+C
+          DO M=1,MAXM
+            BLL = BLL + RKLLSS(M,3)*DEN2(M,3)
+            BSL = BSL + RKSLLS(M,3)*DEN2(M,4) + RMSLLS(M,3)*DEN2(M,4)
+            BSS = BSS + RKSSLL(M,3)*DEN2(M,1)
+          ENDDO
+C
+C         TRANSFER COUNTER VALUES TO BREIT MATRIX
+          B12(IBAS,JBAS) = BLL
+          B12(KBAS,JBAS) = BSL
+          B12(JBAS,KBAS) = BSL
+          B12(KBAS,LBAS) = BSS
+C
+12        CONTINUE
+C
+C    (22) KQNA < 0 AND KQNB < 0  CONTRIBUTIONS (CANNOT SKIP)
+C
+C         INITIALISE COUNTERS
+          BLL = 0.0D0
+          BSL = 0.0D0
+          BSS = 0.0D0
+C
+          DO M=1,MAXM
+            BLL = BLL + RKLLSS(M,4)*DEN2(M,3)
+            BSL = BSL + RKSLLS(M,4)*DEN2(M,4) + RMSLLS(M,4)*DEN2(M,4)
+            BSS = BSS + RKSSLL(M,4)*DEN2(M,1)
+          ENDDO
+C
+C         TRANSFER COUNTER VALUES TO BREIT MATRIX
+          B22(IBAS,JBAS) = BLL
+          B22(KBAS,JBAS) = BSL
+          B22(JBAS,KBAS) = BSL
+          B22(KBAS,LBAS) = BSS
+C
+        ENDDO
+      ENDDO
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE KLSET
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C             KK    KK LL       SSSSSS  EEEEEEEE TTTTTTTT              C
+C             KK   KK  LL      SS    SS EE          TT                 C
+C             KK  KK   LL      SS       EE          TT                 C
+C             KKKKK    LL       SSSSSS  EEEEEE      TT                 C
+C             KK  KK   LL            SS EE          TT                 C
+C             KK   KK  LL      SS    SS EE          TT                 C
+C             KK    KK LLLLLLLL SSSSSS  EEEEEEEE    TT                 C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  KLSET GENERATES LISTS OF 'KL' EXPONENT POWERS FOR LATER USE         C
+C  IN BETA INTEGRAL CONSTRUCTION AND ELECTRON REPULSION INTEGRALS.     C
+C**********************************************************************C
+      PARAMETER(MBS=26,MB2=MBS*MBS,MKP=13,MNU=MKP+1,MAB=2*MNU+6)
+C
+      COMMON/BSKL/EK(MB2),EL(MB2),RNKL(MB2,4),IKIND(MB2),JLIND(MB2),
+     &            EIK(MB2,-MAB:MAB),EJL(MB2,-MAB:MAB),EKL(MB2,0:5)
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/BSXP/EXLA(MBS),EXLB(MBS)
+C
+C     GENERATE INDICES AND EXPONENT COMBINATIONS
+      M = 0
+      DO KBAS=1,NBASB
+        EK0 = EXLB(KBAS)
+        DO LBAS=1, NBASB
+          M   = M+1
+          EL0 = EXLB(LBAS)
+          IKIND(M) = KBAS
+          JLIND(M) = LBAS
+          EK(M)    = EK0
+          EL(M)    = EL0
+          EKL0     = EK0+EL0
+          EKLR     = DSQRT(EKL0)
+          EKPW     = EKL0**LQNB
+          EKLA     = 1.0D0/EKPW
+          DO N=0,5
+            EKL(M,N) = EKLA
+            EKLA     = EKLA/EKLR
+          ENDDO
+        ENDDO
+      ENDDO
+C
+C     NORMALISATION CONSTANTS
+      CALL RNORM0(RNKL,EXLB,NBASB,LQNB)
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE ERI0
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C                    EEEEEEEE RRRRRRR  IIII 000000                     C
+C                    EE       RR    RR  II 00   000                    C
+C                    EE       RR    RR  II 00  0000                    C
+C                    EEEEEE   RR    RR  II 00 00 00                    C
+C                    EE       RRRRRRR   II 0000  00                    C
+C                    EE       RR    RR  II 000   00                    C
+C                    EEEEEEEE RR    RR IIII 000000                     C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  ERI0 EVALUATES A DIRECT AND EXCHANGE BATCH OF ELECTRON REPULSION    C
+C  INTEGRALS OF ALL COMPONENT LABEL COMBINATIONS L AND S IN THE ATOMIC C
+C  SCF PROCEDURE FOR A USER-SPECIFIED HAMILTONIAN.                     C
+C -------------------------------------------------------------------- C
+C  OUTPUT:                                                             C
+C    RJLLLL(M,N) - DIRECT ERI OVERLAP {LL,LL}                          C
+C    RJSSSS(M,N) - DIRECT ERI OVERLAP {SS,SS}                          C
+C    RJLLSS(M,N) - DIRECT ERI OVERLAP {LL,SS}                          C
+C    RJSSLL(M,N) - DIRECT ERI OVERLAP {SS,LL}                          C
+C    RKLLLL(M,N) - EXCHANGE ERI OVERLAP {LL,LL}                        C
+C    RKSSSS(M,N) - EXCHANGE ERI OVERLAP {SS,SS}                        C
+C    RKSLSL(M,N) - EXCHANGE ERI OVERLAP {SL,SL}                        C
+C -------------------------------------------------------------------- C
+C    N=1 - KQN(A)>0, KQN(B)>0 (TYPICAL LABEL 11)                       C
+C    N=2 - KQN(A)<0, KQN(B)>0 (TYPICAL LABEL 12)                       C
+C    N=3 - KQN(A)>0, KQN(B)<0 (TYPICAL LABEL 21)                       C
+C    N=4 - KQN(A)<0, KQN(B)<0 (TYPICAL LABEL 22)                       C
+C**********************************************************************C
+      PARAMETER(MBS=26,MB2=MBS*MBS,MKP=13,MNU=MKP+1,MAB=2*MNU+6)
+C
+      CHARACTER*4 HMLTN
+C
+      DIMENSION XJ(MB2,2),XK(MB2,2),IAA(2),IBB(2)
+      DIMENSION RTIK0(MBS),RTJL0(MBS),PTIK0(MBS),PTJL0(MBS)
+      DIMENSION BETA(MB2),BTA1(MB2),XROOT(MB2),BIN(MB2),TRM(MB2)
+      DIMENSION BDL(MB2,3,3),BDU(MB2,3,3)
+      DIMENSION BXL(MB2,-MAB:MAB,-MAB:MAB),BXU(MB2,-MAB:MAB,-MAB:MAB)
+C
+      COMMON/ANGL/BK(MNU,4),ELL(MNU,4),ESS(MNU,4),ESL(MNU,4),GSL(MNU,4)
+      COMMON/BSIJ/EIJ(0:5),RNIJ(3),EI,EJ
+      COMMON/BSKL/EK(MB2),EL(MB2),RNKL(MB2,4),IKIND(MB2),JLIND(MB2),
+     &            EIK(MB2,-MAB:MAB),EJL(MB2,-MAB:MAB),EKL(MB2,0:5)
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/BSXP/EXLA(MBS),EXLB(MBS)
+      COMMON/CLRE/RKLLLL(MB2,4),RKSSSS(MB2,4),RKSLSL(MB2,4),
+     &            RJLLLL(MB2,4),RJSSSS(MB2,4),RJLLSS(MB2,4),
+     &            RJSSLL(MB2,4)
+      COMMON/GAMA/GAMLOG(50),GAMHLF(50)
+      COMMON/PRMS/CV,HMLTN,ITREE,IMOL,INEW,IEQS,IERC,IPAR,ICOR,ILEV
+      COMMON/TNSR/NUS(MNU),NUNUM,NUI,NUF
+C
+C     TENSOR ORDER LIMITS
+      NUI = NUS(1)
+      NUF = NUS(NUNUM)
+C
+C**********************************************************************C
+C     INLINE BETA FUNCTION CODE FOR DIRECT TERMS                       C
+C**********************************************************************C
+C
+C     CALCULATE LIST OF BETA FUNCTION ARGUMENTS, XJ(MB2,2) (Z AND Z')
+      DO M=1,MAXM
+        TKL0    = EK(M)+EL(M)
+        TIJKL   = EI+EJ+TKL0
+        XJ(M,1) = (EI   +EJ   )/TIJKL
+        XJ(M,2) = (EK(M)+EL(M))/TIJKL
+      ENDDO
+C
+C     NUMBER OF LEVELS NEEDED TO ACCOUNT FOR ALL DIRECT INTEGRALS
+      NVALS = 3
+C
+C     LOOP OVER ORDER FOR FIRST INDEX
+      DO NX=1,NVALS
+C
+C       TWICE THE ACTUAL FAMILY VALUE
+        IAA(1) = 2*LQNA+2*NX-1
+        IAA(2) = 2*LQNB+2*NX-1
+C
+C       LOOP OVER ORDER FOR SECOND INDEX
+        DO NY=1,NVALS
+          IBB(1) = 2*LQNB+2*NY-2
+          IBB(2) = 2*LQNA+2*NY-2
+C
+C         LOOP OVER BETA INTEGRAL TYPE
+          DO IBETA=1,2
+            IA =(IAA(IBETA)-1)/2
+            IB = IBB(IBETA)   /2
+C
+C           CASE 1: IB > 1
+            IF(IB.GT.1) THEN
+              X  = DFLOAT(IA)+0.5D0
+              IX = 2*IA+1
+              DO M=1,MAXM
+                BTA1(M) = (DSQRT(XJ(M,IBETA))**IX)/X
+              ENDDO
+              RA  = X
+              RB  = DFLOAT(1-IB)
+              RC  = X+1.0D0
+              RD  = 1.0D0
+              RCD = RC*RD
+              FCT = RA*RB/RCD
+              DO M=1,MAXM
+                TRM(M) = FCT*XJ(M,IBETA)
+                BIN(M) = 1.0D0+FCT*XJ(M,IBETA)
+              ENDDO
+              RA = RA+1.0D0
+              RB = RB+1.0D0
+              RC = RC+1.0D0
+              RD = RD+1.0D0
+              DO J=2,IB-1
+                RCD = RC*RD
+                FCT = RA*RB/RCD
+                DO M=1,MAXM
+                  TRM(M) = FCT*TRM(M)*XJ(M,IBETA)
+                  BIN(M) = BIN(M)+TRM(M)
+                ENDDO
+                RA = RA+1.0D0
+                RB = RB+1.0D0
+                RC = RC+1.0D0
+                RD = RD+1.0D0
+              ENDDO
+              DO M=1,MAXM
+                BETA(M) = BTA1(M)*BIN(M)
+              ENDDO
+C
+C           CASE 2: IB = 1
+            ELSEIF(IB.EQ.1) THEN
+              X  = DFLOAT(IA)+0.5D0
+              IX = 2*IA+1
+              DO M=1,MAXM
+                BETA(M) = (DSQRT(XJ(M,IBETA))**IX)/X
+              ENDDO
+C
+C           CASE 3: IB = 0
+            ELSEIF(IB.EQ.0) THEN
+              DO M=1,MAXM
+                XROOT(M) = DSQRT(XJ(M,IBETA))
+                DEN      =  1.0D0-XROOT(M)
+                RAT      = (1.0D0+XROOT(M))/DEN
+                BTA1(M)  = DLOG(RAT)
+                BIN(M)   = 1.0D0
+                TRM(M)   = XJ(M,IBETA)
+              ENDDO
+              IF(IA.GT.1) THEN
+                DO K=2,IA
+                  KK = 2*K-1
+                  RK = DFLOAT(KK)
+                  X  = 1.0D0/RK
+                  DO M=1,MAXM
+                    BIN(M) = BIN(M)+X*TRM(M)
+                    TRM(M) = TRM(M)*XJ(M,IBETA)
+                  ENDDO
+                ENDDO
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)-2.0D0*XROOT(M)*BIN(M)
+                ENDDO
+              ELSEIF(IA.EQ.1) THEN
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)-2.0D0*XROOT(M)
+                ENDDO
+              ELSE
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)
+                ENDDO
+              ENDIF
+C
+            ENDIF
+C
+C           SORT THE BETA INTEGRAL INTO THE CORRECT ARRAY
+            IF(IBETA.EQ.1) THEN
+              DO M=1,MAXM
+                BDL(M,NX,NY) = BETA(M)
+              ENDDO
+            ELSE
+              DO M=1,MAXM
+                BDU(M,NX,NY) = BETA(M)
+              ENDDO
+            ENDIF
+C
+C         END LOOPS OVER IBETA AND INDICES NX, NY
+          ENDDO
+        ENDDO
+      ENDDO
+C
+C**********************************************************************C
+C     INLINE BETA FUNCTION CODE FOR EXCHANGE TERMS                     C
+C**********************************************************************C
+C
+C     LOWEST EXPONENT POWER
+      IPOWER = LQNA+LQNB-NUF
+C
+C     A BLOCK OF BASIS EXPONENT PRODUCTS
+      DO KBAS=1,NBASB
+        RTIK0(KBAS) = DSQRT(EI+EXLB(KBAS))
+        RTJL0(KBAS) = DSQRT(EJ+EXLB(KBAS))
+        PTIK0(KBAS) = RTIK0(KBAS)**(-IPOWER)
+        PTJL0(KBAS) = RTJL0(KBAS)**(-IPOWER)
+      ENDDO
+C
+C     CALCULATE A FULL SET OF EXPONENT OVERLAPS FOR EXCHANGE
+      DO M=1,MAXM
+        RTIK  = RTIK0(IKIND(M))
+        RTJL  = RTJL0(JLIND(M))
+        EIK(M,-NUF) = PTIK0(IKIND(M))
+        EJL(M,-NUF) = PTJL0(JLIND(M))
+        DO IPOW=-NUF+1,NUF+5
+          EIK(M,IPOW) = EIK(M,IPOW-1)/RTIK
+          EJL(M,IPOW) = EJL(M,IPOW-1)/RTJL
+        ENDDO
+      ENDDO
+C
+C     CALCULATE LIST OF BETA FUNCTION ARGUMENTS, XK(MB2,2) (Z AND Z')
+      DO M=1,MAXM
+        TKL0    = EK(M)+EL(M)
+        TIJKL   = EI+EJ+TKL0
+        XK(M,1) = (EI+EK(M))/TIJKL
+        XK(M,2) = (EJ+EL(M))/TIJKL
+      ENDDO
+C
+C     NUMBER OF LEVELS NEEDED TO ACCOUNT FOR ALL EXCHANGE INTEGRALS
+      NVALS = (NUF-NUI)/2+3
+C
+C     LOOP OVER ORDER FOR FIRST INDEX
+      DO NX=1,NVALS
+        IAA(1) = LQNA+LQNB+NUI+2*NX-1
+        IAA(2) = LQNA+LQNB+NUI+2*NX-1
+C
+C       LOOP OVER ORDER FOR SECOND INDEX
+        DO NY=1,NVALS
+          IBB(1) = LQNA+LQNB-NUF+2*NY-2
+          IBB(2) = LQNA+LQNB-NUF+2*NY-2
+C
+C         LOOP OVER BETA INTEGRAL TYPE
+          DO IBETA=1,2
+            IA = (IAA(IBETA)-1)/2
+            IB =  IBB(IBETA)   /2
+C
+C           BEGIN CONDITIONAL STATEMENT OVER IB VALUES
+C           CASE 1: IB > 1
+            IF(IB.GT.1) THEN
+              X  = DFLOAT(IA)+0.5D0
+              IX = 2*IA+1
+              DO M=1,MAXM
+                BTA1(M) = (DSQRT(XK(M,IBETA))**IX)/X
+              ENDDO
+              RA = X
+              RB = DFLOAT(1-IB)
+              RC = 1.0D0+X
+              RD = 1.0D0
+              RCD = RC*RD
+              FCT = RA*RB/RCD
+              DO M=1,MAXM
+                TRM(M) = FCT*XK(M,IBETA)
+                BIN(M) = 1.0D0+TRM(M)
+              ENDDO
+              RA = RA+1.0D0
+              RB = RB+1.0D0
+              RC = RC+1.0D0
+              RD = RD+1.0D0
+              DO J=2,IB-1
+                RCD = RC*RD
+                FCT = RA*RB/RCD
+                DO M=1,MAXM
+                  TRM(M) = FCT*TRM(M)*XK(M,IBETA)
+                  BIN(M) = BIN(M)+TRM(M)
+                ENDDO
+                RA = RA+1.0D0
+                RB = RB+1.0D0
+                RC = RC+1.0D0
+                RD = RD+1.0D0
+              ENDDO
+              DO M=1,MAXM
+                BETA(M) = BTA1(M)*BIN(M)
+              ENDDO
+C
+C           CASE 2: IB = 1
+            ELSEIF(IB.EQ.1) THEN
+              X  = DFLOAT(IA)+0.5D0
+              IX = 2*IA+1
+              DO M=1,MAXM
+                BETA(M) = (DSQRT(XK(M,IBETA))**IX)/X
+              ENDDO
+C
+C           CASE 3: IB = 0
+            ELSEIF(IB.EQ.0) THEN
+              DO M=1,MAXM
+                XROOT(M) = DSQRT(XK(M,IBETA))
+                DEN      = (1.0D0-XROOT(M))
+                RAT      = (1.0D0+XROOT(M))/DEN
+                BTA1(M)  = DLOG(RAT)
+                BIN(M)   = 1.0D0
+                TRM(M)   = XK(M,IBETA)
+              ENDDO
+C
+              IF(IA.GT.1) THEN
+                DO K=2,IA
+                  KK = 2*K-1
+                  RK = DFLOAT(KK)
+                  X  = 1.0D0/RK
+                  DO M=1,MAXM
+                    BIN(M) = BIN(M)+X*TRM(M)
+                    TRM(M) = TRM(M)*XK(M,IBETA)
+                  ENDDO
+                ENDDO
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)-2.0D0*XROOT(M)*BIN(M)
+                ENDDO
+              ELSEIF(IA.EQ.1) THEN
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)-2.0D0*XROOT(M)
+                ENDDO
+              ELSE
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)
+                ENDDO
+              ENDIF
+C
+            ENDIF
+C
+C           SORT THE BETA INTEGRAL INTO THE LOWER/UPPER ARRAYS
+            IF(IBETA.EQ.1) THEN
+              DO M=1,MAXM
+                BXL(M, NUI+2*NX-1,-NUF+2*NY-2) = BETA(M)
+              ENDDO
+            ELSE
+              DO M=1,MAXM
+                BXU(M,-NUF+2*NY-2, NUI+2*NX-1) = BETA(M)
+              ENDDO
+            ENDIF
+C
+C         END LOOPS OVER IBETA AND INDICES NX, NY
+          ENDDO
+        ENDDO
+      ENDDO
+C
+C**********************************************************************C
+C     RADIAL INTEGRALS OVER SPINORS (SEPARATED BY TENSOR ORDER)        C
+C**********************************************************************C
+C
+C     EMPTY COUNTER ARRAYS FOR DIRECT AND EXCHANGE INTEGRALS
+      DO M=1,MAXM
+        DO N=1,4
+          RJLLLL(M,N) = 0.0D0
+          RJLLSS(M,N) = 0.0D0
+          RJSSLL(M,N) = 0.0D0
+          RJSSSS(M,N) = 0.0D0
+          RKLLLL(M,N) = 0.0D0
+          RKSLSL(M,N) = 0.0D0
+          RKSSSS(M,N) = 0.0D0
+        ENDDO
+      ENDDO
+C
+C     PREPARE VALUES FOR UPCOMING CALCULATIONS
+      C1 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+1)
+      C3 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+3)
+      C5 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+5)
+      C7 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+7)
+      C9 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+9)
+C
+      V1 = 1.0D0
+      V2 = 2.0D0
+      V4 = 4.0D0
+      V8 = 8.0D0
+      VS = 1.6D1
+C
+      F  = DFLOAT(2*LQNA+1)
+      G  = DFLOAT(2*LQNB+1)
+C
+      F0G0 = 1.0D0
+      F1G0 = F
+      F0G1 = G
+      F1G1 = F*G
+      F2G0 = F*F
+      F0G2 = G*G
+      F2G1 = F*F*G
+      F1G2 = F*G*G
+      F2G2 = F*F*G*G
+C
+      E0000 = 1.0D0
+      E1000 = EI
+      E0100 = EJ
+      E1100 = EI*EJ
+C
+C     INITIATE LOOP OVER K,L BASIS FUNCTIONS
+      DO M=1,MAXM
+C
+C       MORE VALUE PREPARATION
+        E0010 = EK(M)
+        E0001 = EL(M)
+        E1010 = EI*EK(M)
+        E1001 = EI*EL(M)
+        E0110 = EJ*EK(M)
+        E0101 = EJ*EL(M)
+        E0011 = EK(M)*EL(M)
+        E1110 = EI*EJ*EK(M)
+        E1101 = EI*EJ*EL(M)
+        E1011 = EI*EK(M)*EL(M)
+        E0111 = EJ*EK(M)*EL(M)
+        E1111 = EI*EJ*EK(M)*EL(M)
+C
+C**********************************************************************C
+C       DIRECT INTEGRAL MATRICES: RJSSSS, RJLLSS, RJSSLL, RJLLLL       C
+C**********************************************************************C
+C
+        IF(HMLTN.EQ.'NORL') THEN
+C       NON-RELATIVISTIC HAMILTONIAN
+C
+          B22 = EIJ(3)*EKL(M,2)*BDL(M,2,2) + EIJ(2)*EKL(M,3)*BDU(M,2,2)
+          RJLLLL(M,4) = C5*B22
+C
+        ELSE
+C       RELATIVISTIC HAMILTONIAN
+C
+C         TEMPORARY STORAGE OF RAW RJ(1,M) (LTEN=1 BECAUSE NU=0 ONLY)
+          B11 = EIJ(1)*EKL(M,0)*BDL(M,1,1) + EIJ(0)*EKL(M,1)*BDU(M,1,1)
+          B12 = EIJ(1)*EKL(M,2)*BDL(M,1,2) + EIJ(0)*EKL(M,3)*BDU(M,2,1)
+          B13 = EIJ(1)*EKL(M,4)*BDL(M,1,3) + EIJ(0)*EKL(M,5)*BDU(M,3,1)
+          B21 = EIJ(3)*EKL(M,0)*BDL(M,2,1) + EIJ(2)*EKL(M,1)*BDU(M,1,2)
+          B22 = EIJ(3)*EKL(M,2)*BDL(M,2,2) + EIJ(2)*EKL(M,3)*BDU(M,2,2)
+          B23 = EIJ(3)*EKL(M,4)*BDL(M,2,3) + EIJ(2)*EKL(M,5)*BDU(M,3,2)
+          B31 = EIJ(5)*EKL(M,0)*BDL(M,3,1) + EIJ(4)*EKL(M,1)*BDU(M,1,3)
+          B32 = EIJ(5)*EKL(M,2)*BDL(M,3,2) + EIJ(4)*EKL(M,3)*BDU(M,2,3)
+          B33 = EIJ(5)*EKL(M,4)*BDL(M,3,3) + EIJ(4)*EKL(M,5)*BDU(M,3,3)
+C
+C         FILL RJ ARRAYS FOR THIS LQNA,LQNB BLOCK
+C
+C
+C         LQNA =/= 0 AND LQNB =/= 0 (NEED KQNA,KQNB > 0 BLOCK)
+          IF(LQNA.EQ.0.OR.LQNB.EQ.0) GOTO 101
+          RJLLLL(M,1) = V1*F0G0*E0000*C5*B22
+          RJLLSS(M,1) = V4*F0G0*E0011*C7*B23
+     &                - V2*F0G1*E0010*C5*B22 - V2*F0G1*E0001*C5*B22
+     &                + V1*F0G2*E0000*C3*B21
+          RJSSLL(M,1) = V4*F0G0*E1100*C7*B32
+     &                - V2*F1G0*E1000*C5*B22 - V2*F1G0*E0100*C5*B22
+     &                + V1*F2G0*E0000*C3*B12
+          RJSSSS(M,1) = VS*F0G0*E1111*C9*B33
+     &                - V8*F0G1*E1110*C7*B32 - V8*F0G1*E1101*C7*B32
+     &                - V8*F1G0*E1011*C7*B23 - V8*F1G0*E0111*C7*B23
+     &                + V4*F2G0*E0011*C5*B13 + V4*F0G2*E1100*C5*B31
+     &                + V4*F1G1*E1001*C5*B22 + V4*F1G1*E0110*C5*B22
+     &                + V4*F1G1*E0101*C5*B22 + V4*F1G1*E1010*C5*B22
+     &                - V2*F1G2*E1000*C3*B21 - V2*F1G2*E0100*C3*B21
+     &                - V2*F2G1*E0010*C3*B12 - V2*F2G1*E0001*C3*B12
+     &                + V1*F2G2*E0000*C1*B11
+101       CONTINUE
+C
+C                        LQNB =/= 0 (NEED KQNB > 0 BLOCK)
+          IF(LQNB.EQ.0) GOTO 102
+          RJLLLL(M,2) = V1*F0G0*E0000*C5*B22
+          RJLLSS(M,2) = V4*F0G0*E0011*C7*B23
+     &                - V2*F0G1*E0010*C5*B22 - V2*F0G1*E0001*C5*B22
+     &                + V1*F0G2*E0000*C3*B21
+          RJSSLL(M,2) = V4*F0G0*E1100*C7*B32
+          RJSSSS(M,2) = VS*F0G0*E1111*C9*B33
+     &                - V8*F0G1*E1110*C7*B32 - V8*F0G1*E1101*C7*B32
+     &                + V4*F0G2*E1100*C5*B31
+102       CONTINUE
+C
+C         LQNA =/= 0                (NEED KQNA > 0 BLOCK)
+          IF(LQNA.EQ.0) GOTO 103
+          RJLLLL(M,3) = V1*F0G0*E0000*C5*B22
+          RJLLSS(M,3) = V4*F0G0*E0011*C7*B23
+          RJSSLL(M,3) = V4*F0G0*E1100*C7*B32
+     &                - V2*F1G0*E1000*C5*B22 - V2*F1G0*E0100*C5*B22
+     &                + V1*F2G0*E0000*C3*B12
+          RJSSSS(M,3) = VS*F0G0*E1111*C9*B33
+     &                - V8*F1G0*E1011*C7*B23 - V8*F1G0*E0111*C7*B23
+     &                + V4*F2G0*E0011*C5*B13
+103       CONTINUE
+C
+C         LQNA  =  0 AND LQNB  =  0 (REQUIRED FOR ALL BLOCKS)
+          RJLLLL(M,4) = V1*F0G0*E0000*C5*B22
+          RJLLSS(M,4) = V4*F0G0*E0011*C7*B23
+          RJSSLL(M,4) = V4*F0G0*E1100*C7*B32
+          RJSSSS(M,4) = VS*F0G0*E1111*C9*B33
+C
+        ENDIF
+C
+C**********************************************************************C
+C       EXCHANGE INTEGRAL MATRICES: RKSSSS, RKSLSL, RKLLLL             C
+C**********************************************************************C
+C
+C       LOOP OVER ORDERS FOR BETA INTEGRALS
+        DO LTEN=1,NUNUM
+C
+C         IMPORT NU VALUE FROM ARRAY
+          NU = NUS(LTEN)
+C
+          IF(HMLTN.EQ.'NORL') THEN
+C         NON-RELATIVISTIC HAMILTONIAN
+C
+            B32 = EIK(M, NU+3)*EJL(M,-NU+2)*BXL(M, NU+3,-NU+2)
+     &          + EIK(M,-NU+2)*EJL(M, NU+3)*BXU(M,-NU+2, NU+3)
+            RKLLLL(M,4) = RKLLLL(M,4) + BK(LTEN,4)*C5*B32
+C
+          ELSE
+C         RELATIVISTIC HAMILTONIAN
+C
+C           TEMPORARY STORAGE OF RAW RK(LTEN,M)
+            B10 = EIK(M, NU+1)*EJL(M,-NU  )*BXL(M, NU+1,-NU  )
+     &          + EIK(M,-NU  )*EJL(M, NU+1)*BXU(M,-NU  , NU+1)
+            B12 = EIK(M, NU+1)*EJL(M,-NU+2)*BXL(M, NU+1,-NU+2)
+     &          + EIK(M,-NU  )*EJL(M, NU+3)*BXU(M,-NU  , NU+3)
+            B14 = EIK(M, NU+1)*EJL(M,-NU+4)*BXL(M, NU+1,-NU+4)
+     &          + EIK(M,-NU  )*EJL(M, NU+5)*BXU(M,-NU  , NU+5)
+            B30 = EIK(M, NU+3)*EJL(M,-NU  )*BXL(M, NU+3,-NU  )
+     &          + EIK(M,-NU+2)*EJL(M, NU+1)*BXU(M,-NU+2, NU+1)
+            B32 = EIK(M, NU+3)*EJL(M,-NU+2)*BXL(M, NU+3,-NU+2)
+     &          + EIK(M,-NU+2)*EJL(M, NU+3)*BXU(M,-NU+2, NU+3)
+            B34 = EIK(M, NU+3)*EJL(M,-NU+4)*BXL(M, NU+3,-NU+4)
+     &          + EIK(M,-NU+2)*EJL(M, NU+5)*BXU(M,-NU+2, NU+5)
+            B50 = EIK(M, NU+5)*EJL(M,-NU  )*BXL(M, NU+5,-NU  )
+     &          + EIK(M,-NU+4)*EJL(M, NU+1)*BXU(M,-NU+4, NU+1)
+            B52 = EIK(M, NU+5)*EJL(M,-NU+2)*BXL(M, NU+5,-NU+2)
+     &          + EIK(M,-NU+4)*EJL(M, NU+3)*BXU(M,-NU+4, NU+3)
+            B54 = EIK(M, NU+5)*EJL(M,-NU+4)*BXL(M, NU+5,-NU+4)
+     &          + EIK(M,-NU+4)*EJL(M, NU+5)*BXU(M,-NU+4, NU+5)
+C
+C           LQNA =/= 0 AND LQNB =/= 0 (NEED KQNA,KQNB > 0 BLOCK)
+            IF(LQNA.EQ.0.OR.LQNB.EQ.0) GOTO 201
+            RKLL = V1*F0G0*E0000*C5*B32
+            RKSL = V4*F0G0*E1010*C7*B52 - V2*F1G0*E0010*C5*B32
+     &           - V2*F0G1*E1000*C5*B32 + V1*F1G1*E0000*C3*B12
+            RKSS = VS*F0G0*E1111*C9*B54
+     &           - V8*F0G1*E1110*C7*B52 - V8*F0G1*E1101*C7*B34
+     &           - V8*F1G0*E1011*C7*B52 - V8*F1G0*E0111*C7*B34
+     &           + V4*F2G0*E0011*C5*B32 + V4*F0G2*E1100*C5*B32
+     &           + V4*F1G1*E0110*C5*B32 + V4*F1G1*E1001*C5*B32
+     &           + V4*F1G1*E1010*C5*B50 + V4*F1G1*E0101*C5*B14
+     &           - V2*F2G1*E0010*C3*B30 - V2*F1G2*E1000*C3*B30
+     &           - V2*F2G1*E0001*C3*B12 - V2*F1G2*E0100*C3*B12
+     &           + V1*F2G2*E0000*C1*B10
+C
+            RKLLLL(M,1) = RKLLLL(M,1) + BK(LTEN,1)*RKLL
+            RKSLSL(M,1) = RKSLSL(M,1) + BK(LTEN,1)*RKSL
+            RKSSSS(M,1) = RKSSSS(M,1) + BK(LTEN,1)*RKSS
+201         CONTINUE
+C
+C                        LQNB =/= 0 (NEED KQNB > 0 BLOCK)
+            IF(LQNB.EQ.0) GOTO 202
+            RKLL = V1*F0G0*E0000*C5*B32
+            RKSL = V4*F0G0*E1010*C7*B52 - V2*F0G1*E1000*C5*B32
+            RKSS = VS*F0G0*E1111*C9*B54 - V8*F0G1*E1110*C7*B52
+     &           - V8*F0G1*E1101*C7*B34 + V4*F0G2*E1100*C5*B32
+C
+            RKLLLL(M,2) = RKLLLL(M,2) + BK(LTEN,2)*RKLL
+            RKSLSL(M,2) = RKSLSL(M,2) + BK(LTEN,2)*RKSL
+            RKSSSS(M,2) = RKSSSS(M,2) + BK(LTEN,2)*RKSS
+202         CONTINUE
+C
+C           LQNA =/= 0                (NEED KQNA > 0 BLOCK)
+            IF(LQNA.EQ.0) GOTO 203
+            RKLL = V1*F0G0*E0000*C5*B32
+            RKSL = V4*F0G0*E1010*C7*B52 - V2*F1G0*E0010*C5*B32
+            RKSS = VS*F0G0*E1111*C9*B54 - V8*F1G0*E1011*C7*B52
+     &           - V8*F1G0*E0111*C7*B34 + V4*F2G0*E0011*C5*B32
+C
+            RKLLLL(M,3) = RKLLLL(M,3) + BK(LTEN,3)*RKLL
+            RKSLSL(M,3) = RKSLSL(M,3) + BK(LTEN,3)*RKSL
+            RKSSSS(M,3) = RKSSSS(M,3) + BK(LTEN,3)*RKSS
+203         CONTINUE
+C
+C           LQNA  =  0 AND LQNB  =  0 (REQUIRED FOR ALL BLOCKS)
+            RKLLLL(M,4) = RKLLLL(M,4) + BK(LTEN,4)*V1*F0G0*E0000*C5*B32
+            RKSLSL(M,4) = RKSLSL(M,4) + BK(LTEN,4)*V4*F0G0*E1010*C7*B52
+            RKSSSS(M,4) = RKSSSS(M,4) + BK(LTEN,4)*VS*F0G0*E1111*C9*B54
+C
+          ENDIF
+C
+        ENDDO
+      ENDDO
+C
+C**********************************************************************C
+C     APPLY NORMALISATION FACTORS                                      C
+C**********************************************************************C
+C
+      IF(HMLTN.EQ.'NORL') THEN
+C     NON-RELATIVISTIC HAMILTONIAN
+C
+        DO M=1,MAXM
+          T0LLLL = RNIJ(1)*RNKL(M,1)
+          RJLLLL(M,4) = RJLLLL(M,4)*T0LLLL
+          RKLLLL(M,4) = RKLLLL(M,4)*T0LLLL
+        ENDDO
+C
+      ELSE
+C     RELATIVISTIC HAMILTONIAN
+C
+        DO M=1,MAXM
+          T0LLLL = RNIJ(1)*RNKL(M,1)
+          T0LLSS = RNIJ(1)*RNKL(M,3)
+          T0SLSL = RNIJ(2)*RNKL(M,2)
+          T0SSLL = RNIJ(3)*RNKL(M,1)
+          T0SSSS = RNIJ(3)*RNKL(M,3)
+          DO N=1,4
+            RJLLLL(M,N) = RJLLLL(M,N)*T0LLLL
+            RJLLSS(M,N) = RJLLSS(M,N)*T0LLSS
+            RJSSLL(M,N) = RJSSLL(M,N)*T0SSLL
+            RJSSSS(M,N) = RJSSSS(M,N)*T0SSSS
+            RKLLLL(M,N) = RKLLLL(M,N)*T0LLLL
+            RKSLSL(M,N) = RKSLSL(M,N)*T0SLSL
+            RKSSSS(M,N) = RKSSSS(M,N)*T0SSSS
+          ENDDO
+        ENDDO
+C
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE BII0
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C                      BBBBBBB IIII IIII 000000                        C
+C                      BB    BB II   II 00   000                       C
+C                      BB    BB II   II 00  0000                       C
+C                      BBBBBBB  II   II 00 00 00                       C
+C                      BB    BB II   II 0000  00                       C
+C                      BB    BB II   II 000   00                       C
+C                      BBBBBBB IIII IIII 000000                        C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  BII0 EVALUATES A DIRECT AND EXCHANGE BATCH OF BREIT INTERACTION     C
+C  INTEGRALS OF ALL COMPONENT LABEL COMBINATIONS L AND S IN THE ATOMIC C
+C  (RELATIVISTIC) SCF PROCEDURE.                                       C
+C -------------------------------------------------------------------- C
+C  OUTPUT:                                                             C
+C    RKLLSS(M,N) - EXCHANGE BII OVERLAP {LL,SS}                        C
+C    RKSLLS(M,N) - EXCHANGE BII OVERLAP {SL,SL}                        C
+C    RKSSLL(M,N) - EXCHANGE BII OVERLAP {SS,LL}                        C
+C    RMSLLS(M,N) - SEMI-RANGE BII OVERLAP {SL,SL}                      C
+C -------------------------------------------------------------------- C
+C    N=1 - KQN(A)>0, KQN(B)>0 (TYPICAL LABEL 11)                       C
+C    N=2 - KQN(A)<0, KQN(B)>0 (TYPICAL LABEL 12)                       C
+C    N=3 - KQN(A)>0, KQN(B)<0 (TYPICAL LABEL 21)                       C
+C    N=4 - KQN(A)<0, KQN(B)<0 (TYPICAL LABEL 22)                       C
+C**********************************************************************C
+      PARAMETER(MBS=26,MB2=MBS*MBS,MKP=13,MNU=MKP+1,MAB=2*MNU+6)
+C
+      DIMENSION XK(MB2,2),IAA(2),IBB(2)
+      DIMENSION RTIK0(MBS),RTJL0(MBS),PTIK0(MBS),PTJL0(MBS)
+      DIMENSION BETA(MB2),BTA1(MB2),XROOT(MB2),BIN(MB2),TRM(MB2)
+      DIMENSION BXL(MB2,-MAB:MAB,-MAB:MAB),BXU(MB2,-MAB:MAB,-MAB:MAB)
+C
+      COMMON/ANGL/BK(MNU,4),ELL(MNU,4),ESS(MNU,4),ESL(MNU,4),GSL(MNU,4)
+      COMMON/BSIJ/EIJ(0:5),RNIJ(3),EI,EJ
+      COMMON/BSKL/EK(MB2),EL(MB2),RNKL(MB2,4),IKIND(MB2),JLIND(MB2),
+     &            EIK(MB2,-MAB:MAB),EJL(MB2,-MAB:MAB),EKL(MB2,0:5)
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/BSXP/EXLA(MBS),EXLB(MBS)
+      COMMON/BTRE/RKLLSS(MB2,4),RKSLLS(MB2,4),RKSSLL(MB2,4),
+     &            RMSLLS(MB2,4)
+      COMMON/GAMA/GAMLOG(50),GAMHLF(50)
+      COMMON/TNSR/NUS(MNU),NUNUM,NUI,NUF
+      COMMON/KPTB/IBAS,JBAS
+C
+C**********************************************************************C
+C     INLINE BETA FUNCTION CODE FOR EXCHANGE TERMS                     C
+C**********************************************************************C
+C
+C     LOWEST EXPONENT POWER
+      IPOWER = LQNA+LQNB-NUF
+C
+C     A BLOCK OF BASIS EXPONENT PRODUCTS
+      DO KBAS=1,NBASB
+        RTIK0(KBAS) = DSQRT(EI+EXLB(KBAS))
+        RTJL0(KBAS) = DSQRT(EJ+EXLB(KBAS))
+        PTIK0(KBAS) = RTIK0(KBAS)**(-IPOWER)
+        PTJL0(KBAS) = RTJL0(KBAS)**(-IPOWER)
+      ENDDO
+C
+C     CALCULATE A FULL SET OF EXPONENT OVERLAPS FOR EXCHANGE
+      DO M=1,MAXM
+        RTIK = RTIK0(IKIND(M))
+        RTJL = RTJL0(JLIND(M))
+        EIK(M,-NUF) = PTIK0(IKIND(M))
+        EJL(M,-NUF) = PTJL0(JLIND(M))
+        DO IPOW=-NUF+1,NUF+4
+          EIK(M,IPOW) = EIK(M,IPOW-1)/RTIK
+          EJL(M,IPOW) = EJL(M,IPOW-1)/RTJL
+        ENDDO
+      ENDDO
+C
+C     CALCULATE LIST OF BETA FUNCTION ARGUMENTS, XK(MB2,2) (Z AND Z')
+      DO M=1,MAXM
+        TKL0  = EK(M)+EL(M)
+        TIJKL = EI+EJ+TKL0
+        XK(M,1) = (EI+EK(M))/TIJKL
+        XK(M,2) = (EJ+EL(M))/TIJKL
+      ENDDO
+C
+C     NUMBER OF LEVELS NEEDED TO ACCOUNT FOR ALL EXCHANGE INTEGRALS
+      NVALS = (NUF-NUI)/2+3
+C
+C     LOOP OVER ORDER FOR FIRST INDEX
+      DO NX=1,NVALS
+        IAA(1) = LQNA+LQNB+NUI+2*NX
+        IAA(2) = LQNA+LQNB+NUI+2*NX
+C
+C       LOOP OVER ORDER FOR SECOND INDEX
+        DO NY=1,NVALS
+          IBB(1) = LQNA+LQNB-NUF+2*NY-1
+          IBB(2) = LQNA+LQNB-NUF+2*NY-1
+C
+C         LOOP OVER BETA INTEGRAL TYPE
+          DO IBETA=1,2
+            IA = (IAA(IBETA)-1)/2
+            IB =  IBB(IBETA)   /2
+C
+C           CASE 1: IB > 1
+            IF(IB.GT.1) THEN
+              X  = DFLOAT(IA)+0.5D0
+              IX = 2*IA+1
+              DO M=1,MAXM
+                BTA1(M) = (DSQRT(XK(M,IBETA))**IX)/X
+              ENDDO
+              RA = X
+              RB = DFLOAT(1-IB)
+              RC = 1.0D0+X
+              RD = 1.0D0
+              RCD = RC*RD
+              FCT = RA*RB/RCD
+              DO M=1,MAXM
+                TRM(M) = FCT*XK(M,IBETA)
+                BIN(M) = 1.0D0+TRM(M)
+              ENDDO
+              RA = RA+1.0D0
+              RB = RB+1.0D0
+              RC = RC+1.0D0
+              RD = RD+1.0D0
+              DO J=2,IB-1
+                RCD = RC*RD
+                FCT = RA*RB/RCD
+                DO M=1,MAXM
+                  TRM(M) = FCT*TRM(M)*XK(M,IBETA)
+                  BIN(M) = BIN(M)+TRM(M)
+                ENDDO
+                RA = RA+1.0D0
+                RB = RB+1.0D0
+                RC = RC+1.0D0
+                RD = RD+1.0D0
+              ENDDO
+              DO M=1,MAXM
+                BETA(M) = BTA1(M)*BIN(M)
+              ENDDO
+C
+C           CASE 2: IB = 1
+            ELSEIF(IB.EQ.1) THEN
+              X  = DFLOAT(IA)+0.5D0
+              IX = 2*IA+1
+              DO M=1,MAXM
+                BETA(M) = (DSQRT(XK(M,IBETA))**IX)/X
+              ENDDO
+C
+C           CASE 3: IB = 0
+            ELSEIF(IB.EQ.0) THEN
+              DO M=1,MAXM
+                XROOT(M) = DSQRT(XK(M,IBETA))
+                DEN      = (1.0D0-XROOT(M))
+                RAT      = (1.0D0+XROOT(M))/DEN
+                BTA1(M)  = DLOG(RAT)
+                BIN(M)   = 1.0D0
+                TRM(M)   = XK(M,IBETA)
+              ENDDO
+C
+C             CASE A: IA > 1
+              IF(IA.GT.1) THEN
+                DO K=2,IA
+                  KK = 2*K-1
+                  RK = DFLOAT(KK)
+                  X  = 1.0D0/RK
+                  DO M=1,MAXM
+                    BIN(M) = BIN(M)+X*TRM(M)
+                    TRM(M) = TRM(M)*XK(M,IBETA)
+                  ENDDO
+                ENDDO
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)-2.0D0*XROOT(M)*BIN(M)
+                ENDDO
+C             CASE B: IA = 1
+              ELSEIF(IA.EQ.1) THEN
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)-2.0D0*XROOT(M)
+                ENDDO
+C             CASE C: IA = 0
+              ELSE
+                DO M=1,MAXM
+                  BETA(M) = BTA1(M)
+                ENDDO
+              ENDIF
+C
+            ENDIF
+C
+C           SORT THE BETA INTEGRAL INTO THE LOWER/UPPER ARRAYS
+            IF(IBETA.EQ.1) THEN
+              DO M=1,MAXM
+                BXL(M, NUI+2*NX  ,-NUF+2*NY-1) = BETA(M)
+              ENDDO
+            ELSE
+              DO M=1,MAXM
+                BXU(M,-NUF+2*NY-1, NUI+2*NX  ) = BETA(M)
+              ENDDO
+            ENDIF
+C
+C         END LOOPS OVER IBETA AND INDICES NX, NY
+          ENDDO
+        ENDDO
+      ENDDO
+C
+C**********************************************************************C
+C     RADIAL INTEGRALS OVER SPINORS (SEPARATED BY TENSOR ORDER)        C
+C**********************************************************************C
+C
+C     EMPTY COUNTER ARRAYS FOR DIRECT AND EXCHANGE INTEGRALS
+      DO M=1,MAXM
+        DO N=1,4
+          RKLLSS(M,N) = 0.0D0
+          RKSLLS(M,N) = 0.0D0
+          RKSSLL(M,N) = 0.0D0
+          RMSLLS(M,N) = 0.0D0
+        ENDDO
+      ENDDO
+C
+C     PREPARE VALUES FOR UPCOMING CALCULATIONS
+      C3 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+3)
+      C5 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+5)
+      C7 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+7)
+C
+      V1 = 1.0D0
+      V2 = 2.0D0
+      V4 = 4.0D0
+C
+      F = DFLOAT(2*LQNA+1)
+      G = DFLOAT(2*LQNB+1)
+C
+      F0G0 = 1.0D0
+      F1G0 = F
+      F0G1 = G
+      F1G1 = F*G
+      F2G0 = F*F
+      F0G2 = G*G
+C
+      E0000 = 1.0D0
+      E1000 = EI
+      E0100 = EJ
+      E1100 = EI*EJ
+C
+C     INITIATE LOOP OVER K,L BASIS FUNCTIONS
+      DO M=1,MAXM
+C
+C       MORE VALUE PREPARATION
+        E0010 = EK(M)
+        E0001 = EL(M)
+        E1001 = EI*EL(M)
+        E0011 = EK(M)*EL(M)
+C
+C**********************************************************************C
+C       EXCHANGE INTEGRAL MATRICES: RKLLSS, RKSLLS, RKSSLL             C
+C**********************************************************************C
+C
+C       LOOP OVER ORDERS FOR BETA INTEGRALS
+        DO LTEN=1,NUNUM
+C
+C         IMPORT NU VALUE FROM ARRAY
+          NU = NUS(LTEN)
+C
+C         TEMPORARY STORAGE OF RAW RK(LTEN,M)
+          B21 = EIK(M, NU+2)*EJL(M,-NU+1)*BXL(M, NU+2,-NU+1)
+     &        + EIK(M,-NU+1)*EJL(M, NU+2)*BXU(M,-NU+1, NU+2)
+          B23 = EIK(M, NU+2)*EJL(M,-NU+3)*BXL(M, NU+2,-NU+3)
+     &        + EIK(M,-NU+1)*EJL(M, NU+4)*BXU(M,-NU+1, NU+4)
+          B41 = EIK(M, NU+4)*EJL(M,-NU+1)*BXL(M, NU+4,-NU+1)
+     &        + EIK(M,-NU+3)*EJL(M, NU+2)*BXU(M,-NU+3, NU+2)
+          B43 = EIK(M, NU+4)*EJL(M,-NU+3)*BXL(M, NU+4,-NU+3)
+     &        + EIK(M,-NU+3)*EJL(M, NU+4)*BXU(M,-NU+3, NU+4)
+C
+C         LQNA =/= 0 AND LQNB =/= 0 (NEED KQNA,KQNB > 0 BLOCK)
+          IF(LQNA.EQ.0.OR.LQNB.EQ.0) GOTO 201
+          RKLL = V4*F0G0*E0011*C7*B43 - V2*F0G1*E0010*C5*B41
+     &         - V2*F0G1*E0001*C5*B23 + V1*F0G2*E0000*C3*B21
+          RKSS = V4*F0G0*E1100*C7*B43 - V2*F1G0*E1000*C5*B41
+     &         - V2*F1G0*E0100*C5*B23 + V1*F2G0*E0000*C3*B21
+          RKSL = V4*F0G0*E1001*C7*B43 - V2*F1G0*E0001*C5*B23
+     &         - V2*F0G1*E1000*C5*B41 + V1*F1G1*E0000*C3*B21
+C
+          RKLLSS(M,1) = RKLLSS(M,1) + ELL(LTEN,1)*RKLL
+          RKSSLL(M,1) = RKSSLL(M,1) + ESS(LTEN,1)*RKSS
+          RKSLLS(M,1) = RKSLLS(M,1) + ESL(LTEN,1)*RKSL
+201       CONTINUE
+C
+C         LQNB =/= 0                (NEED KQNB > 0 BLOCK)
+          IF(LQNB.EQ.0) GOTO 202
+          RKLL = V4*F0G0*E0011*C7*B43 - V2*F0G1*E0010*C5*B41
+     &         - V2*F0G1*E0001*C5*B23 + V1*F0G2*E0000*C3*B21
+          RKSS = V4*F0G0*E1100*C7*B43
+          RKSL = V4*F0G0*E1001*C7*B43 - V2*F0G1*E1000*C5*B41
+C
+          RKLLSS(M,2) = RKLLSS(M,2) + ELL(LTEN,2)*RKLL
+          RKSSLL(M,2) = RKSSLL(M,2) + ESS(LTEN,2)*RKSS
+          RKSLLS(M,2) = RKSLLS(M,2) + ESL(LTEN,2)*RKSL
+202       CONTINUE
+C
+C         LQNA =/= 0                (NEED KQNA > 0 BLOCK)
+          IF(LQNA.EQ.0) GOTO 203
+          RKLL = V4*F0G0*E0011*C7*B43
+          RKSS = V4*F0G0*E1100*C7*B43 - V2*F1G0*E1000*C5*B41
+     &         - V2*F1G0*E0100*C5*B23 + V1*F2G0*E0000*C3*B21
+          RKSL = V4*F0G0*E1001*C7*B43 - V2*F1G0*E0001*C5*B23
+C
+          RKLLSS(M,3) = RKLLSS(M,3) + ELL(LTEN,3)*RKLL
+          RKSSLL(M,3) = RKSSLL(M,3) + ESS(LTEN,3)*RKSS
+          RKSLLS(M,3) = RKSLLS(M,3) + ESL(LTEN,3)*RKSL
+203       CONTINUE
+C
+C         LQNA  =  0 AND LQNB  =  0 (REQUIRED FOR ALL BLOCKS)
+          RKLLSS(M,4) = RKLLSS(M,4) + ELL(LTEN,4)*V4*F0G0*E0011*C7*B43
+          RKSSLL(M,4) = RKSSLL(M,4) + ESS(LTEN,4)*V4*F0G0*E1100*C7*B43
+          RKSLLS(M,4) = RKSLLS(M,4) + ESL(LTEN,4)*V4*F0G0*E1001*C7*B43
+C
+        ENDDO
+C
+C**********************************************************************C
+C       HALF-RANGE EXCHANGE INTEGRAL MATRICES: RMSLLS                  C
+C**********************************************************************C
+C
+        goto 123
+C       LOOP OVER ORDERS FOR BETA INTEGRALS
+        DO LTEN=1,NUNUM
+C
+C         IMPORT NU VALUE FROM ARRAY
+          NU = NUS(LTEN)
+C
+C         TEMPORARY STORAGE OF RAW RM(LTEN,M) FOR RMSLLS
+          B21 = EIK(M, NU+2)*EJL(M,-NU+1)*BXL(M, NU+2,-NU+1)
+     &        - EIK(M,-NU+1)*EJL(M, NU+2)*BXU(M,-NU+1, NU+2)
+          B23 = EIK(M, NU+2)*EJL(M,-NU+3)*BXL(M, NU+2,-NU+3)
+     &        - EIK(M,-NU+1)*EJL(M, NU+4)*BXU(M,-NU+1, NU+4)
+          B41 = EIK(M, NU+4)*EJL(M,-NU+1)*BXL(M, NU+4,-NU+1)
+     &        - EIK(M,-NU+3)*EJL(M, NU+2)*BXU(M,-NU+3, NU+2)
+          B43 = EIK(M, NU+4)*EJL(M,-NU+3)*BXL(M, NU+4,-NU+3)
+     &        - EIK(M,-NU+3)*EJL(M, NU+4)*BXU(M,-NU+3, NU+4)
+C
+C         LQNA =/= 0 AND LQNB =/= 0 (NEED KQNA,KQNB > 0 BLOCK)
+          IF(LQNA.EQ.0.OR.LQNB.EQ.0) GOTO 301
+          RMSL = V4*F0G0*E1001*C7*B43 - V2*F1G0*E0001*C5*B23
+     &         - V2*F0G1*E1000*C5*B41 + V1*F1G1*E0000*C3*B21
+C
+          RMSLLS(M,1) = RMSLLS(M,1) + GSL(LTEN,1)*RMSL
+301       CONTINUE
+C
+C         LQNB =/= 0                (NEED KQNB > 0 BLOCK)
+          IF(LQNB.EQ.0) GOTO 302
+          RMSL = V4*F0G0*E1001*C7*B43 - V2*F0G1*E1000*C5*B41
+C
+          RMSLLS(M,2) = RMSLLS(M,2) + GSL(LTEN,2)*RMSL
+302       CONTINUE
+C
+C         LQNA =/= 0                (NEED KQNA > 0 BLOCK)
+          IF(LQNA.EQ.0) GOTO 303
+          RMSL = V4*F0G0*E1001*C7*B43 - V2*F1G0*E0001*C5*B23
+C
+          RMSLLS(M,3) = RMSLLS(M,3) + GSL(LTEN,3)*RMSL
+303       CONTINUE
+C
+C         LQNA  =  0 AND LQNB  =  0 (REQUIRED FOR ALL BLOCKS)
+          RMSLLS(M,4) = RMSLLS(M,4) + GSL(LTEN,4)*V4*F0G0*E1001*C7*B43
+C
+        ENDDO
+123     continue
+
+      ENDDO
+C
+C**********************************************************************C
+C     APPLY NORMALISATION FACTORS                                      C
+C**********************************************************************C
+C
+      DO M=1,MAXM
+        T0LLSS = RNIJ(1)*RNKL(M,3)
+        T0SSLL = RNIJ(3)*RNKL(M,1)
+        T0SLLS = RNIJ(2)*RNKL(M,4)
+        DO N=1,4
+          RKLLSS(M,N) = T0LLSS*RKLLSS(M,N)
+          RKSSLL(M,N) = T0SSLL*RKSSLL(M,N)
+          RKSLLS(M,N) = T0SLLS*RKSLLS(M,N)
+          RMSLLS(M,N) = T0SLLS*RMSLLS(M,N)
+        ENDDO
+      ENDDO
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE ANGCLM0
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C     AA    NN    NN  GGGGGG   CCCCCC  LL       MM       MM  000000    C
+C    AAAA   NNN   NN GG    GG CC    CC LL       MMM     MMM 00   000   C
+C   AA  AA  NNNN  NN GG       CC       LL       MMMM   MMMM 00  0000   C
+C  AA    AA NN NN NN GG       CC       LL       MM MM MM MM 00 00 00   C
+C  AAAAAAAA NN  NNNN GG   GGG CC       LL       MM  MMM  MM 0000  00   C
+C  AA    AA NN   NNN GG    GG CC    CC LL       MM   M   MM 000   00   C
+C  AA    AA NN    NN  GGGGGG   CCCCCC  LLLLLLLL MM       MM  000000    C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  ANGCLM0 EVALUATES THE ANGULAR COEFFICIENTS OF THE COULOMB           C
+C  INTERACTIONS FOR CLOSED SHELLS IN THE (L1,L2) MANIFOLD.             C
+C**********************************************************************C
+      PARAMETER(MKP=13,MNU=MKP+1)
+C
+      CHARACTER*4 HMLTN
+C
+      COMMON/ANGL/BK(MNU,4),ELL(MNU,4),ESS(MNU,4),ESL(MNU,4),GSL(MNU,4)
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/PRMS/CV,HMLTN,ITREE,IMOL,INEW,IEQS,IERC,IPAR,ICOR,ILEV
+      COMMON/TNSR/NUS(MNU),NUNUM,NUI,NUF
+C
+C     CALCULATE KQNA AND 2*JQNA VALUES FROM LQNA
+      KLA =-LQNA-1
+      KRA = LQNA
+      JLA = 2*IABS(KLA)-1
+      JRA = 2*IABS(KRA)-1
+C
+C     CALCULATE KQNB AND 2*JQNB VALUES FROM LQNB
+      KLB =-LQNB-1
+      KRB = LQNB
+      JLB = 2*IABS(KLB)-1
+      JRB = 2*IABS(KRB)-1
+C
+C     GENERATE LIST OF FACTORIALS
+      CALL FACTRLS
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(LQNA-LQNB)
+      NUF = LQNA+LQNB+1
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 0
+      DO NU=NUI,NUF
+C
+C       TEST WHETHER 'LQNA+LQNB+NU' ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.1) THEN
+C       ONLY ANGULAR COEFFICIENTS OF EVEN PARITY ARE NON-ZERO
+C
+C         SAVE THIS TENSOR ORDER
+          LTEN      = LTEN+1
+          NUS(LTEN) = NU
+C
+          IF(HMLTN.EQ.'NORL') THEN
+            BK(LTEN,4) = 0.5D0*ABC000(LQNA,LQNB,NU)
+          ELSE
+            BK(LTEN,1) = SYM3JSQ(JRA,JRB,NU)
+            BK(LTEN,2) = SYM3JSQ(JLA,JRB,NU)
+            BK(LTEN,3) = SYM3JSQ(JRA,JLB,NU)
+            BK(LTEN,4) = SYM3JSQ(JLA,JLB,NU)
+          ENDIF
+        ENDIF
+C
+      ENDDO
+C
+C     NUMBER OF SURVIVING TENSOR ORDERS
+      NUNUM = LTEN
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE ANGBRT0
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C        AA    NN    NN  GGGGGG  BBBBBBB  RRRRRRR TTTTTTTT 000000      C
+C       AAAA   NNN   NN GG    GG BB    BB RR    RR   TT   00   000     C
+C      AA  AA  NNNN  NN GG       BB    BB RR    RR   TT   00  0000     C
+C     AA    AA NN NN NN GG       BBBBBBB  RR    RR   TT   00 00 00     C
+C     AAAAAAAA NN  NNNN GG   GGG BB    BB RRRRRRR    TT   0000  00     C
+C     AA    AA NN   NNN GG    GG BB    BB RR    RR   TT   000   00     C
+C     AA    AA NN    NN  GGGGGG  BBBBBBB  RR    RR   TT    000000      C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  ANGBRT0 EVALUATES ANGULAR COEFFICIENTS OF THE ATOMIC CLOSED SHELL   C
+C  BREIT INTERACTION FOR ALL (K1,K2) VALUES IN THE MANIFOLD (L1,L2).   C
+C -------------------------------------------------------------------- C
+C  OUTPUT:                                                             C
+C    NUNUM - NUMBER OF NU VALUES THAT SATISFY PARITY RESTRICTION RULE. C
+C    NUI - MINIMUM NU VALUE IN THIS MANIFOLD.                          C
+C    NUF - MAXIMUM NU VALUE IN THIS MANIFOLD.                          C
+C    ELL(MNU,4) - ANGULAR TERMS FOR CLOSED BREIT EK(JA,JB;LL) TERMS    C
+C    ESS(MNU,4) - ANGULAR TERMS FOR CLOSED BREIT EK(JA,JB;SS) TERMS    C
+C    ESL(MNU,4) - ANGULAR TERMS FOR CLOSED BREIT EK(JA,JB;SL) TERMS    C
+C    GSL(MNU,4) - ANGULAR TERMS FOR CLOSED BREIT EK(JA,JB;SL) TERMS    C
+C**********************************************************************C
+      PARAMETER(MKP=13,MNU=MKP+1)
+C
+      DIMENSION SCOEF(4,2)
+C
+      COMMON/ANGL/BK(MNU,4),ELL(MNU,4),ESS(MNU,4),ESL(MNU,4),GSL(MNU,4)
+      COMMON/BSQN/NBASA,NBASB,LQNA,LQNB,MAXM
+      COMMON/TNSR/NUS(MNU),NUNUM,NUI,NUF
+C
+C     INITIALISE COEFFICIENT ARRAYS
+      DO LTEN=1,MNU
+        DO N=1,4
+          ELL(LTEN,N) = 0.0D0
+          ESS(LTEN,N) = 0.0D0
+          ESL(LTEN,N) = 0.0D0
+          GSL(LTEN,N) = 0.0D0
+        ENDDO
+        NUS(LTEN) = 0
+      ENDDO
+      NUNUM = 0
+C
+C     CALCULATE KQNA AND 2*JQNA VALUES FROM LQNA
+      KLA =-LQNA-1
+      KRA = LQNA
+      JLA = 2*IABS(KLA)-1
+      JRA = 2*IABS(KRA)-1
+C
+C     CALCULATE KQNB AND 2*JQNB VALUES FROM LQNB
+      KLB =-LQNB-1
+      KRB = LQNB
+      JLB = 2*IABS(KLB)-1
+      JRB = 2*IABS(KRB)-1
+C
+C     GENERATE LIST OF FACTORIALS
+      CALL FACTRLS
+C
+C**********************************************************************C
+C     (1) JRA AND JRB               (NEED KQNA,KQNB > 0 BLOCK)         C
+C**********************************************************************C
+C
+      IF(LQNA.EQ.0.OR.LQNB.EQ.0) GOTO 201
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(JRA-JRB)/2
+      NUF =     (JRA+JRB)/2
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 1
+      DO NU=NUI,NUF
+C
+C       RAW SQUARED 3J-SYMBOL
+        RAW = SYM3JSQ(JRA,JRB,NU)
+C
+C       TEST WHETHER PARITY OF 'LQNA+LQNB+NU' IS ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.0.AND.NU.NE.0) THEN
+C       CASE 1: ANGULAR COEFFICIENTS OF ODD PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          RNU  = DFLOAT(NU*(NU+1))
+          COEF = DFLOAT((KRA+KRB)*(KRA+KRB))/RNU
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,1) = ELL(LTEN,1) + COEF*RAW
+          ESS(LTEN,1) = ESS(LTEN,1) + COEF*RAW
+          ESL(LTEN,1) = ESL(LTEN,1) + COEF*RAW
+C
+        ELSEIF(IPARAB.EQ.1) THEN
+C       CASE 2: ANGULAR COEFFICIENTS OF EVEN-PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          CALL BRCOEF0(SCOEF,KRA,KRB,NU)
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU-1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,1) = ELL(LTEN,1) - SCOEF(1,1)*RAW
+          ESL(LTEN,1) = ESL(LTEN,1) - SCOEF(2,1)*RAW
+          ESS(LTEN,1) = ESS(LTEN,1) - SCOEF(3,1)*RAW
+          GSL(LTEN,1) = GSL(LTEN,1) - SCOEF(4,1)*RAW
+C
+C         STEP PARAMETER FOR ADDITIONS TO COEFFICIENTS
+          IF(NU.GT.0) THEN
+            LTEN = LTEN+1
+          ENDIF
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU+1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,1) = ELL(LTEN,1) - SCOEF(1,2)*RAW
+          ESL(LTEN,1) = ESL(LTEN,1) - SCOEF(2,2)*RAW
+          ESS(LTEN,1) = ESS(LTEN,1) - SCOEF(3,2)*RAW
+          GSL(LTEN,1) = GSL(LTEN,1) - SCOEF(4,2)*RAW
+C
+        ENDIF
+      ENDDO
+C
+C     ADJUST NUNUM IF NECESSARY
+      NUI   = MIN(NUI,NUS(   1))
+      NUF   = MAX(NUF,NUS(LTEN))
+      NUNUM = MAX(LTEN,NUNUM)
+C
+201   CONTINUE
+C
+C**********************************************************************C
+C     (2) JLA AND JRB               (NEED KQNB > 0 BLOCK)              C
+C**********************************************************************C
+C
+      IF(LQNB.EQ.0) GOTO 202
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(JLA-JRB)/2
+      NUF =     (JLA+JRB)/2
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 1
+      DO NU=NUI,NUF
+C
+C       RAW SQUARED 3J-SYMBOL
+        RAW = SYM3JSQ(JLA,JRB,NU)
+C
+C       TEST WHETHER PARITY OF 'LQNA+LQNB+NU' IS ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.0.AND.NU.NE.0) THEN
+C       CASE 1: ANGULAR COEFFICIENTS OF ODD PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          RNU  = DFLOAT(NU*(NU+1))
+          COEF = DFLOAT((KLA+KRB)*(KLA+KRB))/RNU
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,2) = ELL(LTEN,2) + COEF*RAW
+          ESS(LTEN,2) = ESS(LTEN,2) + COEF*RAW
+          ESL(LTEN,2) = ESL(LTEN,2) + COEF*RAW
+C
+        ELSEIF(IPARAB.EQ.1) THEN
+C       CASE 2: ANGULAR COEFFICIENTS OF EVEN-PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          CALL BRCOEF0(SCOEF,KLA,KRB,NU)
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU-1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,2) = ELL(LTEN,2) - SCOEF(1,1)*RAW
+          ESL(LTEN,2) = ESL(LTEN,2) - SCOEF(2,1)*RAW
+          ESS(LTEN,2) = ESS(LTEN,2) - SCOEF(3,1)*RAW
+          GSL(LTEN,2) = GSL(LTEN,2) - SCOEF(4,1)*RAW
+C
+C         STEP PARAMETER FOR ADDITIONS TO COEFFICIENTS
+          IF(NU.GT.0) THEN
+            LTEN = LTEN+1
+          ENDIF
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU+1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,2) = ELL(LTEN,2) - SCOEF(1,2)*RAW
+          ESL(LTEN,2) = ESL(LTEN,2) - SCOEF(2,2)*RAW
+          ESS(LTEN,2) = ESS(LTEN,2) - SCOEF(3,2)*RAW
+          GSL(LTEN,2) = GSL(LTEN,2) - SCOEF(4,2)*RAW
+C
+        ENDIF
+      ENDDO
+C
+C     ADJUST NUNUM IF NECESSARY
+      NUI   = MIN(NUI,NUS(   1))
+      NUF   = MAX(NUF,NUS(LTEN))
+      NUNUM = MAX(LTEN,NUNUM)
+C
+202   CONTINUE
+C
+C**********************************************************************C
+C     (3) JRA AND JLB                (NEED KQNA > 0 BLOCK)             C
+C**********************************************************************C
+C
+      IF(LQNA.EQ.0) GOTO 203     
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(JRA-JLB)/2
+      NUF =     (JRA+JLB)/2
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 1
+      DO NU=NUI,NUF
+C
+C       RAW SQUARED 3J-SYMBOL
+        RAW = SYM3JSQ(JRA,JLB,NU)
+C
+C       TEST WHETHER PARITY OF 'LQNA+LQNB+NU' IS ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.0.AND.NU.NE.0) THEN
+C       CASE 1: ANGULAR COEFFICIENTS OF ODD PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          RNU  = DFLOAT(NU*(NU+1))
+          COEF = DFLOAT((KRA+KLB)*(KRA+KLB))/RNU
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,3) = ELL(LTEN,3) + COEF*RAW
+          ESS(LTEN,3) = ESS(LTEN,3) + COEF*RAW
+          ESL(LTEN,3) = ESL(LTEN,3) + COEF*RAW
+C
+        ELSEIF(IPARAB.EQ.1) THEN
+C       CASE 2: ANGULAR COEFFICIENTS OF EVEN-PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          CALL BRCOEF0(SCOEF,KRA,KLB,NU)
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU-1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,3) = ELL(LTEN,3) - SCOEF(1,1)*RAW
+          ESL(LTEN,3) = ESL(LTEN,3) - SCOEF(2,1)*RAW
+          ESS(LTEN,3) = ESS(LTEN,3) - SCOEF(3,1)*RAW
+          GSL(LTEN,3) = GSL(LTEN,3) - SCOEF(4,1)*RAW
+C
+C         STEP PARAMETER FOR ADDITIONS TO COEFFICIENTS
+          IF(NU.GT.0) THEN
+            LTEN = LTEN+1
+          ENDIF
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU+1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,3) = ELL(LTEN,3) - SCOEF(1,2)*RAW
+          ESL(LTEN,3) = ESL(LTEN,3) - SCOEF(2,2)*RAW
+          ESS(LTEN,3) = ESS(LTEN,3) - SCOEF(3,2)*RAW
+          GSL(LTEN,3) = GSL(LTEN,3) - SCOEF(4,2)*RAW
+C
+        ENDIF
+C
+      ENDDO
+C
+C     ADJUST NUNUM IF NECESSARY
+      NUI   = MIN(NUI,NUS(   1))
+      NUF   = MAX(NUF,NUS(LTEN))
+      NUNUM = MAX(LTEN,NUNUM)
+C
+203   CONTINUE
+C
+C**********************************************************************C
+C     (4) JLA AND JLB               (REQUIRED FOR ALL BLOCKS)          C
+C**********************************************************************C
+C
+C     START AND END PARAMETERS FROM TRIANGLE RULE
+      NUI = IABS(JLA-JLB)/2
+      NUF =     (JLA+JLB)/2
+C
+C     LOOP OVER ALL NU VALUES WITHIN TRIANGLE RULE
+      LTEN = 1
+      DO NU=NUI,NUF
+C
+C       RAW SQUARED 3J-SYMBOL
+        RAW = SYM3JSQ(JLA,JLB,NU)
+C
+C       TEST WHETHER PARITY OF 'LQNA+LQNB+NU' IS ODD OR EVEN
+        IF(MOD(LQNA+LQNB+NU,2).EQ.0) THEN
+          IPARAB = 1
+        ELSE
+          IPARAB = 0
+        ENDIF
+C
+        IF(IPARAB.EQ.0.AND.NU.NE.0) THEN
+C       CASE 1: ANGULAR COEFFICIENTS OF ODD PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          RNU  = DFLOAT(NU*(NU+1))
+          COEF = DFLOAT((KLA+KLB)*(KLA+KLB))/RNU
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,4) = ELL(LTEN,4) + COEF*RAW
+          ESS(LTEN,4) = ESS(LTEN,4) + COEF*RAW
+          ESL(LTEN,4) = ESL(LTEN,4) + COEF*RAW
+C
+        ELSEIF(IPARAB.EQ.1) THEN
+C       CASE 2: ANGULAR COEFFICIENTS OF EVEN-PARITY
+C
+C         CALCULATE INTERMEDIATE COEFFICIENTS
+          CALL BRCOEF0(SCOEF,KLA,KLB,NU)
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU-1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,4) = ELL(LTEN,4) - SCOEF(1,1)*RAW
+          ESL(LTEN,4) = ESL(LTEN,4) - SCOEF(2,1)*RAW
+          ESS(LTEN,4) = ESS(LTEN,4) - SCOEF(3,1)*RAW
+          GSL(LTEN,4) = GSL(LTEN,4) - SCOEF(4,1)*RAW
+C
+C         STEP PARAMETER FOR ADDITIONS TO COEFFICIENTS
+          IF(NU.GT.0) THEN
+            LTEN = LTEN+1
+          ENDIF
+C
+C         SAVE THIS TENSOR ORDER NU TO THE LTEN ELEMENT OF 'NUS'
+          NUS(LTEN) = NU+1
+C
+C         CONTRIBUTIONS TO ANGULAR TERMS
+          ELL(LTEN,4) = ELL(LTEN,4) - SCOEF(1,2)*RAW
+          ESL(LTEN,4) = ESL(LTEN,4) - SCOEF(2,2)*RAW
+          ESS(LTEN,4) = ESS(LTEN,4) - SCOEF(3,2)*RAW
+          GSL(LTEN,4) = GSL(LTEN,4) - SCOEF(4,2)*RAW
+C
+        ENDIF
+C
+      ENDDO
+C
+C     ADJUST NUNUM IF NECESSARY
+      NUI   = MIN(NUI,NUS(   1))
+      NUF   = MAX(NUF,NUS(LTEN))
+      NUNUM = MAX(LTEN,NUNUM)
+C
+C     APPROPRIATE NUI GIVEN ODD SELECTION RULE
+      NUI = MOD(LQNA+LQNB+1,2)
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE BRCOEF0(SCOEFF,KA,KB,NU)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C    BBBBBBB  RRRRRRR   CCCCCC   OOOOOO  EEEEEEEE FFFFFFFF 000000      C
+C    BB    BB RR    RR CC    CC OO    OO EE       FF      00   000     C
+C    BB    BB RR    RR CC       OO    OO EE       FF      00  0000     C
+C    BBBBBBB  RR    RR CC       OO    OO EEEEEE   FFFFFF  00 00 00     C
+C    BB    BB RRRRRRR  CC       OO    OO EE       FF      0000  00     C
+C    BB    BB RR    RR CC    CC OO    OO EE       FF      000   00     C
+C    BBBBBBB  RR    RR  CCCCCC   OOOOOO  EEEEEEEE FF       000000      C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  BRCOEF0 EVALUATES THE INTERMEDIATE COEFFICIENTS OF THE BREIT        C
+C  INTERACTION FOR CLOSED SHELLS (TABLE 3 OF GRANT AND PYPER 1976).    C
+C**********************************************************************C
+      DIMENSION SCOEFF(4,2)
+C
+      RU  = DFLOAT(NU)
+      RK  = DFLOAT(KB-KA)
+C
+      IF(NU.GT.0) THEN
+        RM = RU-1.0D0
+        B1 = (RM+2.0D0)/(2.0D0*   (2.0D0*RM+1.0D0))
+        C1 =-(RM-1.0D0)/(2.0D0*RU*(2.0D0*RM+1.0D0))
+        SCOEFF(1,1) =-(RK+RU)*(C1*RK+B1)
+        SCOEFF(2,1) =  B1*RU - C1*RK*RK
+        SCOEFF(3,1) =-(RK-RU)*(C1*RK-B1)
+        SCOEFF(4,1) =- RK    *(C1*RU-B1)
+      ELSE
+        SCOEFF(1,1) = 0.0D0
+        SCOEFF(2,1) = 0.0D0
+        SCOEFF(3,1) = 0.0D0
+        SCOEFF(4,1) = 0.0D0
+      ENDIF
+      IF(NU+1.GT.1) THEN
+        RP = RU+1.0D0
+        B2 = (RP-1.0D0)/(2.0D0*   (2.0D0*RP+1.0D0))
+        C2 = (RP+2.0D0)/(2.0D0*RP*(2.0D0*RP+1.0D0))
+        SCOEFF(1,2) =-(RK-RP)*(C2*RK+B2)
+        SCOEFF(2,2) =- B2*RP - C2*RK*RK 
+        SCOEFF(3,2) =-(RK+RP)*(C2*RK-B2)
+        SCOEFF(4,2) =- RK    *(C2*RP+B2)
+      ELSE
+        SCOEFF(1,2) = 0.0D0
+        SCOEFF(2,2) = 0.0D0
+        SCOEFF(3,2) = 0.0D0
+        SCOEFF(4,2) = 0.0D0
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+      FUNCTION ABC000(L1,L2,K)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C           AA    BBBBBBB   CCCCCC   000000   000000   000000          C
+C          AAAA   BB    BB CC    CC 00   000 00   000 00   000         C
+C         AA  AA  BB    BB CC       00  0000 00  0000 00  0000         C
+C        AA    AA BBBBBBB  CC       00 00 00 00 00 00 00 00 00         C
+C        AAAAAAAA BB    BB CC       0000  00 0000  00 0000  00         C
+C        AA    AA BB    BB CC    CC 000   00 000   00 000   00         C
+C        AA    AA BBBBBBB   CCCCCC   000000   000000   000000          C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  ABC000 EVALUATES THE NON-RELATIVISTIC 3-J SYMBOL FOR ATOMIC COULOMB C
+C  ANGULAR COEFFICIENT ROUTINES, TAKEN FROM BRINK AND SATCHLER.        C
+C  L1,L2, AND K MUST BE EQUAL TO THE ACTUAL (INTEGER) ANGULAR MOMENTA  C
+C  OF THE ELECTRON AND PHOTON.                                         C
+C**********************************************************************C
+      COMMON/FCTS/RFACT(0:20),SFACT(0:20)
+C
+C     TRIANGLE INEQUALITY RESTRICTIONS
+      IF(K.LT.IABS(L1-L2).OR.K.GT.(L1+L2)) THEN
+        ABC000 = 0.0D0
+        RETURN
+      ENDIF
+      LLK = L1+L2+K
+C
+C     PARITY SELECTION RULE
+      IF((LLK/2)*2.NE.LLK) THEN
+        ABC000 = 0.0D0
+        RETURN
+      ENDIF
+C
+      RF1 = RFACT(  L1+L2-K   )
+      RF2 = RFACT(- L1+L2+K   )
+      RF3 = RFACT(  L1-L2+K   )
+      RF4 = RFACT(  L1+L2+K +1)
+      RF5 = RFACT(( L1+L2+K)/2)
+      RF6 = RFACT(( L1+L2-K)/2)
+      RF7 = RFACT(( L1-L2+K)/2)
+      RF8 = RFACT((-L1+L2+K)/2)
+C
+      T1 = RF1*RF2*RF3
+      T2 = T1/RF4
+      T3 = RF6*RF7*RF8
+      T4 = RF5/T3
+C
+      ABC000 = T2*T4*T4
+C
+      RETURN
+      END
+C
+C
+      FUNCTION SYM3JSQ(J1,J2,K)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C   SSSSSS  YY    YY MM       MM  333333       JJJJ SSSSSS   QQQQQQ    C
+C  SS    SS YY    YY MMM     MMM 33    33       JJ SS    SS QQ    QQ   C
+C  SS       YY    YY MMMM   MMMM       33       JJ SS       QQ    QQ   C
+C   SSSSSS   YY  YY  MM MM MM MM    3333        JJ  SSSSSS  QQ    QQ   C
+C        SS   YYYY   MM  MMM  MM       33       JJ       SS QQ   QQQ   C
+C  SS    SS    YY    MM   M   MM 33    33 JJ    JJ SS    SS QQ    QQ   C
+C   SSSSSS     YY    MM       MM  333333   JJJJJJ   SSSSSS   QQQQQQ Q  C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  SYM3JSQ EVALUATES THE SQUARE OF A 3-J SYMBOL,   /  j   K   j' \^2   C
+C  WHERE j = J1/2 AND j' = J2/2, FOR THE           \-1/2  0  1/2 /     C
+C  COULOMB/BREIT ANGULAR COEFFICIENT ROUTINES.                         C
+C**********************************************************************C
+      COMMON/FCTS/RFACT(0:20),SFACT(0:20)
+C
+C     TRIANGLE RULE RESTRICTIONS
+      IF(K.LT.IABS((J1-J2)/2).OR.K.GT.(J1+J2)/2) THEN
+        SYM3JSQ = 0.0D0
+        RETURN
+      ELSEIF(J1.LE.0.OR.J2.LE.0) THEN
+        SYM3JSQ = 0.0D0
+        RETURN
+      ENDIF
+C
+C     VARIABLE WHICH DEPENDS ON PARITY OF ARGUMENTS
+      JJK = (J1+J2)/2 + K
+      IF((JJK/2)*2.EQ.JJK) THEN
+        M = K
+      ELSE
+        M = K+1
+      ENDIF
+C
+      RN1 = RFACT(( J1+J2)/2 - K)
+      RN2 = RFACT((-J1+J2)/2 + K)
+      RN3 = RFACT(( J1-J2)/2 + K)
+      RN4 = SFACT(( J1+J2)/2 + M)
+      RD1 = DFLOAT(J1+1)
+      RD2 = DFLOAT(J2+1)
+      RD3 = RFACT(( J1+J2)/2 + K + 1)
+      RD4 = SFACT(( J1+J2)/2 - M    )
+      RD5 = SFACT(( J1-J2)/2 + M - 1)
+      RD6 = SFACT((-J1+J2)/2 + M - 1)
+      PHS = (-1.0D0)**((J2-(3*J1))/2+M)
+C
+      RNUM  = RN1*RN2*RN3*(RN4)**2
+      RDEN  = RD1*RD2*RD3*(RD4*RD5*RD6)**2
+C
+      SYM3JSQ = PHS*RNUM/RDEN
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE UEHLING0(UMAT,EXL,ZCRG,KQN,NBAS)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C  UU    UU EEEEEEEE HH    HH LL      IIII NN    NN  GGGGGG   000000   C
+C  UU    UU EE       HH    HH LL       II  NNN   NN GG    GG 00   000  C
+C  UU    UU EE       HH    HH LL       II  NNNN  NN GG       00  0000  C
+C  UU    UU EEEEEE   HHHHHHHH LL       II  NN NN NN GG       00 00 00  C
+C  UU    UU EE       HH    HH LL       II  NN  NNNN GG   GGG 0000  00  C
+C  UU    UU EE       HH    HH LL       II  NN   NNN GG    GG 000   00  C
+C   UUUUUU  EEEEEEEE HH    HH LLLLLLL IIII NN    NN  GGGGGG   000000   C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  UEHLING0 GENERATES ATOMIC UEHLING INTERACTION MATRIX FOR KQNA.      C
+C**********************************************************************C
+      PARAMETER(MBS=26,MBD=2*MBS,MCT=15,MKP=13)
+C
+      CHARACTER*4 HMLTN
+C
+      DIMENSION RN(MBS*MBS,4),UMAT(MBD,MBD),EXL(MBS)
+C
+      COMMON/PRMS/CV,HMLTN,ITREE,IMOL,INEW,IEQS,IERC,IPAR,ICOR,ILEV
+      COMMON/SPEC/EXPSET(MBS,MKP,MCT),COORD(3,MCT),ZNUC(MCT),AMASS(MCT),
+     &            CNUC(MCT),PNUC,LARGE(MCT,MKP,MKP+1),NFUNCT(MKP,MCT),
+     &            KVALS(MKP,MCT),IZNUC(MCT),IQNUC(MCT),LMAX(MCT),
+     &            NKAP(MCT),NCNT,NDIM,NSHIFT,NOCC,NVRT
+C
+      DATA PI/3.1415926535897932D0/
+C
+C     DETERMINE THE LQN
+      IF(KQN.LT.0) THEN
+        LQN =-KQN-1
+      ELSE
+        LQN = KQN
+      ENDIF
+      RL = DFLOAT(LQN)
+      G  = DFLOAT(2*LQN+1)
+C
+C     GENERATE NORMALISATION FACTORS FOR THESE EXPONENTS
+      CALL RNORM0(RN,EXL,NBAS,LQN)
+C
+C     COMPTON WAVELENGTH FOR COUPLING TO THE ELECTRON FIELD
+      CMP = 1.0D0/CV
+C
+C     PRE-FACTOR COMMON TO ALL MATRIX ELEMENTS
+      VCF = 6.0D0*CV*PI
+      VCF =-ZCRG/VCF
+C
+C     CHARGE MOMENT FACTOR
+      FCT = 1.0D0/(PNUC*CMP*CMP)
+C
+C     LOOP OVER PAIRS OF BASIS FUNCTIONS WITHIN THIS KQN BLOCK
+      M = 0
+      DO IBAS=1,NBAS
+        EI = EXL(IBAS)
+        DO JBAS=1,NBAS
+          M   = M+1
+          EJ  = EXL(JBAS)
+          EIJ = EI+EJ
+          EPR = EI*EJ
+          T52 = RL+2.5D0
+          E52 = EIJ**T52
+C
+C         LL OVERLAP
+          UMAT(IBAS,JBAS) = VCF*RN(M,1)*UEHINT0(LQN+1,EIJ)/EIJ
+C
+C         SS OVERLAP
+          IF(HMLTN.EQ.'NORL') GOTO 50
+C
+C         SMALL COMPONENT BLOCK ADDRESSES
+          KBAS = IBAS+NBAS
+          LBAS = JBAS+NBAS
+C
+          VSA = 4.0D0*EPR*UEHINT0(LQN+2,EIJ)
+          IF(KQN.GT.0) THEN
+            VSN =-2.0D0*EIJ*G*UEHINT0(LQN+1,EIJ)
+     &                  + G*G*UEHINT0(LQN  ,EIJ)
+          ELSE
+            VSN = 0.0D0
+          ENDIF
+C
+          UMAT(KBAS,LBAS) = VCF*RN(M,3)*(VSA+VSN)
+C
+50        CONTINUE
+C
+        ENDDO
+      ENDDO
+C
+      RETURN
+      END
+C
+C
+      FUNCTION UEHINT0(N,ZETA)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C       UU    UU EEEEEEEE HH    HH IIII NN    NN TTTTTTTT 000000       C
+C       UU    UU EE       HH    HH  II  NNN   NN    TT   00   000      C
+C       UU    UU EE       HH    HH  II  NNNN  NN    TT   00  0000      C
+C       UU    UU EEEEEE   HHHHHHHH  II  NN NN NN    TT   00 00 00      C
+C       UU    UU EE       HH    HH  II  NN  NNNN    TT   0000  00      C
+C       UU    UU EE       HH    HH  II  NN   NNN    TT   000   00      C
+C        UUUUUU  EEEEEEEE HH    HH IIII NN    NN    TT    000000       C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  UEHINT0 CALCULATES AN ATOMIC UEHLING POTENTIAL OVERLAP INTEGRAL     C
+C  FOR A LOCAL GAUSSIAN NUCLEAR CHARGE DISTRIBUTION.                   C
+C -------------------------------------------------------------------- C
+C  DFNOTE: AT THE MOMENT THIS IS JUST A COPY OF BNUCINT0.              C
+C**********************************************************************C
+      PARAMETER(MBS=26,MCT=15,MKP=13)
+C
+      COMMON/SPEC/EXPSET(MBS,MKP,MCT),COORD(3,MCT),ZNUC(MCT),AMASS(MCT),
+     &            CNUC(MCT),PNUC,LARGE(MCT,MKP,MKP+1),NFUNCT(MKP,MCT),
+     &            KVALS(MKP,MCT),IZNUC(MCT),IQNUC(MCT),LMAX(MCT),
+     &            NKAP(MCT),NCNT,NDIM,NSHIFT,NOCC,NVRT
+C
+C     ROUTINE ONLY ALLOWS ODD PARAMETERS N
+      IF(MOD(N,2).NE.1) THEN
+        WRITE(6, *) 'In UEHINT0: order N must be odd. N = ',N
+        WRITE(7, *) 'In UEHINT0: order N must be odd. N = ',N
+      ENDIF
+C
+C     FACTORS NEEDED FOR ALL PARAMETERS N
+      X   = ZETA/PNUC
+      X5  = X*X*X*X*X
+      T0  = PNUC+ZETA
+      RAT = PNUC/T0
+      TRM = 0.5D0*DSQRT(PNUC)/ZETA/DSQRT(T0)
+      DO I=1,(N-1)/2
+        TRM = 0.5D0*TRM*RAT/ZETA
+      ENDDO
+C
+      IF(N.EQ.1) THEN
+        TRM = TRM
+      ELSEIF(N.EQ.3) THEN
+        VA  = 2.0D0 + 3.0D0*X
+        TRM = TRM*VA
+      ELSEIF(N.EQ.5) THEN
+        VA  = 8.0D0 + 20.0D0*X + 15.0D0*X*X
+        TRM = TRM*VA
+      ELSEIF(N.EQ.7) THEN
+        VA  = 16.0D0 + 56.0D0*X + 70.0D0*X*X + 35.0D0*X*X*X
+        TRM = 3.0D0*TRM*VA
+      ELSEIF(N.EQ.9) THEN
+        VA  = 128.0D0 + 576.0D0*X + 1008.0D0*X*X + 840.0D0*X*X*X
+        VB  = 315.0D0*X*X*X*X
+        TRM = 3.0D0*TRM*(VA+VB)
+      ELSEIF(N.EQ.11) THEN
+        VA  = 256.0D0 + 1408.0D0*X + 3168.0D0*X*X + 3696.0D0*X*X*X
+        VB  = 2310.0D0*X*X*X*X + 693.0D0*X*X*X*X*X
+        TRM = 15.0D0*TRM*(VA+VB)
+      ELSEIF(N.EQ.13) THEN
+        VA  = 1024.0D0 + 6656.0D0*X + 18304.0D0*X*X
+        VB  = 27456.0D0*X*X*X + 24024.0D0*X*X*X*X
+        VC  = 12012.0D0*X5 + 3003.0D0*X5*X
+        TRM = 45.0D0*TRM*(VA+VB+VC)
+      ELSEIF(N.EQ.15) THEN
+        VA  = 2048.0D0 + 15360.0D0*X + 49920.0D0*X*X
+        VB  = 91520.0D0*X*X*X+ 102960.0D0*X*X*X*X + 72072.0D0*X5
+        VC  = 30030.0D0*X5*X + 6435.0D0*X5*X*X
+        TRM = 315.0D0*TRM*(VA+VB+VC)
+      ELSEIF(N.EQ.17) THEN
+        VA  = 32768.0D0 + 278528.0D0*X + 1044480.0D0*X*X
+        VB  = 2263040.0D0*X*X*X + 3111680.0D0*X*X*X*X
+        VC  = 2800512.0D0*X5 + 1633632.0D0*X5*X + 583440.0D0*X5*X*X
+        VD  = 109395.0D0*X5*X*X*X
+        TRM = 315.0D0*TRM*(VA+VB+VC+VD)
+      ELSEIF(N.EQ.19) THEN
+        VA  = 65536.0D0 + 6222592.0D0*X + 2646016.0D0*X*X
+        VB  = 6615040.0D0*X*X*X + 10749440.0D0*X*X*X*X
+        VC  = 11824384.0D0*X5 + 8868288.0D0*X5*X + 4434144.0D0*X5*X*X
+        VD  = 1385670.0D0*X5*X*X*X + 230945.0D0*X5*X*X*X*X
+        TRM = 2835.0D0*TRM*(VA+VB+VC+VD)
+      ELSEIF(N.EQ.21) THEN
+        VA  = 262144.0D0 + 2752512.0D0*X + 13074432.0D0*X*X
+        VB  = 37044224.0D0*X*X*X + 69457920.0D0*X*X*X*X
+        VC  = 90295296.0D0*X5 + 82770688.0D0*X5*X
+        VD  = 53209728.0D0*X5*X*X + 23279256.0D0*X5*X*X*X
+        VE  = 6466460.0D0*X5*X*X*X*X + 969969.0D0*X5*X5
+        TRM = 14175.0D0*TRM*(VA+VB+VC+VD+VE)
+      ELSE
+        WRITE(6, *) 'In UEHINT0: order N too large. N = ',N
+        WRITE(7, *) 'In UEHINT0: order N too large. N = ',N
+      ENDIF
+C
+C     TRANSFER DATA TO UEHINT0
+      UEHINT0 = TRM
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE RNORM0(RN,EXL,NBAS,LQN)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C       RRRRRRR  NN    NN  OOOOOO  RRRRRRR  MM       MM  000000        C
+C       RR    RR NNN   NN OO    OO RR    RR MMM     MMM 00   000       C
+C       RR    RR NNNN  NN OO    OO RR    RR MMMM   MMMM 00  0000       C
+C       RR    RR NN NN NN OO    OO RR    RR MM MM MM MM 00 00 00       C
+C       RRRRRRR  NN  NNNN OO    OO RRRRRRR  MM  MMM  MM 0000  00       C
+C       RR    RR NN   NNN OO    OO RR    RR MM   M   MM 000   00       C
+C       RR    RR NN    NN  OOOOOO  RR    RR MM       MM  000000        C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  RNORM0 EVALUATES NORMALISATION CONSTANTS OF ALL VARIETIES.          C
+C**********************************************************************C
+      PARAMETER(MBS=26,MB2=MBS*MBS)
+C
+      DIMENSION RN(MB2,4),EXL(MBS),RNL(MBS),RNS(MBS)
+C
+      COMMON/GAMA/GAMLOG(50),GAMHLF(50)
+C
+      DATA TWOLOG/6.93147180559945309D-1/
+C
+      RL = DFLOAT(LQN)
+      G1 = TWOLOG-GAMLOG(2*LQN+3)
+      G2 = TWOLOG-GAMLOG(2*LQN+5)
+      R1 = RL+1.5D0
+      R2 = RL+0.5D0
+      DO IBAS=1,NBAS
+        ELOG      = DLOG(2.0D0*EXL(IBAS))
+        RNL(IBAS) = DEXP(0.5D0*(G1+R1*ELOG))
+        RNS(IBAS) = DEXP(0.5D0*(G2+R2*ELOG))
+      ENDDO
+C
+C     RN(M,1) ARE THE LL NORMALISATION CONSTANTS
+C     RN(M,2) ARE THE SL NORMALISATION CONSTANTS
+C     RN(M,3) ARE THE SS NORMALISATION CONSTANTS
+C     RN(M,4) ARE THE LS NORMALISATION CONSTANTS
+C
+      M = 0
+      DO IBAS=1,NBAS
+        DO JBAS=1,NBAS
+          M = M+1
+          RN(M,1) = RNL(IBAS)*RNL(JBAS)
+          RN(M,2) = RNS(IBAS)*RNL(JBAS)
+          RN(M,3) = RNS(IBAS)*RNS(JBAS)
+          RN(M,4) = RNL(IBAS)*RNS(JBAS)
+        ENDDO
+      ENDDO
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE GAMGEN
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C        GGGGGG     AA    MM       MM  GGGGGG  EEEEEEEE NN    NN       C
+C       GG    GG   AAAA   MMM     MMM GG    GG EE       NNN   NN       C
+C       GG        AA  AA  MMMM   MMMM GG       EE       NNNN  NN       C
+C       GG       AA    AA MM MM MM MM GG       EEEEEE   NN NN NN       C
+C       GG   GGG AAAAAAAA MM  MMM  MM GG   GGG EE       NN  NNNN       C
+C       GG    GG AA    AA MM   M   MM GG    GG EE       NN   NNN       C
+C        GGGGGG  AA    AA MM       MM  GGGGGG  EEEEEEEE NN    NN       C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  GAMGEN EVALUATES INTEGER/HALF-INTEGER GAMMA VALUES AND THEIR LOGS.  C
+C -------------------------------------------------------------------- C
+C  OUTPUT:                                                             C
+C    GAMLOG(N) = DLOG(GAMMA(N/2))                                      C
+C    GAMHLF(N) = GAMMA(N/2)                                            C
+C**********************************************************************C
+      COMMON/GAMA/GAMLOG(50),GAMHLF(50)
+C
+      DATA ROOTPI,RTPILG/1.7724538509055160D0,5.7236494292470009D-1/
+C
+C     STARTING VALUES
+      GAMLOG(1) = RTPILG
+      GAMLOG(2) = 0.0D0
+      GAMHLF(1) = ROOTPI
+      GAMHLF(2) = 1.0D0
+C
+C     SEED VALUES FOR INCREMENT
+      F1 = 0.5D0
+      F2 = 1.0D0
+C
+C     FILL TABLE VALUES
+      DO N=4,50,2
+        GAMLOG(N-1) = GAMLOG(N-3)+DLOG(F1)
+        GAMLOG(N  ) = GAMLOG(N-2)+DLOG(F2)
+        GAMHLF(N-1) = GAMHLF(N-3)*F1
+        GAMHLF(N  ) = GAMHLF(N-2)*F2
+        F1 = F1+1.0D0
+        F2 = F2+1.0D0
+      ENDDO
+C
+      RETURN
+      END
+C
+C
+       SUBROUTINE FACTRLS
+       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C     FFFFFFFF   AA     CCCCCC TTTTTTTT RRRRRRR  LL       SSSSSS       C
+C     FF        AAAA   CC    CC   TT    RR    RR LL      SS    SS      C
+C     FF       AA  AA  CC         TT    RR    RR LL      SS            C
+C     FFFFFF  AA    AA CC         TT    RR    RR LL       SSSSSS       C
+C     FF      AAAAAAAA CC         TT    RRRRRRR  LL            SS      C
+C     FF      AA    AA CC    CC   TT    RR    RR LL      SS    SS      C
+C     FF      AA    AA  CCCCCC    TT    RR    RR LLLLLLLL SSSSSS       C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  FACTRLS GENERATES A SET OF N! AND N!! AS REAL NUMBERS.              C
+C -------------------------------------------------------------------- C
+C  OUTPUT:                                                             C
+C    RFACT - REGULAR FACTORIALS, RFACT(N) = N!                         C
+C    SFACT - SEMI-FACTORIALS,    SFACT(N) = N!!                        C
+C**********************************************************************C
+C
+      COMMON/FCTS/RFACT(0:20),SFACT(0:20)
+C
+      RFACT(0) = 1.0D0
+      RFACT(1) = 1.0D0
+      SFACT(0) = 1.0D0
+      SFACT(1) = 1.0D0
+      DO I=2,20
+        RNUMBER  = DFLOAT(I)
+        RFACT(I) = RNUMBER*RFACT(I-1)
+        SFACT(I) = RNUMBER*SFACT(I-2)
+      ENDDO
+C
+      RETURN
+      END
+
+
+C
+C**********************************************************************C
+C     RADIAL INTEGRALS OVER SPINORS (SEPARATED BY TENSOR ORDER)        C
+C**********************************************************************C
+C
+C     EMPTY COUNTER ARRAYS FOR DIRECT AND EXCHANGE INTEGRALS
+      DO M=1,MAXM
+        RJLLLL(M) = 0.0D0
+        RJLLSS(M) = 0.0D0
+        RJSSLL(M) = 0.0D0
+        RJSSSS(M) = 0.0D0
+        RKLLLL(M) = 0.0D0
+        RKSLSL(M) = 0.0D0
+        RKSSSS(M) = 0.0D0
+      ENDDO
+C
+C     PREPARE VALUES FOR UPCOMING CALCULATIONS
+      C1 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+1)
+      C3 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+3)
+      C5 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+5)
+      C7 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+7)
+      C9 = 0.25D0*GAMHLF(2*LQNA+2*LQNB+9)
+C
+      V1 = 1.0D0
+      V2 = 2.0D0
+      V4 = 4.0D0
+      V8 = 8.0D0
+      VS = 1.6D1
+C
+      F  = DFLOAT(2*LQNA+1)
+      G  = DFLOAT(2*LQNB+1)
+C
+      F0G0 = 1.0D0
+      F1G0 = F
+      F0G1 = G
+      F1G1 = F*G
+      F2G0 = F*F
+      F0G2 = G*G
+      F2G1 = F*F*G
+      F1G2 = F*G*G
+      F2G2 = F*F*G*G
+C
+      E0000 = 1.0D0
+      E1000 = EI
+      E0100 = EJ
+      E1100 = EI*EJ
+C
+C     INITIATE LOOP OVER K,L BASIS FUNCTIONS
+      DO M=1,MAXM
+C
+C       MORE VALUE PREPARATION
+        E0010 = EK(M)
+        E0001 = EL(M)
+        E1010 = EI*EK(M)
+        E1001 = EI*EL(M)
+        E0110 = EJ*EK(M)
+        E0101 = EJ*EL(M)
+        E0011 = EK(M)*EL(M)
+        E1110 = EI*EJ*EK(M)
+        E1101 = EI*EJ*EL(M)
+        E1011 = EI*EK(M)*EL(M)
+        E0111 = EJ*EK(M)*EL(M)
+        E1111 = EI*EJ*EK(M)*EL(M)
+C
+C**********************************************************************C
+C       DIRECT INTEGRAL MATRICES: RJSSSS, RJLLSS, RJSSLL, RJLLLL       C
+C**********************************************************************C
+C
+        IF(HMLTN.EQ.'NORL') THEN
+C       NON-RELATIVISTIC HAMILTONIAN
+C
+          B22 = EIJ(3)*EKL(M,2)*BDL(M,2,2) + EIJ(2)*EKL(M,3)*BDU(M,2,2)
+          RJLLLL(M) = V1*F0G0*E0000*C5*B22
+C
+        ELSE
+C       RELATIVISTIC HAMILTONIAN
+C
+C         TEMPORARY STORAGE OF RAW RJ(1,M) (LTEN=1 BECAUSE NU=0 ONLY)
+          B11 = EIJ(1)*EKL(M,0)*BDL(M,1,1) + EIJ(0)*EKL(M,1)*BDU(M,1,1)
+          B12 = EIJ(1)*EKL(M,2)*BDL(M,1,2) + EIJ(0)*EKL(M,3)*BDU(M,2,1)
+          B13 = EIJ(1)*EKL(M,4)*BDL(M,1,3) + EIJ(0)*EKL(M,5)*BDU(M,3,1)
+          B21 = EIJ(3)*EKL(M,0)*BDL(M,2,1) + EIJ(2)*EKL(M,1)*BDU(M,1,2)
+          B22 = EIJ(3)*EKL(M,2)*BDL(M,2,2) + EIJ(2)*EKL(M,3)*BDU(M,2,2)
+          B23 = EIJ(3)*EKL(M,4)*BDL(M,2,3) + EIJ(2)*EKL(M,5)*BDU(M,3,2)
+          B31 = EIJ(5)*EKL(M,0)*BDL(M,3,1) + EIJ(4)*EKL(M,1)*BDU(M,1,3)
+          B32 = EIJ(5)*EKL(M,2)*BDL(M,3,2) + EIJ(4)*EKL(M,3)*BDU(M,2,3)
+          B33 = EIJ(5)*EKL(M,4)*BDL(M,3,3) + EIJ(4)*EKL(M,5)*BDU(M,3,3)
+C
+C         FILL RJ ARRAYS FOR THIS KQNA,KQNB BLOCK
+C
+C         CONTRIBUTIONS TO RADIAL INTEGRAL FOR TENSOR POWER NU=0
+          IF(KQNA.GT.0.AND.KQNB.GT.0) THEN
+C         KQNA > 0, KQNB > 0
+C
+            RJLL = V1*F0G0*E0000*C5*B22
+            RJLS = V4*F0G0*E0011*C7*B23
+     &           - V2*F0G1*E0010*C5*B22 - V2*F0G1*E0001*C5*B22
+     &           + V1*F0G2*E0000*C3*B21
+            RJSL = V4*F0G0*E1100*C7*B32
+     &           - V2*F1G0*E1000*C5*B22 - V2*F1G0*E0100*C5*B22
+     &           + V1*F2G0*E0000*C3*B12
+            RJSS = VS*F0G0*E1111*C9*B33
+     &           - V8*F0G1*E1110*C7*B32 - V8*F0G1*E1101*C7*B32
+     &           - V8*F1G0*E1011*C7*B23 - V8*F1G0*E0111*C7*B23
+     &           + V4*F2G0*E0011*C5*B13 + V4*F0G2*E1100*C5*B31
+     &           + V4*F1G1*E1001*C5*B22 + V4*F1G1*E0110*C5*B22
+     &           + V4*F1G1*E0101*C5*B22 + V4*F1G1*E1010*C5*B22
+     &           - V2*F1G2*E1000*C3*B21 - V2*F1G2*E0100*C3*B21
+     &           - V2*F2G1*E0010*C3*B12 - V2*F2G1*E0001*C3*B12
+     &           + V1*F2G2*E0000*C1*B11
+C
+          ELSEIF(KQNA.LT.0.AND.KQNB.GT.0) THEN
+C         KQNA < 0, KQNB > 0
+C
+            RJLL = V1*F0G0*E0000*C5*B22
+            RJLS = V4*F0G0*E0011*C7*B23
+     &           - V2*F0G1*E0010*C5*B22 - V2*F0G1*E0001*C5*B22
+     &           + V1*F0G2*E0000*C3*B21
+            RJSL = V4*F0G0*E1100*C7*B32
+            RJSS = VS*F0G0*E1111*C9*B33
+     &           - V8*F0G1*E1110*C7*B32 - V8*F0G1*E1101*C7*B32
+     &           + V4*F0G2*E1100*C5*B31
+C
+          ELSEIF(KQNA.LT.0.AND.KQNB.GT.0) THEN
+C         KQNA > 0, KQNB < 0
+C
+            RJLL = V1*F0G0*E0000*C5*B22
+            RJLS = V4*F0G0*E0011*C7*B23
+            RJSL = V4*F0G0*E1100*C7*B32
+     &           - V2*F1G0*E1000*C5*B22 - V2*F1G0*E0100*C5*B22
+     &           + V1*F2G0*E0000*C3*B12
+            RJSS = VS*F0G0*E1111*C9*B33
+     &           - V8*F1G0*E1011*C7*B23 - V8*F1G0*E0111*C7*B23
+     &           + V4*F2G0*E0011*C5*B13
+C
+          ELSEIF(KQNA.LT.0.AND.KQNB.GT.0) THEN
+C         KQNA < 0, KQNB < 0
+C
+            RJLL = V1*F0G0*E0000*C5*B22
+            RJLS = V4*F0G0*E0011*C7*B23
+            RJSL = V4*F0G0*E1100*C7*B32
+            RJSS = VS*F0G0*E1111*C9*B33
+C
+          ENDIF
+C
+C         ADD TO RJ(LTEN) ARRAYS
+          RJLLLL(M) = RJLL
+          RJLLSS(M) = RJLS
+          RJSSLL(M) = RJSL
+          RJSSSS(M) = RJSS
+C
+        ENDIF
+C
+C**********************************************************************C
+C       EXCHANGE INTEGRAL MATRICES: RKSSSS, RKSLSL, RKLLLL             C
+C**********************************************************************C
+C
+C       LOOP OVER ORDERS FOR BETA INTEGRALS
+        DO LTEN=1,NUNUM
+C
+C         IMPORT NU VALUE FROM ARRAY
+          NU = NUS(LTEN)
+C
+          IF(HMLTN.EQ.'NORL') THEN
+C         NON-RELATIVISTIC HAMILTONIAN
+C
+            B32 = EIK(M, NU+3)*EJL(M,-NU+2)*BXL(M, NU+3,-NU+2)
+     &          + EIK(M,-NU+2)*EJL(M, NU+3)*BXU(M,-NU+2, NU+3)
+C
+            RKLL = V1*F0G0*E0000*C5*B32
+C
+            RKLLLL(M) = RKLLLL(M) + BK(LTEN)*RKLL
+C
+          ELSE
+C         RELATIVISTIC HAMILTONIAN
+C
+C           TEMPORARY STORAGE OF RAW RK(LTEN,M)
+            B10 = EIK(M, NU+1)*EJL(M,-NU  )*BXL(M, NU+1,-NU  )
+     &          + EIK(M,-NU  )*EJL(M, NU+1)*BXU(M,-NU  , NU+1)
+            B12 = EIK(M, NU+1)*EJL(M,-NU+2)*BXL(M, NU+1,-NU+2)
+     &          + EIK(M,-NU  )*EJL(M, NU+3)*BXU(M,-NU  , NU+3)
+            B14 = EIK(M, NU+1)*EJL(M,-NU+4)*BXL(M, NU+1,-NU+4)
+     &          + EIK(M,-NU  )*EJL(M, NU+5)*BXU(M,-NU  , NU+5)
+            B30 = EIK(M, NU+3)*EJL(M,-NU  )*BXL(M, NU+3,-NU  )
+     &          + EIK(M,-NU+2)*EJL(M, NU+1)*BXU(M,-NU+2, NU+1)
+            B32 = EIK(M, NU+3)*EJL(M,-NU+2)*BXL(M, NU+3,-NU+2)
+     &          + EIK(M,-NU+2)*EJL(M, NU+3)*BXU(M,-NU+2, NU+3)
+            B34 = EIK(M, NU+3)*EJL(M,-NU+4)*BXL(M, NU+3,-NU+4)
+     &          + EIK(M,-NU+2)*EJL(M, NU+5)*BXU(M,-NU+2, NU+5)
+            B50 = EIK(M, NU+5)*EJL(M,-NU  )*BXL(M, NU+5,-NU  )
+     &          + EIK(M,-NU+4)*EJL(M, NU+1)*BXU(M,-NU+4, NU+1)
+            B52 = EIK(M, NU+5)*EJL(M,-NU+2)*BXL(M, NU+5,-NU+2)
+     &          + EIK(M,-NU+4)*EJL(M, NU+3)*BXU(M,-NU+4, NU+3)
+            B54 = EIK(M, NU+5)*EJL(M,-NU+4)*BXL(M, NU+5,-NU+4)
+     &          + EIK(M,-NU+4)*EJL(M, NU+5)*BXU(M,-NU+4, NU+5)
+C
+C           CONTRIBUTION TO RADIAL INTEGRAL FOR THIS TENSOR POWER
+            IF(KQNA.GT.0.AND.KQNB.GT.0) THEN
+C           KQNA > 0, KQNB > 0
+C
+              RKLL = V1*F0G0*E0000*C5*B32
+              RKSL = V4*F0G0*E1010*C7*B52 - V2*F1G0*E0010*C5*B32
+     &             - V2*F0G1*E1000*C5*B32 + V1*F1G1*E0000*C3*B12
+              RKSS = VS*F0G0*E1111*C9*B54
+     &             - V8*F0G1*E1110*C7*B52 - V8*F0G1*E1101*C7*B34
+     &             - V8*F1G0*E1011*C7*B52 - V8*F1G0*E0111*C7*B34
+     &             + V4*F2G0*E0011*C5*B32 + V4*F0G2*E1100*C5*B32
+     &             + V4*F1G1*E0110*C5*B32 + V4*F1G1*E1001*C5*B32
+     &             + V4*F1G1*E1010*C5*B50 + V4*F1G1*E0101*C5*B14
+     &             - V2*F2G1*E0010*C3*B30 - V2*F1G2*E1000*C3*B30
+     &             - V2*F2G1*E0001*C3*B12 - V2*F1G2*E0100*C3*B12
+     &             + V1*F2G2*E0000*C1*B10
+C
+            ELSEIF(KQNA.LT.0.AND.KQNB.GT.0) THEN
+C           KQNA < 0, KQNB > 0
+C
+              RKLL = V1*F0G0*E0000*C5*B32
+              RKSL = V4*F0G0*E1010*C7*B52 - V2*F0G1*E1000*C5*B32
+              RKSS = VS*F0G0*E1111*C9*B54 - V8*F0G1*E1110*C7*B52
+     &             - V8*F0G1*E1101*C7*B34 + V4*F0G2*E1100*C5*B32
+C
+            ELSEIF(KQNA.GT.0.AND.KQNB.LT.0) THEN
+C           KQNA > 0, KQNB < 0
+C
+              RKLL = V1*F0G0*E0000*C5*B32
+              RKSL = V4*F0G0*E1010*C7*B52 - V2*F1G0*E0010*C5*B32
+              RKSS = VS*F0G0*E1111*C9*B54 - V8*F1G0*E1011*C7*B52
+     &             - V8*F1G0*E0111*C7*B34 + V4*F2G0*E0011*C5*B32
+C
+            ELSEIF(KQNA.LT.0.AND.KQNB.LT.0) THEN
+C           KQNA < 0, KQNB < 0
+C
+              RKLL = V1*F0G0*E0000*C5*B32
+              RKSL = V4*F0G0*E1010*C7*B52
+              RKSS = VS*F0G0*E1111*C9*B54
+C
+            ENDIF
+C
+C           ADD TO RK(LTEN) ARRAYS
+            RKLLLL(M) = RKLLLL(M) + BK(LTEN)*RKLL
+            RKSLSL(M) = RKSLSL(M) + BK(LTEN)*RKSL
+            RKSSSS(M) = RKSSSS(M) + BK(LTEN)*RKSS
+C
+          ENDIF
+C
+        ENDDO
+      ENDDO
+C
+C**********************************************************************C
+C     APPLY NORMALISATION FACTORS                                      C
+C**********************************************************************C
+C
+      IF(HMLTN.EQ.'NORL') THEN
+C     NON-RELATIVISTIC HAMILTONIAN
+C
+        DO M=1,MAXM
+          T0LLLL = RNIJ(1)*RNKL(M,1)
+          RJLLLL(M) = RJLLLL(M)*T0LLLL
+          RKLLLL(M) = RKLLLL(M)*T0LLLL
+        ENDDO
+C
+      ELSE
+C     RELATIVISTIC HAMILTONIAN
+C
+        DO M=1,MAXM
+C
+C         NORMALISATION FACTORS
+          T0LLLL = RNIJ(1)*RNKL(M,1)
+          T0LLSS = RNIJ(1)*RNKL(M,3)
+          T0SLSL = RNIJ(2)*RNKL(M,2)
+          T0SSLL = RNIJ(3)*RNKL(M,1)
+          T0SSSS = RNIJ(3)*RNKL(M,3)
+C
+C         MULTIPLY THROUGH
+          RJLLLL(M) = RJLLLL(M)*T0LLLL
+          RJLLSS(M) = RJLLSS(M)*T0LLSS
+          RJSSLL(M) = RJSSLL(M)*T0SSLL
+          RJSSSS(M) = RJSSSS(M)*T0SSSS
+          RKLLLL(M) = RKLLLL(M)*T0LLLL
+          RKSLSL(M) = RKSLSL(M)*T0SLSL
+          RKSSSS(M) = RKSSSS(M)*T0SSSS
+C
+        ENDDO
+C
+      ENDIF
+C
+      RETURN
+      END
+
+
