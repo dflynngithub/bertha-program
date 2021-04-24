@@ -1,0 +1,39 @@
+# Contents of these folders can get unwieldy
+output/
+plots/
+
+# Private use
+E119F_input/
+H2S2/
+P-odd/
+breit/
+collision/
+data/
+diis/
+fermicharge/
+mulliken/
+perugia/
+readme/
+scripts/
+self-energy/
+spartan_bertha/
+speedup/
+storage_budget/
+uehling/
+
+# Personal versions of executables
+quadpack.o
+bertha-budget
+bertha-nuclear
+bertha-nuclear.o
+bertha-atomic
+bertha-scf
+bertha-rspt
+bertha-property
+bertha-mbpt
+bertha-visual
+fort*
+
+# Annoying stuff
+.DS_Store
+.vscode/
