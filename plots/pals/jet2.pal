@@ -1,0 +1,35 @@
+# MATLAB jet color pallete
+set style line 6 lt 1 lc rgb '#000080' # dark blue
+set style line 5 lt 1 lc rgb '#0000ff' # blue
+set style line 4 lt 1 lc rgb '#0080ff' # sky blue
+set style line 3 lt 1 lc rgb '#00ffff' # cyan
+set style line 2 lt 1 lc rgb '#80ff80' # light green
+
+set style line 1 lt 1 lc rgb '#ffff00' # yellow
+set style line 7 lt 1 lc rgb '#ff8000' # orange
+set style line 8 lt 1 lc rgb '#ff0000' # red
+set style line 9 lt 1 lc rgb '#800000' # brown
+# line style used together with jet (<2014b)
+set style line 11 lt 1 lc rgb '#0000ff' # blue
+set style line 12 lt 1 lc rgb '#007f00' # green
+set style line 13 lt 1 lc rgb '#ff0000' # red
+set style line 14 lt 1 lc rgb '#00bfbf' # cyan
+set style line 15 lt 1 lc rgb '#bf00bf' # pink
+set style line 16 lt 1 lc rgb '#bfbf00' # yellow
+set style line 17 lt 1 lc rgb '#3f3f3f' # black
+
+# palette
+set palette maxcolors 12
+set palette defined (0 '#00CC00', \
+                     1 '#00BCD4', \
+                     2 '#1E88E5', \
+                     3 '#3F51B5', \
+                     4 '#673AB7', \
+                     5 '#6A1B9A', \
+                     6 '#000000', \
+                     7 '#922B21', \
+                     8 '#E53935', \
+                     9 '#FF5722', \
+                    10 '#FFA000', \
+                    11 '#FDD835', \
+                    12 '#FFF176' )
