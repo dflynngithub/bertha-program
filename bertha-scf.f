@@ -5124,6 +5124,9 @@ C**********************************************************************C
 C     ECONOMISATION STRATEGIES                                         C
 C**********************************************************************C
 C
+C     ONE-CENTRE INTEGRAL SYMMETRY RELATIONS FOR RECYCLING XK BATCHES
+      PRM1CT = .FALSE.
+C
 C     MULTI-CENTRE INTEGRAL SYMMETRY RELATIONS FOR RECYCLING RR BATCHES
       INTSYM = .TRUE.
 C
@@ -5306,12 +5309,12 @@ C       GENERATE MEAN-FIELD CLOSED- AND OPEN-SHELL COULOMB MATRIX
         IF(HMLT.NE.'BARE'.AND.NOCC.GT.1) THEN
 C
 C         CALCULATE MANY-CENTRE COULOMB INTEGRALS (MCMURCHIE-DAVIDSON)
-          CALL CPU_TIME(T1)
-          CALL COULOMB
-C
-          CALL CPU_TIME(T2)
-          TCL2 = T2-T1
-          TC2T = TC2T+TCL2
+          CALL SYSTEM_CLOCK(ICL5)
+C         CALL COULOMB
+          CALL CLMFAST
+          CALL SYSTEM_CLOCK(ICL6)
+          TCL2 =        DFLOAT(ICL6-ICL5)/RATE
+          TC2T = TC2T + DFLOAT(ICL6-ICL5)/RATE
 C
 C         SMALL-COMPONENT DENSITIES ON AN ATOMIC CENTRE (VISSCHER)
 C         IF(ILEV.GT.1.AND.VSDNSC) THEN
@@ -5346,11 +5349,12 @@ C       GENERATE MEAN-FIELD BREIT MATRIX
         IF((HMLT.EQ.'DHFB'.OR.HMLT.EQ.'DHFQ').AND.NOCC.GT.1) THEN
 C
 C         CALCULATE MANY-CENTRE BREIT INTEGRALS (MCMURCHIE-DAVIDSON)
-          CALL CPU_TIME(T1)
-          CALL BREIT
-          CALL CPU_TIME(T2)
-          TBR2 = T2-T1
-          TB2T = TB2T+TBR2
+          CALL SYSTEM_CLOCK(ICL5)
+C         CALL BREIT
+          CALL BRTFAST
+          CALL SYSTEM_CLOCK(ICL6)
+          TBR2 =        DFLOAT(ICL6-ICL5)/RATE
+          TB2T = TB2T + DFLOAT(ICL6-ICL5)/RATE
 C
 C         ADD ALL ONE-CENTRE BREIT CONTRIBUTIONS (RACAH ALGEBRA)
           CALL SYSTEM_CLOCK(ICL5)
@@ -6104,11 +6108,12 @@ C
 C       GENERATE MATRIX REP OF BREIT INTERACTION
         IF(NOCC.GT.1) THEN
 C
-          CALL CPU_TIME(T1)
-          CALL BREITR
-          CALL CPU_TIME(T2)
-          TBR2 = T2-T1
-          TB2T = TB2T+TBR2
+          CALL SYSTEM_CLOCK(ICL7)
+C         CALL BREIT
+          CALL BRTFAST
+          CALL SYSTEM_CLOCK(ICL8)
+          TBR2 = TBR2 + DFLOAT(ICL8-ICL7)/RATE
+          TB2T = TB2T + DFLOAT(ICL8-ICL7)/RATE
 C
           CALL SYSTEM_CLOCK(ICL7)
           IF(RACAH1) THEN
@@ -10109,14 +10114,14 @@ C
 C     ATOM-CENTRED SELECTION RULES (ONLY APPLIES IF RACAH1 SWITCHED OFF)
       IF(MCNT.EQ.1) THEN
         ISELM = 0
-        DO ISGN1=1,2
-          DO ISGN2=1,2
-            DO ISGN3=1,2
-              DO ISGN4=1,2
-                MMJA = MQN(1)*((-1)**ISGN1)
-                MMJB = MQN(2)*((-1)**ISGN2)
-                MMJC = MQN(3)*((-1)**ISGN3)
-                MMJD = MQN(4)*((-1)**ISGN4)
+        DO MMA=1,2
+          DO MMB=1,2
+            DO MMC=1,2
+              DO MMD=1,2
+                MMJA = MQN(1)*((-1)**MMA)
+                MMJB = MQN(2)*((-1)**MMB)
+                MMJC = MQN(3)*((-1)**MMC)
+                MMJD = MQN(4)*((-1)**MMD)
                 IF(MMJA-MMJB.EQ.MMJD-MMJC) ISELM = 1
               ENDDO
             ENDDO
@@ -15713,10 +15718,10 @@ C
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
       COMMON/MATH/PI,PI12,PI32,PI52,PILG,TWLG,THLG,TW12,EULR
       COMMON/TMMD/TELL,TESS,TELS,TESL,TRLL,TRSS,TRLS,TRSL,TRBR
-      COMMON/TSCF/TC1I,TC1B,TC1R,TC1F,TC1M,TCEC,TCRM,TCRW,TCC1,TCC2,
-     &            TCMC,TB1I,TB1B,TB1R,TB1F,TB1M,TBEC,TBRM,TBRW,TBC1,
-     &            TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,TC2T,TCVT,TB1T,
-     &            TB2T,TACC,TEIG,TSCR,TTOT,TC1S,TC2S,TB1S,TB2S
+      COMMON/TSCF/TC1A,TC1I,TC1B,TC1R,TC1F,TC1M,TCEC,TCRM,TCRW,TCC1,
+     &            TCC2,TCMC,TB1A,TB1I,TB1B,TB1R,TB1F,TB1M,TB1T,TBEC,
+     &            TBRM,TBRW,TBC1,TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,
+     &            TC2T,TCVT,TB2T,TACC,TEIG,TSCR,TTOT,TC2S,TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
       DATA SENS/1.0D-10/
@@ -16781,10 +16786,10 @@ C
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
       COMMON/MATH/PI,PI12,PI32,PI52,PILG,TWLG,THLG,TW12,EULR
       COMMON/TMMD/TELL,TESS,TELS,TESL,TRLL,TRSS,TRLS,TRSL,TRBR
-      COMMON/TSCF/TC1I,TC1B,TC1R,TC1F,TC1M,TCEC,TCRM,TCRW,TCC1,TCC2,
-     &            TCMC,TB1I,TB1B,TB1R,TB1F,TB1M,TBEC,TBRM,TBRW,TBC1,
-     &            TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,TC2T,TCVT,TB1T,
-     &            TB2T,TACC,TEIG,TSCR,TTOT,TC1S,TC2S,TB1S,TB2S
+      COMMON/TSCF/TC1A,TC1I,TC1B,TC1R,TC1F,TC1M,TCEC,TCRM,TCRW,TCC1,
+     &            TCC2,TCMC,TB1A,TB1I,TB1B,TB1R,TB1F,TB1M,TB1T,TBEC,
+     &            TBRM,TBRW,TBC1,TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,
+     &            TC2T,TCVT,TB2T,TACC,TEIG,TSCR,TTOT,TC2S,TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
       DATA SENS/1.0D-10/
@@ -17089,14 +17094,14 @@ C     COPY SCREENING MARKERS TO A SAVED LIST
         IRCTTFL(IADSCR+IABCD) = IRC(IABCD)
       ENDDO
 C
-      CALL CPU_TIME(T4)
-      TBRW = TBRW+T4-T3
+      CALL SYSTEM_CLOCK(ICL4)
+      TBRW = TBRW + DFLOAT(ICL4-ICL3)/RATE
 C
 300   CONTINUE
 C
 C     RECORD THE TIME TAKEN TO GENERATE THE RC(AB|CD) BATCH
-      CALL CPU_TIME(TDM2)
-      TRBR = TRBR+TDM2-TDM1
+      CALL SYSTEM_CLOCK(ICL2)
+      TRBR = TRBR + DFLOAT(ICL2-ICL1)/RATE
 C
 C**********************************************************************C
 C     PERFORM FIRST CONTRACTION: G(CD| -) = E(AB| -)*RC(AB|CD).        C
@@ -17109,7 +17114,7 @@ C     LOOP OVER CARTESIAN INDEX IX FOR CENTRE CD
       DO IX=1,3
 C
 C       TIME AT START OF FIRST CONTRACTION FOR THIS IX INDEX
-        CALL CPU_TIME(T1I)
+        CALL SYSTEM_CLOCK(ICL1,RATE)
 C
 C       LOOP OVER ALL ADDRESSES FOR E(CD| -) FINITE EXPANSION
         DO ICD=1,NTUVCD
@@ -17317,8 +17322,8 @@ C       END LOOP OVER E(CD|  ) FINITE EXPANSION ADDRESSES
         ENDDO
 C
 C       TIME AT END OF FIRST CONTRACTION FOR THIS IX INDEX
-        CALL CPU_TIME(T1F)
-        TBC1 = TBC1+T1F-T1I
+        CALL SYSTEM_CLOCK(ICL2)
+        TBC1 = TBC1 + DFLOAT(ICL2-ICL1)/RATE
 C
 C     END LOOP OVER CARTESIAN INDEX IX FOR CENTRE CD
       ENDDO
@@ -17583,8 +17588,8 @@ C
 502     CONTINUE
 C
 C       TIME AT END OF SECOND CONTRACTION FOR THIS IX INDEX
-        CALL CPU_TIME(T2F)
-        TBC2 = TBC2+T2F-T1F
+        CALL SYSTEM_CLOCK(ICL2)
+        TBC2 = TBC2 + DFLOAT(ICL2-ICL1)/RATE
 C
 C     END LOOP OVER CARTESIAN INDEX IX FOR CENTRE CD
       ENDDO
@@ -17619,9 +17624,16 @@ C     CALCULATE THE R-INTEGRAL NORMALISATION FACTOR
       ENDDO
 C
 C     INCLUDE THE OUTSIDE FACTOR OF (-1/2) AND MOVE TO FULL ARRAY
+      IF(BGAUNT) THEN
+        BFAC =-1.0D0
+      ELSE
+        BFAC =-0.5D0
+      ENDIF
+C
+C     INCLUDE THE OUTSIDE FACTOR OF (-1/2) AND MOVE TO FULL ARRAY
       DO N=1,MAXN
         DO ITG=1,16
-          RR(N,ITG) =-0.5D0*PRE(IMAP(N))*RR(N,ITG)
+          RR(N,ITG) = BFAC*PRE(IMAP(N))*RR(N,ITG)
         ENDDO
       ENDDO
 C
@@ -18608,398 +18620,12 @@ C
 C     SKIP POINT FOR INTEGRAL SYMMETRY
 370   CONTINUE
 C
-C     ADD MORE CONTRIBUTIONS FOR GENERAL MOLECULAR BATCH
-      IF(ISYM.EQ.1) GOTO 400
-      IF(ISYM.EQ.2) GOTO 400
-C
-C     BATCH TYPE 01: 
-C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =         ( MA, MB| MD, MC)
-C     CALCULATES B^{LS,LS}
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 401
-          N = N+1
-          IF(IMTX(M, 1).EQ.0) GOTO 401
-C
-          WDIR(NA1+IBAS,NB1+JBAS) = WDIR(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(M, 2)*DENO(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(M, 3)*DENO(NC2+KBAS,ND1+LBAS)
-C
-          WDIR(NA1+IBAS,NB2+JBAS) = WDIR(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(M, 5)*DENO(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(M, 6)*DENO(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(M, 7)*DENO(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(M, 8)*DENO(NC2+KBAS,ND2+LBAS)
-C
-          WDIR(NA2+IBAS,NB1+JBAS) = WDIR(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(M, 9)*DENO(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(M,10)*DENO(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(M,11)*DENO(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(M,12)*DENO(NC2+KBAS,ND2+LBAS)
-C
-          WDIR(NA2+IBAS,NB2+JBAS) = WDIR(NA2+IBAS,NB2+JBAS)
-     &                     +           RR(M,14)*DENO(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(M,15)*DENO(NC2+KBAS,ND1+LBAS)
-C
-401       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     SKIP REMAINING DIRECT BATCHES IF INTEGRAL SYMMETRY IS DISABLED
-      IF(.NOT.INTSYM) GOTO 460
-C
-C     BATCH TYPE 02:
-C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
-C     CALCULATES B^{LS,SL}
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 402
-          N = N+1
-          IF(IMTX(M, 2).EQ.0) GOTO 402
-C
-          WDIR(NA1+IBAS,NB1+JBAS) = WDIR(NA1+IBAS,NB1+JBAS)
-     &                     +      PCD2*RR(M, 2)*DENO(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(M, 3)*DENO(ND2+LBAS,NC1+KBAS)
-C
-          WDIR(NA1+IBAS,NB2+JBAS) = WDIR(NA1+IBAS,NB2+JBAS)
-     &                     +      PCD1*RR(M, 8)*DENO(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD2*RR(M, 6)*DENO(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(M, 7)*DENO(ND2+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(M, 5)*DENO(ND2+LBAS,NC2+KBAS)
-C
-          WDIR(NA2+IBAS,NB1+JBAS) = WDIR(NA2+IBAS,NB1+JBAS)
-     &                     +      PCD1*RR(M,12)*DENO(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD2*RR(M,10)*DENO(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(M,11)*DENO(ND2+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(M, 9)*DENO(ND2+LBAS,NC2+KBAS)
-C
-          WDIR(NA2+IBAS,NB2+JBAS) = WDIR(NA2+IBAS,NB2+JBAS)
-     &                     +      PCD2*RR(M,14)*DENO(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(M,15)*DENO(ND2+LBAS,NC1+KBAS)
-C
-402       CONTINUE
-        ENDDO
-      ENDDO
-C
-      IF(IQL.EQ.IQR) GOTO 460
-C
-C     BATCH TYPE 03:
-C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
-C     CALCULATES B^{LS,LS}
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 403
-          N = N+1
-          IF(IMTX(M, 3).EQ.0) GOTO 403
-C
-          WDIR(NC1+KBAS,ND1+LBAS) = WDIR(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(M, 5)*DENO(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(M, 9)*DENO(NA2+IBAS,NB1+JBAS)
-C
-          WDIR(NC1+KBAS,ND2+LBAS) = WDIR(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(M, 2)*DENO(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(M, 6)*DENO(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(M,10)*DENO(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(M,14)*DENO(NA2+IBAS,NB2+JBAS)      
-C
-          WDIR(NC2+KBAS,ND1+LBAS) = WDIR(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(M, 3)*DENO(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(M, 7)*DENO(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(M,11)*DENO(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(M,15)*DENO(NA2+IBAS,NB2+JBAS)
-C
-          WDIR(NC2+KBAS,ND2+LBAS) = WDIR(NC2+KBAS,ND2+LBAS)
-     &                     +           RR(M, 8)*DENO(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(M,12)*DENO(NA2+IBAS,NB1+JBAS)
-C
-403       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     BATCH TYPE 04:
-C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
-C     CALCULATES B^{LS,SL}                  = PAB*    (-MA,-MB| MC, MD)
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 404
-          N = N+1
-          IF(IMTX(M, 4).EQ.0) GOTO 404
-C
-          WDIR(NC1+KBAS,ND1+LBAS) = WDIR(NC1+KBAS,ND1+LBAS)
-     &                     + PAB2*     RR(M, 5)*DENO(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(M, 9)*DENO(NB2+JBAS,NA1+IBAS)
-C
-          WDIR(NC1+KBAS,ND2+LBAS) = WDIR(NC1+KBAS,ND2+LBAS)
-     &                     + PAB1*     RR(M,14)*DENO(NB1+JBAS,NA1+IBAS)
-     &                     + PAB2*     RR(M, 6)*DENO(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(M,10)*DENO(NB2+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(M, 2)*DENO(NB2+JBAS,NA2+IBAS)
-C
-          WDIR(NC2+KBAS,ND1+LBAS) = WDIR(NC2+KBAS,ND1+LBAS)
-     &                     + PAB1*     RR(M,15)*DENO(NB1+JBAS,NA1+IBAS)
-     &                     + PAB2*     RR(M, 7)*DENO(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(M,11)*DENO(NB2+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(M, 3)*DENO(NB2+JBAS,NA2+IBAS)
-C
-          WDIR(NC2+KBAS,ND2+LBAS) = WDIR(NC2+KBAS,ND2+LBAS)
-     &                     + PAB2*     RR(M, 8)*DENO(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(M,12)*DENO(NB2+JBAS,NA1+IBAS)
-C
-404       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     SKIP POINT FOR INTEGRAL SYMMETRY
-460   CONTINUE
-C
-C     BATCH TYPE 05:             ~       ~
-C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
-C     CALCULATES B^{LS,LS}
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 405
-          N = N+1
-          IF(IMTX(M, 5).EQ.0) GOTO 405
-C
-          WXCH(NA1+IBAS,ND1+LBAS) = WXCH(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(M, 3)*DENO(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(M, 5)*DENO(NC1+KBAS,NB2+JBAS)
-C
-          WXCH(NA1+IBAS,ND2+LBAS) = WXCH(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(M, 2)*DENO(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(M, 4)*DENO(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(M, 6)*DENO(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(M, 8)*DENO(NC2+KBAS,NB2+JBAS)
-C
-          WXCH(NA2+IBAS,ND1+LBAS) = WXCH(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(M, 9)*DENO(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(M,11)*DENO(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(M,13)*DENO(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(M,15)*DENO(NC2+KBAS,NB2+JBAS)
-C
-          WXCH(NA2+IBAS,ND2+LBAS) = WXCH(NA2+IBAS,ND2+LBAS)
-     &                     +           RR(M,12)*DENO(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(M,14)*DENO(NC1+KBAS,NB2+JBAS)
-C
-405       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     SKIP REMAINING EXCHANGE BATCHES IF INTEGRAL SYMMETRY IS DISABLED
-      IF(.NOT.INTSYM) GOTO 470
-C
-C     BATCH TYPE 06:             ~       ~
-C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
-C     CALCULATES B^{LL,SS}                  =     PCD*( MA, MB|-MC,-MD)
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 406
-          N = N+1
-          IF(IMTX(M, 6).EQ.0) GOTO 406
-C
-          WXCH(NA1+IBAS,NC1+KBAS) = WXCH(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(M, 8)*DENO(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(M, 3)*DENO(ND2+LBAS,NB1+JBAS)
-C
-          WXCH(NA1+IBAS,NC2+KBAS) = WXCH(NA1+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(M, 2)*DENO(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(M, 6)*DENO(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD1*RR(M, 1)*DENO(ND2+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(M, 5)*DENO(ND2+LBAS,NB2+JBAS)
-C
-          WXCH(NA2+IBAS,NC1+KBAS) = WXCH(NA2+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(M,12)*DENO(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(M,16)*DENO(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(M,11)*DENO(ND2+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(M,15)*DENO(ND2+LBAS,NB2+JBAS)
-C
-          WXCH(NA2+IBAS,NC2+KBAS) = WXCH(NA2+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(M,14)*DENO(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD1*RR(M, 9)*DENO(ND2+LBAS,NB1+JBAS)
-C
-406       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     BATCH TYPE 07:             ~       ~
-C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
-C     CALCULATES B^{SS,LL}                  = PAB*    (-MA,-MB| MC, MD)
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 407
-          N = N+1
-          IF(IMTX(M, 7).EQ.0) GOTO 407
-C
-          WXCH(NB1+JBAS,ND1+LBAS) = WXCH(NB1+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(M, 5)*DENO(NC1+KBAS,NA2+IBAS)
-     &                     + PAB1*     RR(M,15)*DENO(NC2+KBAS,NA1+IBAS)
-C
-          WXCH(NB1+JBAS,ND2+LBAS) = WXCH(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(M,14)*DENO(NC1+KBAS,NA1+IBAS)
-     &                     + PAB2*     RR(M, 6)*DENO(NC1+KBAS,NA2+IBAS)
-     &                     + PAB1*     RR(M,16)*DENO(NC2+KBAS,NA1+IBAS)
-     &                     + PAB2*     RR(M, 8)*DENO(NC2+KBAS,NA2+IBAS)
-C
-          WXCH(NB2+JBAS,ND1+LBAS) = WXCH(NB2+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(M, 9)*DENO(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(M, 1)*DENO(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(M,11)*DENO(NC2+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(M, 3)*DENO(NC2+KBAS,NA2+IBAS)
-C
-          WXCH(NB2+JBAS,ND2+LBAS) = WXCH(NB2+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(M, 2)*DENO(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(M,12)*DENO(NC2+KBAS,NA1+IBAS)
-C
-407       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     APPLY AN EQ-COEFFICIENT REFLECTION FORMULA TO RECYCLE INTEGRALS
-      IF(IQL.EQ.IQR) GOTO 470
-C
-C     BATCH TYPE 09:         ~       ~    
-C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
-C     CALCULATES B^{LS,LS}
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 409
-          N = N+1
-          IF(IMTX(M, 9).EQ.0) GOTO 409
-C
-          WXCH(NC1+KBAS,NB1+JBAS) = WXCH(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(M, 2)*DENO(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(M, 9)*DENO(NA2+IBAS,ND1+LBAS)
-C
-          WXCH(NC1+KBAS,NB2+JBAS) = WXCH(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(M, 5)*DENO(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(M, 6)*DENO(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(M,13)*DENO(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(M,14)*DENO(NA2+IBAS,ND2+LBAS)
-C
-          WXCH(NC2+KBAS,NB1+JBAS) = WXCH(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(M, 3)*DENO(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(M, 4)*DENO(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(M,11)*DENO(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(M,12)*DENO(NA2+IBAS,ND2+LBAS)
-C
-          WXCH(NC2+KBAS,NB2+JBAS) = WXCH(NC2+KBAS,NB2+JBAS)
-     &                     +           RR(M, 8)*DENO(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(M,15)*DENO(NA2+IBAS,ND1+LBAS)
-C
-409       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     BATCH TYPE 10:         ~       ~    
-C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
-C     CALCULATES B^{LL,SS}                  = PAB*    (-MA,-MB| MC, MD)
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 410
-          N = N+1
-          IF(IMTX(M,10).EQ.0) GOTO 410
-C
-          WXCH(NC1+KBAS,NA1+IBAS) = WXCH(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(M,14)*DENO(NB1+JBAS,ND2+LBAS)
-     &                     + PAB2*     RR(M, 9)*DENO(NB2+JBAS,ND1+LBAS)
-C
-          WXCH(NC1+KBAS,NA2+IBAS) = WXCH(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(M, 5)*DENO(NB1+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(M, 6)*DENO(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(M, 1)*DENO(NB2+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(M, 2)*DENO(NB2+JBAS,ND2+LBAS)
-C
-          WXCH(NC2+KBAS,NA1+IBAS) = WXCH(NC2+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(M,15)*DENO(NB1+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(M,16)*DENO(NB1+JBAS,ND2+LBAS)
-     &                     + PAB2*     RR(M,11)*DENO(NB2+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(M,12)*DENO(NB2+JBAS,ND2+LBAS)
-C
-          WXCH(NC2+KBAS,NA2+IBAS) = WXCH(NC2+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(M, 8)*DENO(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(M, 3)*DENO(NB2+JBAS,ND1+LBAS)
-C
-410       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     BATCH TYPE 11:         ~       ~
-C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
-C     CALCULATES B^{SS,LL}                  =     PCD*( MA, MB|-MC,-MD)
-      M = 0
-      N = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          IF(ISCR(M).EQ.0) GOTO 411
-          N = N+1
-          IF(IMTX(M,11).EQ.0) GOTO 411
-C
-          WXCH(ND1+LBAS,NB1+JBAS) = WXCH(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(M, 2)*DENO(NA1+IBAS,NC2+KBAS)
-     &                     +      PCD1*RR(M,12)*DENO(NA2+IBAS,NC1+KBAS)
-C
-          WXCH(ND1+LBAS,NB2+JBAS) = WXCH(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD1*RR(M, 8)*DENO(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD2*RR(M, 6)*DENO(NA1+IBAS,NC2+KBAS)
-     &                     +      PCD1*RR(M,16)*DENO(NA2+IBAS,NC1+KBAS)
-     &                     +      PCD2*RR(M,14)*DENO(NA2+IBAS,NC2+KBAS)
-C
-          WXCH(ND2+LBAS,NB1+JBAS) = WXCH(ND2+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(M, 3)*DENO(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(M, 1)*DENO(NA1+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(M,11)*DENO(NA2+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(M, 9)*DENO(NA2+IBAS,NC2+KBAS)
-C
-          WXCH(ND2+LBAS,NB2+JBAS) = WXCH(ND2+LBAS,NB2+JBAS)
-     &                     +      PCD1*RR(M, 5)*DENO(NA1+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(M,15)*DENO(NA2+IBAS,NC1+KBAS)
-C
-411       CONTINUE
-        ENDDO
-      ENDDO
-C
-C     SKIP POINT FOR INTEGRAL SYMMETRY
-470   CONTINUE
-C
-C     SKIP POINT FOR ATOMS AND LINEAR MOLECULES
-400   CONTINUE
-C
 C     SKIP POINT FOR CLOSED-SHELL MOLECULES
 5000  CONTINUE
 C
 C     TIME AT END OF ROUTINE
-      CALL CPU_TIME(T2)
-C
-C     ADD TO THE LINKED TIME INDEX
-      TADD = TADD+T2-T1
+      CALL SYSTEM_CLOCK(ICL2)
+      TADD = TADD + DFLOAT(ICL2-ICL1)/RATE
 C
       RETURN
       END
@@ -19155,16 +18781,16 @@ C     LOOP OVER CARTESIAN INDICES
       DO 4000 IQ=1,3
 C
 C       GENERATE ELSQ COEFFICIENTS
-        CALL CPU_TIME(TDM1)
+        CALL SYSTEM_CLOCK(ICL1,RATE)
         CALL EQLSMK(ELS11,ELS21,EXL,XYZ,KQN,MQN,NBAS,+1,1,2,IQ)
-        CALL CPU_TIME(TDM2)
-        TELS = TELS+TDM2-TDM1
+        CALL SYSTEM_CLOCK(ICL2)
+        TELS = TELS + DFLOAT(ICL2-ICL1)/RATE
 C
 C       GENERATE ESLQ COEFFICIENTS
-        CALL CPU_TIME(TDM1)
+        CALL SYSTEM_CLOCK(ICL1,RATE)
         CALL EQSLMK(ESL11,ESL21,EXL,XYZ,KQN,MQN,NBAS,+1,1,2,IQ)
-        CALL CPU_TIME(TDM2)
-        TESL = TESL+TDM2-TDM1
+        CALL SYSTEM_CLOCK(ICL2)
+        TESL = TESL + DFLOAT(ICL2-ICL1)/RATE
 C
 C       OVERLAP MATRIX ELEMENTS
         M = 0
@@ -19825,7 +19451,7 @@ C CC    CC OO    OO UU    UU LL     OO    OO MM   M   MM BB    BB  11  C
 C  CCCCCC   OOOOOO   UUUUUU  LLLLLLL OOOOOO  MM       MM BBBBBBB  1111 C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  COULOMB1 CONSTRUCT ALL ATOM-CENTRED CONTRIBUTIONS TO THE MOLECULAR  C
+C  COULOMB1 CONSTRUCTS ALL ATOM-CENTRED CONTRIBUTIONS TO THE MOLECULAR C
 C  MEAN-FIELD COULOMB MATRIX WITH RACAH ALGEBRA AND BETA INTEGRALS.    C
 C  THIS ROUTINE IS SIMILAR TO THE IN-LINE CONSTRUCTION OF MEAN-FIELD   C
 C  ATOMIC COULOMB MATRIX IN HFSCF0, BUT WITH MQN STRUCTURE AS WELL.    C
@@ -19833,12 +19459,14 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
+      CHARACTER*80 TITLE
+C
+      DIMENSION INDEX(-(MEL+1):MEL,MKP,2)
       DIMENSION DKAB(MNU,MKP+1,MKP+1),DKCD(MNU,MKP+1,MKP+1)
       DIMENSION RJLLLL(MB2,MNU),RJLLSS(MB2,MNU),
      &          RJSSLL(MB2,MNU),RJSSSS(MB2,MNU)
       DIMENSION XLLLL(MB2),XSSLL(MB2),XLLSS(MB2),XSSSS(MB2)
 C
-      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
       COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
      &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
      &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
@@ -19846,14 +19474,18 @@ C
      &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
+      COMPLEX*16 GPLT(MDM,MDM)
+      DIMENSION GTRU(MDM,MDM)
+C
       COMMON/B0IJ/EIJ(MB2,-MTN:MTN),RNIJ(MB2,4),EI(MB2),EJ(MB2),MAXAB
       COMMON/B0KL/EKL(MB2,-MTN:MTN),RNKL(MB2,4),EK(MB2),EL(MB2),MAXCD
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/BDIM/NDIM,NSKP,NOCC,NVRT
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
-      COMMON/DENS/DENC,DENO,DENT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/RCFF/T0000,T1000,T0100,T0010,T0001,T1100,T1010,T1001,
@@ -19861,16 +19493,16 @@ C
      &            C1,C3,C5,C7,C9,V1,V2,V4,V8,VS
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
       COMMON/T2EL/F2ES(5,9),T2ES(5,9),N2EB(5,9),N2EI(5,9),N2ES(5,9)
-      COMMON/TSCF/TC1I,TC1B,TC1R,TC1F,TC1M,TCEC,TCRM,TCRW,TCC1,TCC2,
-     &            TCMC,TB1I,TB1B,TB1R,TB1F,TB1M,TBEC,TBRM,TBRW,TBC1,
-     &            TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,TC2T,TCVT,TB1T,
-     &            TB2T,TACC,TEIG,TSCR,TTOT,TC1S,TC2S,TB1S,TB2S
+      COMMON/TSCF/TC1A,TC1I,TC1B,TC1R,TC1F,TC1M,TCEC,TCRM,TCRW,TCC1,
+     &            TCC2,TCMC,TB1A,TB1I,TB1B,TB1R,TB1F,TB1M,TB1T,TBEC,
+     &            TBRM,TBRW,TBC1,TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,
+     &            TC2T,TCVT,TB2T,TACC,TEIG,TSCR,TTOT,TC2S,TB2S
       COMMON/XNUS/INU(MNU,16),NUS(MNU),NUI,NUF,NUNUM,K4AD
 C
 C     ANGULAR FACTOR SENSITIVITY PARAMETER
       DATA SENS/1.0D-10/
 C
-      CALL CPU_TIME(TBCH1)
+      CALL SYSTEM_CLOCK(ICL1,RATE)
 C
 C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       IF(SHAPE.EQ.'ATOMIC') THEN
@@ -19880,6 +19512,32 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       ELSE
         ISYM = 0
       ENDIF
+C
+      PRM1CT = .FALSE.
+      CDPRM  = .FALSE.
+      PRM1KL = .FALSE.
+C
+C**********************************************************************C
+C     ORDERED INDEX OF (KQN,MQN) COMBINATIONS                          C
+C**********************************************************************C
+C
+C     LOOP OVER KAPPA VALUES FOR THIS NUCLEAR CENTRE
+      ICOUNT = 0
+      DO KN=1,NKAP(IZ)
+C
+C       IMPORT KAPPA, MAXIMUM MQN
+        KAPPA = KAPA(KN,IZ)
+        MJMAX = 2*IABS(KAPPA)-1
+C
+C       LOOP OVER |MQN| VALUES
+        DO MJ=1,MJMAX,2
+C         LOOP OVER MQN SIGNS
+          DO ISGN=1,2
+            ICOUNT               = ICOUNT+1
+            INDEX(KAPPA,MJ,ISGN) = ICOUNT
+          ENDDO
+        ENDDO
+      ENDDO
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 1000)                 C
@@ -19912,8 +19570,19 @@ C
 C       NUMBER OF BASIS FUNCTIONS IN (AB) BLOCK
         MAXAB = NBAS(1)*NBAS(2)
 C
+C      TRIANGLE RULE FOR LA <-> LB
+       IF(PRM1CT) THEN
+         IF(LA.GT.LB) GOTO 1001
+       ENDIF
+C
+C       PRM1CT BREAKDOWN
+cc       if(la.ne.0.or.lb.ne.1) goto 1001
+c        if(la.ne.2.or.lb.ne.2) goto 1001
+cc       if(la.NE.lb) goto 1001
+cC       if(la+lb.ne.1) goto 1001
+cC
 C     LOOP OVER LQN(C) VALUES
-      DO 1000 LC=0,(NKAP(IZ)-1)/2
+      DO 1100 LC=0,(NKAP(IZ)-1)/2
 C
 C       QUANTUM NUMBERS FOR BLOCK C
         LQN(3) = LC
@@ -19925,7 +19594,7 @@ C       BASIS EXPONENTS FOR BLOCK C
         ENDDO
 C
 C     LOOP OVER LQN(D) VALUES
-      DO 1000 LD=0,(NKAP(IZ)-1)/2
+      DO 1100 LD=0,(NKAP(IZ)-1)/2
 C
 C       QUANTUM NUMBERS FOR BLOCK D
         LQN(4) = LD
@@ -19938,21 +19607,26 @@ C       BASIS EXPONENTS FOR BLOCK D
 C
 C       NUMBER OF BASIS FUNCTIONS IN (CD) BLOCK
         MAXCD = NBAS(3)*NBAS(4)
+cC
+cC       TRIANGLE RULE FOR LC <-> LD
+c        IF(CDPRM) THEN
+c          IF(LC.GT.LD) GOTO 1101
+c        ENDIF
 C
 C       DETERMINE THE TENSOR ORDERS REQUIRED FOR THIS LQN BLOCK
-        CALL CPU_TIME(T1)
+        CALL SYSTEM_CLOCK(ICL3,RATE)
         CALL TNSCLM1(LQN,ISEL)
-        CALL CPU_TIME(T2)
-        TC1I = TC1I+T2-T1
+        CALL SYSTEM_CLOCK(ICL4)
+        TC1A = TC1A + DFLOAT(ICL4-ICL3)/RATE
 C
-        IF(ISEL.EQ.0) GOTO 1001
+        IF(ISEL.EQ.0) GOTO 1101
 C
 C       BASIS SET INTERMEDIATES FOR THE DENSITY PAIRS
-        CALL CPU_TIME(T1)
+        CALL SYSTEM_CLOCK(ICL3,RATE)
         CALL IJSET1
         CALL KLSET1
-        CALL CPU_TIME(T2)
-        TC1I = TC1I+T2-T1
+        CALL SYSTEM_CLOCK(ICL4)
+        TC1I = TC1I + DFLOAT(ICL4-ICL3)/RATE
 C
 C**********************************************************************C
 C     LOOP OVER ALL KQN SYMMETRY TYPES FOR THESE LQNS (USE INDEX 2000) C
@@ -19971,20 +19645,30 @@ C     LOOP OVER KQN(B) VALUES
 C
 C       QUANTUM NUMBERS FOR BLOCK B
         KQN(2) = KAPA(KB,IZ)
+cC
+cC       TRIANGLE RULE FOR KA <-> KB
+c        IF(PRM1CT) THEN
+c          IF(KA.GT.KB) GOTO 2001
+c        ENDIF
 C
 C     LOOP OVER KQN(C) VALUES
-      DO 2000 NC=1,KRONECK(LC,0),-1
+      DO 2100 NC=1,KRONECK(LC,0),-1
         KC = 2*LC+NC
 C
 C       QUANTUM NUMBERS FOR BLOCK C
         KQN(3) = KAPA(KC,IZ)
 C
 C     LOOP OVER KQN(D) VALUES
-      DO 2000 ND=1,KRONECK(LD,0),-1
+      DO 2100 ND=1,KRONECK(LD,0),-1
         KD = 2*LD+ND
 C
 C       QUANTUM NUMBERS FOR BLOCK D
         KQN(4) = KAPA(KD,IZ)
+C
+C       TRIANGLE RULE FOR KC <-> KD
+        IF(CDPRM) THEN
+          IF(KC.GT.KD) GOTO 2101
+        ENDIF
 C
 C     UNIQUE ADDRESS FOR THIS KQN COMBINATION WITHIN THE LQN BLOCK
       K4AD = 16 - (8*NA + 4*NB + 2*NC + ND)
@@ -19994,6 +19678,7 @@ C     PREPARE INTERMEDIATE DATA FOR USE IN RKCLM1                      C
 C**********************************************************************C
 C
 C     COEFFICIENTS FOR INTEGRAL ASSEMBLY
+      CALL SYSTEM_CLOCK(ICL3,RATE)
       C1 = 0.25D0*GAMHLF(LQN(1)+LQN(2)+LQN(3)+LQN(4)+1)
       C3 = 0.25D0*GAMHLF(LQN(1)+LQN(2)+LQN(3)+LQN(4)+3)
       C5 = 0.25D0*GAMHLF(LQN(1)+LQN(2)+LQN(3)+LQN(4)+5)
@@ -20027,18 +19712,20 @@ C
       T1011 = TI*TK*TL
       T0111 = TJ*TK*TL
       T1111 = TI*TJ*TK*TL
+      CALL SYSTEM_CLOCK(ICL4)
+      TC1I = TC1I + DFLOAT(ICL4-ICL3)/RATE
 C
 C     ANGULAR COEFFICIENTS
-      CALL CPU_TIME(T1)
+      CALL SYSTEM_CLOCK(ICL3,RATE)
       CALL ANGCLM1(DKAB,DKCD,KQN,LQN,ISEL)
-      CALL CPU_TIME(T2)
-      TC1I = TC1I+T2-T1
+      CALL SYSTEM_CLOCK(ICL4)
+      TC1A = TC1A + DFLOAT(ICL4-ICL3)/RATE
 C
 C     EXIT THIS COMBINATION IF IT VIOLATES A SELECTION RULE
-      IF(ISEL.EQ.0) GOTO 2001
+      IF(ISEL.EQ.0) GOTO 2101
 C
 C**********************************************************************C
-C     LOOP OVER BASIS FUNCTIONS IN BLOCKS A AND B (INDEX 2000)         C
+C     LOOP OVER BASIS FUNCTIONS IN BLOCKS A AND B (INDEX 3000)         C
 C**********************************************************************C
 C
 C     UPDATE COUNTER FOR NUMBER OF CLASSES
@@ -20067,25 +19754,25 @@ C       UPDATE COUNTER FOR NUMBER OF INTEGRALS
         ENDIF
 C
 C       NEW SET OF BETA INTEGRALS FOR THIS LQN BLOCK
+        CALL SYSTEM_CLOCK(ICL3,RATE)
         IF(K4AD.EQ.1) THEN
-          CALL CPU_TIME(T1)
-C         CALL BTACLM1
-          CALL BETASET((NUF-NUI)/2+3,NUI-1,NUF+2)
-          CALL CPU_TIME(T2)
-          TC1B = TC1B+T2-T1
+          CALL BTACLM1
+C         CALL BETASET((NUF-NUI)/2+3,NUI-1,NUF+2)
         ENDIF
+        CALL SYSTEM_CLOCK(ICL4)
+        TC1B = TC1B + DFLOAT(ICL4-ICL3)/RATE
 C
 C       BATCH OF RADIAL INTEGRALS (EFFECTIVE INTERACTION STRENGTHS)
-        CALL CPU_TIME(T1)
+        CALL SYSTEM_CLOCK(ICL3,RATE)
         CALL RKCLM1(RJLLLL,RJLLSS,RJSSLL,RJSSSS)
-        CALL CPU_TIME(T2)
-        TC1R = TC1R+T2-T1
+        CALL SYSTEM_CLOCK(ICL4)
+        TC1R = TC1R + DFLOAT(ICL4-ICL3)/RATE
 C
 C       CAN NOW CONTRACT THESE RADIAL INTEGRALS OVER ANGULAR COMPONENTS
 C       OF G-SPINOR BASIS FUNCTIONS USING A TENSOR EXPANSION IN {L,Q}
 C
 C**********************************************************************C
-C     LOOP OVER |MQN| MAGNITUDES FOR A,B,C,D BLOCKS (USE INDEX 3000)   C
+C     LOOP OVER |MQN| MAGNITUDES FOR A,B,C,D BLOCKS (USE INDEX 4000)   C
 C**********************************************************************C
 C
       DO 4000 MA=1,IABS(KQN(1))
@@ -20094,31 +19781,72 @@ C
       DO 4000 MB=1,IABS(KQN(2))
         MQN(2) = 2*MB-1
 C
-      DO 4000 MC=1,IABS(KQN(3))
+C       TRIANGLE RULE FOR MA <-> MB
+C        IF(PRM1CT) THEN
+C          IF(MA.GT.MB) GOTO 4001
+C         if(ma.ne.1.or.mb.ne.1) goto 4001
+C       ENDIF
+C
+      DO 4100 MC=1,IABS(KQN(3))
         MQN(3) = 2*MC-1
 C
-      DO 4000 MD=1,IABS(KQN(4))
+      DO 4100 MD=1,IABS(KQN(4))
         MQN(4) = 2*MD-1
+cC
+cC       TRIANGLE RULE FOR MC <-> MD
+c        IF(CDPRM) THEN
+c          IF(MC.GT.MD) GOTO 4101
+c        ENDIF
 C
 C**********************************************************************C
-C     LOOP OVER THE SIGNS OF |MQN| FOR A,B,C,D BLOCKS (USE INDEX 4000) C
+C     LOOP OVER THE SIGNS OF |MQN| FOR A,B,C,D BLOCKS (USE INDEX 5000) C
 C**********************************************************************C
 C
-      DO 5000 ISGN1=1,2
-        MMJA = MQN(1)*((-1)**ISGN1)
-        IMJA = MQN(1)+ISGN1-1
+      DO 5000 MMA=1,2
+        MMJA = MQN(1)*((-1)**MMA)
+        IMJA = MQN(1)+MMA-1
 C
-      DO 5000 ISGN2=1,2
-        MMJB = MQN(2)*((-1)**ISGN2)
-        IMJB = MQN(2)+ISGN2-1
+      DO 5000 MMB=1,2
+        MMJB = MQN(2)*((-1)**MMB)
+        IMJB = MQN(2)+MMB-1
+cC
+cC       TRIANGLE RULE FOR |MA| <-> |MB|
+c        IF(PRM1CT) THEN
+c          IF(MMA.GT.MMB) GOTO 5001
+c        ENDIF
 C
-      DO 5000 ISGN3=1,2
-        MMJC = MQN(3)*((-1)**ISGN3)
-        IMJC = MQN(3)+ISGN3-1
+C       PRM1CT BREAKDOWN
+c       if(mma.ne.1.or.mmb.ne.1) goto 5001
 C
-      DO 5000 ISGN4=1,2
-        MMJD = MQN(4)*((-1)**ISGN4)
-        IMJD = MQN(4)+ISGN4-1
+      DO 5100 MMC=1,2
+        MMJC = MQN(3)*((-1)**MMC)
+        IMJC = MQN(3)+MMC-1
+C
+      DO 5100 MMD=1,2
+        MMJD = MQN(4)*((-1)**MMD)
+        IMJD = MQN(4)+MMD-1
+cC
+cC       TRIANGLE RULE FOR |MC| <-> |MD|
+c        IF(CDPRM) THEN
+c          IF(MMC.GT.MMD) GOTO 5101
+c        ENDIF
+C
+cC       CALCULATE BLOCK INDICES FOR {ABCD} COMBINATIONS
+c        IQ1 = INDEX(KQN(1),MQN(1),MMA)
+c        IQ2 = INDEX(KQN(2),MQN(2),MMB)
+c        IQ3 = INDEX(KQN(3),MQN(3),MMC)
+c        IQ4 = INDEX(KQN(4),MQN(4),MMD)
+cC
+cC     SKIP CONTRIBUTIONS THAT ARISE BY PERMUTATION OF INTEGRALS
+c      IF(PRM1CT.AND.IQ1.LT.IQ2) GOTO 5101
+C      IF(PRM1KL.AND.IQ3.LT.IQ4) GOTO 5101
+C
+cC       PRM1CT BREAKDOWN
+c        if(ka.ne.4.or.kb.ne.4) goto 5001
+cc       if(ka.ne.kb) goto 5001
+cC       if(ka+kb.ne.3) goto 5001
+cc        kthis = 3
+cc        if(ka.ne.kthis.or.kb.ne.kthis) goto 5001
 C
 C     STARTING FOCK ADDRESS FOR EACH BASIS LIST
       NAL = LRGE(IZ,KA,IMJA)
@@ -20131,17 +19859,29 @@ C
       NCS = LRGE(IZ,KC,IMJC)+NSKP
       NDS = LRGE(IZ,KD,IMJD)+NSKP
 C
+CC     ONLY WANT THE UPPER TRIANGULAR MATRIX
+C      IF(PRM1CT) THEN
+C        IF(NAL.GT.NBL) GOTO 5101
+C      ENDIF
+C
+cC     ONLY WANT THE UPPER TRIANGULAR MATRIX
+c      IF(CDPRM) THEN
+c        IF(NCL.GT.NDL) GOTO 5101
+c      ENDIF
+C
 C     APPLY ANGULAR MQN SELECTION RULE
-      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 5001
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 5101
       IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-        IF(ISGN1.EQ.ISGN2.AND.ISGN3.EQ.ISGN4) GOTO 5002
-        IF(ISGN1.EQ.ISGN4.AND.ISGN3.EQ.ISGN2) GOTO 5002     
-        GOTO 5001
+c       remember to carry through index swaps here
+        IF(MMA.EQ.MMB.AND.MMC.EQ.MMD) GOTO 5102
+        IF(MMA.EQ.MMD.AND.MMC.EQ.MMB) GOTO 5102
+C       IF(MMB.NE.MMD.AND.MMC.NE.MMA) GOTO 5102
+        GOTO 5101
       ENDIF
-5002  CONTINUE
+5102  CONTINUE
 C
 C     INITIALISE EFFECTIVE INTERACTION STRENGTH VALUES
-      CALL CPU_TIME(T1)
+      CALL SYSTEM_CLOCK(ICL3,RATE)
       DO M=1,MAXCD
         XLLLL(M) = 0.0D0
         XLLSS(M) = 0.0D0
@@ -20153,13 +19893,13 @@ C     ASSEMBLE INTEGRAL BY SUMMING OVER EXPANSION POWER L
       DO LTEN=1,NUNUM
 C
 C       SKIP IF THIS LQN BLOCK TENSOR ORDER ISN'T IN THE KQN BLOCK
-        IF(INU(LTEN,K4AD).EQ.0) GOTO 5003
+        IF(INU(LTEN,K4AD).EQ.0) GOTO 5103
 C
 C       ANGULAR COEFFICIENT
         ANGFAC = DKAB(LTEN,IMJA,IMJB)*DKCD(LTEN,IMJC,IMJD)
 C
 C       SCREENING OF INTEGRAL BASED ON ANGULAR COEFFICIENT
-        IF(DABS(ANGFAC).LE.SENS) GOTO 5003
+        IF(DABS(ANGFAC).LE.SENS) GOTO 5103
 C
         IF(HMLT.EQ.'NORL') THEN
 C       NON-RELATIVISTIC HAMILTONIAN
@@ -20181,13 +19921,13 @@ C
         ENDIF
 C
 C       SKIP POINT FOR ANGULAR SCREENING
-5003    CONTINUE
+5103    CONTINUE
 C
       ENDDO
 C
 C     FULL-INTEGRAL CONSTRUCTION COMPLETE
-      CALL CPU_TIME(T2)
-      TC1F = TC1F+T2-T1
+      CALL SYSTEM_CLOCK(ICL4)
+      TC1F = TC1F + DFLOAT(ICL4-ICL3)/RATE
 C
 C**********************************************************************C
 C     ADD THIS BATCH OF R-INTEGRALS TO CLOSED-SHELL COULOMB MATRIX     C
@@ -20198,46 +19938,882 @@ C           FLOATING-POINT REPRESENTATION OF INTEGERS AND RATIONALS.   C
 C           (EG. ANGFAC^2 IS A RATIONAL NUMBER).                       C
 C**********************************************************************C
 C
+      CALL SYSTEM_CLOCK(ICL3,RATE)
+C
+C     MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
+      IF(ISYM.EQ.0) THEN
+        CALL CLMMAT1(XLLLL,XSSLL,XLLSS,XSSSS)
+      ELSE
+        CALL CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS)
+      ENDIF
+C
+C     MATRIX MULTIPLICATION STEP COMPLETE
+      CALL SYSTEM_CLOCK(ICL4)
+      TC1M = TC1M + DFLOAT(ICL4-ICL3)/RATE
+C
+C**********************************************************************C
+C     COMPLETE CONSTRUCTION OF ALL ONE-CENTRE CONTRIBUTIONS.           C
+C**********************************************************************C
+C
+C     EARLY EXIT FOR MQN SELECTION RULES
+5101  CONTINUE
+C     END LOOP OVER ALL |MQN|(CD) SIGNS
+5100  CONTINUE
+C     EARLY EXIT FOR MQN TRIANGLE RULES
+5001  CONTINUE
+C     END LOOP OVER ALL |MQN|(AB) SIGNS
+5000  CONTINUE
+C     EARLY EXIT FOR MQN TRIANGLE RULE
+4101  CONTINUE
+C     END LOOP OVER |MQN|(CD) MAGNITUDES
+4100  CONTINUE
+C     EARLY EXIT FOR MQN TRIANGLE RULE
+4001  CONTINUE
+C     END LOOP OVER |MQN|(AB) MAGNITUDES
+4000  CONTINUE
+C     EARLY EXIT FOR DIAGONAL LQN(AB)
+3001  CONTINUE
+C     END LOOP OVER IBAS AND JBAS
+3000  CONTINUE
+C     EARLY EXIT FOR KQN SELECTION RULES/TRIANGLE RULE
+2101  CONTINUE
+C     END LOOP OVER KQN(CD)
+2100  CONTINUE
+C     EARLY EXIT FOR KQN TRIANGLE RULE
+2001  CONTINUE
+C     END LOOP OVER KQN(AB)
+2000  CONTINUE
+C     EARLY EXIT FOR LQN SELECTION RULES/TRIANGLE RULE
+1101  CONTINUE
+C     END LOOP OVER LQN(CD)
+1100  CONTINUE
+C     EARLY EXIT FOR LQN TRIANGLE RULE
+1001  CONTINUE
+C     END LOOP OVER LQN(AB)
+1000  CONTINUE
+C
+C     MATRIX HERMITICITY (CLOSED-SHELL)
+      CALL SYSTEM_CLOCK(ICL3,RATE)
+      DO I=1,NDIM
+        DO J=I+1,NDIM
+          GDIR(J,I) = DCONJG(GDIR(I,J))
+          GXCH(J,I) = DCONJG(GXCH(I,J))
+        ENDDO
+      ENDDO
+C
+C     MATRIX HERMITICITY (OPEN-SHELL)
+      IF(NOPN.NE.0) THEN
+        DO I=1,NDIM
+          DO J=I+1,NDIM
+            QDIR(J,I) = DCONJG(QDIR(I,J))
+            QXCH(J,I) = DCONJG(QXCH(I,J))
+          ENDDO
+        ENDDO
+      ENDIF
+      CALL SYSTEM_CLOCK(ICL4)
+      TC1M = TC1M + DFLOAT(ICL4-ICL3)/RATE
+C
+C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
+      CALL SYSTEM_CLOCK(ICL2)
+      IF(HMLT.EQ.'NORL') THEN
+        T2ES(1,1) = T2ES(1,1) +        DFLOAT(ICL2-ICL1)/RATE
+      ELSE
+        T2ES(1,1) = T2ES(1,1) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,2) = T2ES(1,2) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,3) = T2ES(1,3) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+      ENDIF
+      
+      return
+C
+C     READ IN 'SOURCE OF TRUTH'
+      OPEN(UNIT=8,FILE="plots/GXCH-LL-TRUTH_r.dat",STATUS='UNKNOWN')
+      REWIND(UNIT=8)
+      DO I=1,470
+        READ(8, *) (GTRU(I,J),J=1,470)
+      ENDDO
+      CLOSE(UNIT=8)
+C
+      TITLE = 'GXCH'
+      CALL ZGNUMAP(GXCH,TITLE,470)
+C
+C     CALCULATE DIFFERENCE BETWEEN TRUTH AND WHAT WE HAVE
+      DO I=203,232
+        DO J=203,232
+          GPLT(I-202,J-202) = GXCH(I,J)-DCMPLX(GTRU(I,J),0.0D0)
+c         GPLT(I,J) = GXCH(I,J)
+        ENDDO
+      ENDDO
+C
+C     LARGEST ELEMENT AND LOCATION
+      GBIG = 0.0D0
+      IBIG = 0
+      JBIG = 0
+      DO I=1,250
+        DO J=1,250
+          IF(ABS(GPLT(I,J)).GT.GBIG) THEN
+            GBIG = ABS(GPLT(I,J))
+            IBIG = I
+            JBIG = J
+          ENDIF
+        ENDDO
+      ENDDO
+      WRITE(*,*) 'BIGGEST IS ',GBIG,' AT I,J=',IBIG,JBIG
+C
+      TITLE = 'GXCH-DIFF'
+      CALL ZGNUMAP(GPLT,TITLE,30)
+      
+      do i=1,30
+        write(*,*) i,dreal(gplt(i,i))
+      enddo
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C  CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT 11  ZZZZZZZZ C
+C CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT   111       ZZ  C
+C CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT    11      ZZ   C
+C CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT    11     ZZ    C
+C CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT    11    ZZ     C
+C CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT    11   ZZ      C
+C  CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT   1111 ZZZZZZZZ C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  CLMMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
+C**********************************************************************C
+      INCLUDE 'parameters.h'
+      INCLUDE 'scfoptions.h'
+C
+      DIMENSION ISCF(11,6),IFLG(11)
+      DIMENSION XLLLL(MB2),XSSLL(MB2),XLLSS(MB2),XSSSS(MB2)
+C
+      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
+      COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
+     &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
+     &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
+     &           VSLF(MDM,MDM),VUEH(MDM,MDM),VWKR(MDM,MDM),
+     &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
+     &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
+C
+      COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/DENS/DENC,DENO,DENT
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
+     &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
+      COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
+C
+C     ISCF TELLS WHICH INTEGRALS TO INCLUDE BASED ON OVERLAP COMBINATION
+      DATA ISCF/1,1,1,1,1,1,1,1,0,0,0,
+     &          1,1,0,0,1,1,1,0,0,0,0,
+     &          1,0,1,1,1,0,1,0,0,0,0,
+     &          1,1,1,0,1,1,0,0,0,0,0,
+     &          1,0,1,0,1,0,0,0,0,0,0,
+     &          1,0,0,0,1,0,0,0,0,0,0/
+C
+C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
+      IF(SHAPE.EQ.'ATOMIC') THEN
+        ISYM = 2
+      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
+        ISYM = 1
+      ELSE
+        ISYM = 0
+      ENDIF
+C
+C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
+      IF(ISYM.EQ.0) THEN
+        WRITE(6,*) 'In CLMMAT1Z: you probably should be using CLMMAT1.'
+        WRITE(7,*) 'In CLMMAT1Z: you probably should be using CLMMAT1.'
+      ENDIF
+C
+C**********************************************************************C
+C     ASSEMBLE THE CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)           C
+C**********************************************************************C
+C
+cC       PRM1CT BREAKDOWN
+c        GOTO 999
+C
 C     NON-RELATIVISTIC HAMILTONIAN
       IF(HMLT.EQ.'NORL') THEN
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
-        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(ISGN1.NE.ISGN2.OR.ISGN3.NE.ISGN4) GOTO 6001
-        ENDIF
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
-     &                          +      XLLLL(M)*DENT(NCL+KBAS,NDL+LBAS)
+        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 101
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+            ENDDO
           ENDDO
-        ENDDO
-6001    CONTINUE
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GXCH(LL)
-        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(ISGN1.NE.ISGN4.OR.ISGN3.NE.ISGN2) GOTO 6002
         ENDIF
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS) 
-     &                          +      XLLLL(M)*DENT(NCL+KBAS,NBL+JBAS)
-          ENDDO
-        ENDDO
-6002    CONTINUE
+101     CONTINUE
 C
 C     RELATIVISTIC HAMILTONIAN
       ELSE
 C
-C       CLOSED-SHELL DIRECT MATRIX GDIR
-        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(ISGN1.NE.ISGN2.OR.ISGN3.NE.ISGN4) GOTO 6003
+C       MQN SIGN SELECTION RULE
+        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 102
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
         ENDIF
 C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
+        IF(NAS.LE.NBS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+102     CONTINUE
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1CT) GOTO 150
+        GOTO 150
+C
+C       PERMUTATION BLOCK  I⇄J
+C
+C       MQN SIGN SELECTION RULE
+        IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 103
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
+C       THIS CONDITIONAL WILL NEVER SUCCEED
+        IF(IQ1.GT.IQ2) THEN
+C       IF(NBL.LT.NAL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NBL+JBAS,NAL+IBAS) = GDIR(NBL+JBAS,NAL+IBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+
+C       THIS CONDITIONAL WILL NEVER SUCCEED
+        IF(NBS.LT.NAS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NBS+JBAS,NAS+IBAS) = GDIR(NBS+JBAS,NAS+IBAS)
+     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+103     CONTINUE
+C
+C
+C       MQN SIGN SELECTION RULE
+        IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 104
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
+C       THIS CONDITIONAL WILL NEVER SUCCEED
+        IF(IQ3.GT.IQ4.AND.MA.EQ.MB.AND.MC.LT.MD) THEN
+C       IF(NBL.LT.NAL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
+     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+
+C       THIS CONDITIONAL WILL NEVER SUCCEED
+        IF(IQ3.GT.IQ4.AND.MA.EQ.MB.AND.MC.LT.MD) THEN
+C       IF(NAS.LT.NBS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
+     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+104     CONTINUE
+C
+150     CONTINUE
+C
+C     END CONDITIONAL OVER HMLT TYPES
+      ENDIF
+999   CONTINUE
+C
+C**********************************************************************C
+C     ASSEMBLE THE CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)         C
+C**********************************************************************C
+C
+C     NON-RELATIVISTIC HAMILTONIAN
+      IF(HMLT.EQ.'NORL') THEN
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GXCH(LL)
+        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 201
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS) 
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+201     CONTINUE
+C
+C     RELATIVISTIC HAMILTONIAN
+      ELSE
+C
+C       CLOSED-SHELL EXCHANGE MATRIX GXCH
+        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 202
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+cC       PRM1CT BREAKDOWN
+c        GOTO 950
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+        IF(NAL.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NDS+LBAS) = GXCH(NAL+IBAS,NDS+LBAS)
+     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+CC
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C        M = 0
+C        DO KBAS=1,NBAS(3)
+C          DO LBAS=1,NBAS(4)
+C            M = M+1
+C            GXCH(NAS+IBAS,NDL+LBAS) = GXCH(NAS+IBAS,NDL+LBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NBS+JBAS)
+C          ENDDO
+C        ENDDO
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+        IF(NAS.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAS+IBAS,NDS+LBAS) = GXCH(NAS+IBAS,NDS+LBAS)
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+950     CONTINUE
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+202     CONTINUE
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1CT) GOTO 250
+        goto 250
+C
+C       PERMUTATION BLOCK  I⇄J
+C
+C       MQN SIGN SELECTION RULE
+        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 203
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+C          IF(NBL.LT.NDL) THEN
+c          IF(KA.LT.KB) THEN
+           IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
+C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NAL+IBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+cC
+cC       PRM1CT BREAKDOWN
+c        GOTO 960
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+C         IF(NBL.LT.NDL) THEN
+C         IF(KA.LT.KB) THEN
+          IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
+     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NAL+IBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+C
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C          IF(NBS.LT.NDL) THEN
+C            M = 0
+C            DO KBAS=1,NBAS(3)
+C              DO LBAS=1,NBAS(4)
+C                M = M+1
+C                GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NAS+IBAS))
+C              ENDDO
+C            ENDDO
+C          ENDIF
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+C         IF(NBS.LT.NDS) THEN
+C         IF(KA.LT.KB) THEN
+          IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NAS+IBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+C
+203     CONTINUE
+250     CONTINUE
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.CDPRM) GOTO 260
+        goto 260
+C
+C       PERMUTATION BLOCK  K⇄L
+C
+C       MQN SIGN SELECTION RULE
+        IF(MMA.NE.MMC.OR.MMD.NE.MMB) GOTO 214
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+C          IF(NBL.LT.NDL) THEN
+c          IF(KA.LT.KB) THEN
+           IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
+C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NAL+IBAS,NCL+KBAS) = GXCH(NAL+IBAS,NCL+KBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NBL+JBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+cC
+cC       PRM1CT BREAKDOWN
+c        GOTO 960
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+C         IF(NBL.LT.NDL) THEN
+C         IF(KA.LT.KB) THEN
+          IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NAL+IBAS,NCS+KBAS) = GXCH(NAL+IBAS,NCS+KBAS)
+     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NBL+JBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+C
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C          IF(NBS.LT.NDL) THEN
+C            M = 0
+C            DO KBAS=1,NBAS(3)
+C              DO LBAS=1,NBAS(4)
+C                M = M+1
+C                GXCH(NAS+IBAS,NCL+KBAS) = GXCH(NAS+IBAS,NCL+KBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NBS+JBAS))
+C              ENDDO
+C            ENDDO
+C          ENDIF
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+C         IF(NBS.LT.NDS) THEN
+C         IF(KA.LT.KB) THEN
+          IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NAS+IBAS,NCS+KBAS) = GXCH(NAS+IBAS,NCS+KBAS)
+     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NBS+JBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+214     CONTINUE
+260     CONTINUE
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.CDPRM.OR..NOT.PRM1CT) GOTO 270
+        goto 270
+C
+C       PERMUTATION BLOCK  I⇄J AND K⇄L
+C
+C       MQN SIGN SELECTION RULE
+        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 205
+C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+C          IF(NBL.LT.NDL) THEN
+c          IF(KA.LT.KB) THEN
+           IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
+C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBL+JBAS,NCL+KBAS) = GXCH(NBL+JBAS,NCL+KBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NAL+IBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+cC
+cC       PRM1CT BREAKDOWN
+c        GOTO 960
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+C         IF(NBL.LT.NDL) THEN
+C         IF(KA.LT.KB) THEN
+          IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBL+JBAS,NCS+KBAS) = GXCH(NBL+JBAS,NCS+KBAS)
+     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NAL+IBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+C
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C          IF(NBS.LT.NDL) THEN
+C            M = 0
+C            DO KBAS=1,NBAS(3)
+C              DO LBAS=1,NBAS(4)
+C                M = M+1
+C                GXCH(NBS+JBAS,NCL+KBAS) = GXCH(NBS+JBAS,NCL+KBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NAS+IBAS))
+C              ENDDO
+C            ENDDO
+C          ENDIF
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+C         IF(NBS.LT.NDS) THEN
+C         IF(KA.LT.KB) THEN
+          IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBS+JBAS,NCS+KBAS) = GXCH(NBS+JBAS,NCS+KBAS)
+     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NAS+IBAS))
+              ENDDO
+            ENDDO
+          ENDIF
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C
+960       CONTINUE
+C
+205     CONTINUE
+C
+270     CONTINUE
+C
+C     END CONDITIONAL OVER HMLT TYPES
+      ENDIF
+C
+      IF(NOPN.EQ.0) GOTO 901
+C
+C**********************************************************************C
+C     ASSEMBLE THE OPEN-SHELL DIRECT COULOMB MATRIX (QDIR)             C
+C**********************************************************************C
+C
+C     NON-RELATIVISTIC HAMILTONIAN
+      IF(HMLT.EQ.'NORL') THEN
+C
+C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
+        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 301
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &                   + ACFF*XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+301     CONTINUE
+C
+C     RELATIVISTIC HAMILTONIAN
+      ELSE
+C
+C       OPEN-SHELL DIRECT MATRIX QDIR
+        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 302
+C
+C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &                   + ACFF*XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+     &                   + ACFF*XLLSS(M)*DREAL(DENO(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(SS)
+        IF(NAS.LE.NBS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QDIR(NAS+IBAS,NBS+JBAS) = QDIR(NAS+IBAS,NBS+JBAS)
+     &                   + ACFF*XSSLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+     &                   + ACFF*XSSSS(M)*DREAL(DENO(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+302     CONTINUE
+C
+C     END CONDITIONAL OVER HMLT TYPES
+      ENDIF
+C
+C**********************************************************************C
+C     ASSEMBLE THE OPEN-SHELL EXCHANGE COULOMB MATRIX (QXCH)           C
+C**********************************************************************C
+C
+C     NON-RELATIVISTIC HAMILTONIAN
+      IF(HMLT.EQ.'NORL') THEN
+C
+C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
+        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 401
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
+     &                   + BCFF*XLLLL(M)*DREAL(DENO(NCL+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+401     CONTINUE
+C
+C     RELATIVISTIC HAMILTONIAN
+      ELSE
+C
+C       OPEN-SHELL EXCHANGE MATRIX GXCH
+        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 402
+C
+C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
+     &                   + BCFF*XLLLL(M)*DREAL(DENO(NCL+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LS)
+        IF(NAL.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAL+IBAS,NDS+LBAS) = QXCH(NAL+IBAS,NDS+LBAS)
+     &                   + BCFF*XLLSS(M)*DREAL(DENO(NCS+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+CC
+CC       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SL)
+C        IF(NAS.LE.NDL) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              QXCH(NAS+IBAS,NDL+LBAS) = QXCH(NAS+IBAS,NDL+LBAS)
+C     &                   + BCFF*XSSLL(M)*DREAL(DENO(NCL+KBAS,NBS+JBAS))
+C            ENDDO
+C          ENDDO
+C        ENDIF
+CC
+C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SS)
+        IF(NAS.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAS+IBAS,NDS+LBAS) = QXCH(NAS+IBAS,NDS+LBAS)
+     &                   + BCFF*XSSSS(M)*DREAL(DENO(NCS+KBAS,NBS+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+402     CONTINUE
+C
+C     END CONDITIONAL OVER HMLT TYPES
+      ENDIF
+C
+C     END CONDITIONAL FOR OPEN-SHELL SYSTEM
+901   CONTINUE
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE CLMMAT1(XLLLL,XSSLL,XLLSS,XSSSS)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C     CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT 11     C
+C    CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT   111     C
+C    CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT    11     C
+C    CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT    11     C
+C    CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT    11     C
+C    CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT    11     C
+C     CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT   1111    C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  CLMMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
+C**********************************************************************C
+      INCLUDE 'parameters.h'
+      INCLUDE 'scfoptions.h'
+C
+      DIMENSION ISCF(11,6),IFLG(11)
+      DIMENSION XLLLL(MB2),XSSLL(MB2),XLLSS(MB2),XSSSS(MB2)
+C
+      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
+      COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
+     &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
+     &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
+     &           VSLF(MDM,MDM),VUEH(MDM,MDM),VWKR(MDM,MDM),
+     &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
+     &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
+C
+      COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/DENS/DENC,DENO,DENT
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
+     &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
+      COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
+C
+C     ISCF TELLS WHICH INTEGRALS TO INCLUDE BASED ON OVERLAP COMBINATION
+      DATA ISCF/1,1,1,1,1,1,1,1,0,0,0,
+     &          1,1,0,0,1,1,1,0,0,0,0,
+     &          1,0,1,1,1,0,1,0,0,0,0,
+     &          1,1,1,0,1,1,0,0,0,0,0,
+     &          1,0,1,0,1,0,0,0,0,0,0,
+     &          1,0,0,0,1,0,0,0,0,0,0/
+C
+C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
+      IF(SHAPE.EQ.'ATOMIC') THEN
+        ISYM = 2
+      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
+        ISYM = 1
+      ELSE
+        ISYM = 0
+      ENDIF
+C
+C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
+      IF(ISYM.NE.0) THEN
+        WRITE(6,*) 'In CLMMAT1: you probably should be using CLMMAT1Z.'
+        WRITE(7,*) 'In CLMMAT1: you probably should be using CLMMAT1Z.'
+      ENDIF
+C
+C     NON-RELATIVISTIC HAMILTONIAN
+      IF(HMLT.EQ.'NORL') THEN
+C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &                          +      XLLLL(M)*DENT(NCL+KBAS,NDL+LBAS)
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GXCH(LL)
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS) 
+     &                          +      XLLLL(M)*DENT(NCL+KBAS,NBL+JBAS)
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C     RELATIVISTIC HAMILTONIAN
+      ELSE
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
         IF(NAL.LE.NBL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
@@ -20250,7 +20826,7 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
           ENDDO
         ENDIF
 C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
         IF(NAS.LE.NBS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
@@ -20263,14 +20839,46 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)
           ENDDO
         ENDIF
 C
-6003    CONTINUE
+        IF(.NOT.PRM1CT) GOTO 6900
+        GOTO 6900
+C
+C       PERMUTATION BLOCK  A <-> B
+        IF(KA.GT.KB.AND.IQ1.GT.IQ2) THEN
+        
+C          IF(IBAS.EQ.1.AND.JBAS.EQ.1) THEN
+C            WRITE(*,*) 'TRIGGER'
+C          ENDIF
+C
+          IF(NBL.LT.NAL) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GDIR(NBL+JBAS,NAL+IBAS) = GDIR(NBL+JBAS,NAL+IBAS)
+     &                          +      XLLLL(M)*DENT(NCL+KBAS,NDL+LBAS)
+     &                          +      XLLSS(M)*DENT(NCS+KBAS,NDS+LBAS)
+              ENDDO
+            ENDDO
+          ENDIF
+
+          IF(NBS.LT.NAS) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GDIR(NBS+JBAS,NAS+IBAS) = GDIR(NBS+JBAS,NAS+IBAS)
+     &                          +      XSSLL(M)*DENT(NCL+KBAS,NDL+LBAS)
+     &                          +      XSSSS(M)*DENT(NCS+KBAS,NDS+LBAS)
+              ENDDO
+            ENDDO
+          ENDIF
+        
+        ENDIF
+6900    CONTINUE
 C
 C       CLOSED-SHELL EXCHANGE MATRIX GXCH
-        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(ISGN1.NE.ISGN4.OR.ISGN3.NE.ISGN2) GOTO 6004
-        ENDIF
 C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
         IF(NAL.LE.NDL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
@@ -20282,27 +20890,31 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)
           ENDDO
         ENDIF
 C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            GXCH(NAL+IBAS,NDS+LBAS) = GXCH(NAL+IBAS,NDS+LBAS)
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+        IF(NAL.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NDS+LBAS) = GXCH(NAL+IBAS,NDS+LBAS)
      &                          +      XLLSS(M)*DENT(NCS+KBAS,NBL+JBAS)
+            ENDDO
           ENDDO
-        ENDDO
+        ENDIF
 CC
-CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)
-C        M = 0
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            GXCH(NAS+IBAS,NDL+LBAS) = GXCH(NAS+IBAS,NDL+LBAS)
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C        IF(NAS.LE.NDL) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              GXCH(NAS+IBAS,NDL+LBAS) = GXCH(NAS+IBAS,NDL+LBAS)
 C     &                          +      XSSLL(M)*DENT(NCL+KBAS,NBS+JBAS)
+C            ENDDO
 C          ENDDO
-C        ENDDO
+C        ENDIF
 C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
         IF(NAS.LE.NDS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
@@ -20313,8 +20925,64 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)
             ENDDO
           ENDDO
         ENDIF
-
-6004    CONTINUE
+C
+        IF(.NOT.PRM1CT) GOTO 6901
+C       GOTO 6901
+C
+C       PERMUTATION BLOCK  A <-> B
+C        IF(IQ1.GT.IQ2) THEN
+C          WRITE(*,*) 'HERE?'
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+          IF(NBL.LT.NDL) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
+     &                          +      XLLLL(M)*DENT(NCL+KBAS,NAL+IBAS)
+              ENDDO
+            ENDDO
+          ENDIF
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+          IF(NBL.LT.NDS) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
+     &                          +      XLLSS(M)*DENT(NCS+KBAS,NAL+IBAS)
+              ENDDO
+            ENDDO
+          ENDIF
+CC
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C          IF(NBS.LT.NDL) THEN
+C            M = 0
+C            DO KBAS=1,NBAS(3)
+C              DO LBAS=1,NBAS(4)
+C                M = M+1
+C                GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
+C     &                          +      XSSLL(M)*DENT(NCL+KBAS,NAS+IBAS)
+C              ENDDO
+C            ENDDO
+C          ENDIF
+C
+C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+          IF(NBS.LT.NDS) THEN
+            M = 0
+            DO KBAS=1,NBAS(3)
+              DO LBAS=1,NBAS(4)
+                M = M+1
+                GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
+     &                          +      XSSSS(M)*DENT(NCS+KBAS,NAS+IBAS)
+              ENDDO
+            ENDDO
+          ENDIF
+        
+C        ENDIF
+6901    CONTINUE
 C
       ENDIF
 C
@@ -20328,40 +20996,33 @@ C     NON-RELATIVISTIC HAMILTONIAN
       IF(HMLT.EQ.'NORL') THEN
 C
 C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
-        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(ISGN1.NE.ISGN2.OR.ISGN3.NE.ISGN4) GOTO 6005
-        ENDIF
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
      &                          + ACFF*XLLLL(M)*DENO(NCL+KBAS,NDL+LBAS)
+            ENDDO
           ENDDO
-        ENDDO
-6005    CONTINUE
+        ENDIF
 C
 C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
-        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(ISGN1.NE.ISGN4.OR.ISGN3.NE.ISGN2) GOTO 6006
-        ENDIF
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
      &                          + BCFF*XLLLL(M)*DENO(NCL+KBAS,NBL+JBAS)
+            ENDDO
           ENDDO
-        ENDDO
-6006    CONTINUE
+        ENDIF
 C
 C     RELATIVISTIC HAMILTONIAN
       ELSE
 C
 C       OPEN-SHELL DIRECT MATRIX QDIR
-        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(ISGN1.NE.ISGN2.OR.ISGN3.NE.ISGN4) GOTO 6007
-        ENDIF
 C
 C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
         IF(NAL.LE.NBL) THEN
@@ -20389,12 +21050,7 @@ C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(SS)
           ENDDO
         ENDIF
 C
-6007    CONTINUE
-C
 C       OPEN-SHELL EXCHANGE MATRIX GXCH
-        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(ISGN1.NE.ISGN4.OR.ISGN3.NE.ISGN2) GOTO 6008
-        ENDIF
 C
 C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
         IF(NAL.LE.NDL) THEN
@@ -20409,24 +21065,28 @@ C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
         ENDIF
 C
 C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LS)
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            QXCH(NAL+IBAS,NDS+LBAS) = QXCH(NAL+IBAS,NDS+LBAS)
+        IF(NAL.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAL+IBAS,NDS+LBAS) = QXCH(NAL+IBAS,NDS+LBAS)
      &                          + BCFF*XLLSS(M)*DENO(NCS+KBAS,NBL+JBAS)
+            ENDDO
           ENDDO
-        ENDDO
+        ENDIF
 CC
 CC       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SL)
-C        M = 0
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            QXCH(NAS+IBAS,NDL+LBAS) = QXCH(NAS+IBAS,NDL+LBAS)
+C        IF(NAS.LE.NDL) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              QXCH(NAS+IBAS,NDL+LBAS) = QXCH(NAS+IBAS,NDL+LBAS)
 C     &                          + BCFF*XSSLL(M)*DENO(NCL+KBAS,NBS+JBAS)
+C            ENDDO
 C          ENDDO
-C        ENDDO
+C        ENDIF
 CC
 C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SS)
         IF(NAS.LE.NDS) THEN
@@ -20440,65 +21100,9 @@ C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SS)
           ENDDO
         ENDIF
 C
-6008    CONTINUE
-C
       ENDIF
 C
 6100  CONTINUE
-C
-C     MATRIX MULTIPLICATION STEP COMPLETE
-      CALL CPU_TIME(T3)
-      TC1M = TC1M+T3-T2
-C
-C**********************************************************************C
-C     COMPLETE CONSTRUCTION OF ALL ONE-CENTRE CONTRIBUTIONS.           C
-C**********************************************************************C
-C
-C     EARLY EXIT FOR MQN SELECTION RULES
-5001  CONTINUE
-C     END LOOP OVER ALL |MQN| SIGNS
-5000  CONTINUE
-C     END LOOP OVER ALL |MQN| MAGNITUDES
-4000  CONTINUE
-C     END LOOP OVER IBAS AND JBAS
-3000  CONTINUE
-C     EARLY EXIT FOR KQN SELECTION RULES
-2001  CONTINUE
-C     END LOOP OVER ALL KQNS
-2000  CONTINUE
-C     EARLY EXIT FOR LQN SELECTION RULES
-1001  CONTINUE
-C     END LOOP OVER ALL LQNS
-1000  CONTINUE
-C
-C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
-      CALL CPU_TIME(TBCH2)
-      IF(HMLT.EQ.'NORL') THEN
-        T2ES(1,1) = T2ES(1,1) + TBCH2 - TBCH1
-      ELSE
-        T2ES(1,1) = T2ES(1,1) + 0.25D0*(TBCH2-TBCH1)
-        T2ES(1,2) = T2ES(1,2) + 0.25D0*(TBCH2-TBCH1)
-        T2ES(1,3) = T2ES(1,3) + 0.25D0*(TBCH2-TBCH1)
-        T2ES(1,4) = T2ES(1,4) + 0.25D0*(TBCH2-TBCH1)
-      ENDIF
-C
-C     MATRIX HERMITICITY (CLOSED-SHELL)
-      DO I=1,NDIM
-        DO J=I+1,NDIM
-          GDIR(J,I) = DCONJG(GDIR(I,J))
-          GXCH(J,I) = DCONJG(GXCH(I,J))
-        ENDDO
-      ENDDO
-C
-C     MATRIX HERMITICITY (OPEN-SHELL)
-      IF(NOPN.NE.0) THEN
-        DO I=1,NDIM
-          DO J=I+1,NDIM
-            QDIR(J,I) = DCONJG(QDIR(I,J))
-            QXCH(J,I) = DCONJG(QXCH(I,J))
-          ENDDO
-        ENDDO
-      ENDIF
 C
       RETURN
       END
@@ -21167,7 +21771,6 @@ C
      &          RJLSSL(MB2,MNU,2),RJSLLS(MB2,MNU,2)
       DIMENSION XLSLS(MB2),XSLSL(MB2),XLSSL(MB2),XSLLS(MB2)
 C
-      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
       COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
      &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
      &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
@@ -21181,8 +21784,9 @@ C
       COMMON/BDIM/NDIM,NSKP,NOCC,NVRT
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
-      COMMON/DENS/DENC,DENO,DENT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/RCFF/T0000,T1000,T0100,T0010,T0001,T1100,T1010,T1001,
@@ -21419,21 +22023,21 @@ C**********************************************************************C
 C     LOOP OVER THE SIGNS OF |MQN| FOR A,B,C,D BLOCKS (USE INDEX 5000) C
 C**********************************************************************C
 C
-      DO 5000 ISGN1=1,2
-        MMJA = MQN(1)*((-1)**ISGN1)
-        IMJA = MQN(1)+ISGN1-1
+      DO 5000 MMA=1,2
+        MMJA = MQN(1)*((-1)**MMA)
+        IMJA = MQN(1)+MMA-1
 C
-      DO 5000 ISGN2=1,2
-        MMJB = MQN(2)*((-1)**ISGN2)
-        IMJB = MQN(2)+ISGN2-1
+      DO 5000 MMB=1,2
+        MMJB = MQN(2)*((-1)**MMB)
+        IMJB = MQN(2)+MMB-1
 C
-      DO 5000 ISGN3=1,2
-        MMJC = MQN(3)*((-1)**ISGN3)
-        IMJC = MQN(3)+ISGN3-1
+      DO 5000 MMC=1,2
+        MMJC = MQN(3)*((-1)**MMC)
+        IMJC = MQN(3)+MMC-1
 C
-      DO 5000 ISGN4=1,2
-        MMJD = MQN(4)*((-1)**ISGN4)
-        IMJD = MQN(4)+ISGN4-1
+      DO 5000 MMD=1,2
+        MMJD = MQN(4)*((-1)**MMD)
+        IMJD = MQN(4)+MMD-1
 C
 C     STARTING FOCK ADDRESS FOR EACH BASIS LIST
       NAL = LRGE(IZ,KA,IMJA)
@@ -21449,8 +22053,8 @@ C
 C     APPLY ANGULAR MQN SELECTION RULE
       IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 5001
       IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-        IF(ISGN1.EQ.ISGN2.AND.ISGN3.EQ.ISGN4.AND.NOPN.NE.0) GOTO 5002
-        IF(ISGN1.EQ.ISGN4.AND.ISGN3.EQ.ISGN2) GOTO 5002
+        IF(MMA.EQ.MMB.AND.MMC.EQ.MMD.AND.NOPN.NE.0) GOTO 5002
+        IF(MMA.EQ.MMD.AND.MMC.EQ.MMB) GOTO 5002
         GOTO 5001
       ENDIF
 5002  CONTINUE
@@ -21516,10 +22120,8 @@ C       SKIP POINT FOR ANGULAR SCREENING
 5003    CONTINUE
 C
       ENDDO
-C
-C     FULL-INTEGRAL CONSTRUCTION COMPLETE
-      CALL CPU_TIME(T2)
-      TB1F = TB1F+T2-T1
+      CALL SYSTEM_CLOCK(ICL2)
+      TB1F = TB1F + DFLOAT(ICL2-ICL1)/RATE
 C
 C**********************************************************************C
 C     ADD THIS BATCH OF R-INTEGRALS TO CLOSED-SHELL BREIT MATRIX       C
@@ -21527,9 +22129,137 @@ C -------------------------------------------------------------------- C
 C          (NO BDIR CONTRIBUTIONS FOR CLOSED-SHELL SYSTEMS.)           C
 C**********************************************************************C
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BXCH
-      IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-        IF(ISGN1.NE.ISGN4.OR.ISGN3.NE.ISGN2) GOTO 6001
+      CALL SYSTEM_CLOCK(ICL1)
+C
+C     MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
+      IF(ISYM.EQ.0) THEN
+        CALL BRTMAT1(XLSLS,XSLSL,XLSSL,XSLLS)
+      ELSE
+        CALL BRTMAT1Z(XLSLS,XSLSL,XLSSL,XSLLS)
+      ENDIF
+C
+6100  CONTINUE
+      CALL SYSTEM_CLOCK(ICL2)
+      TB1M = TB1M + DFLOAT(ICL2-ICL1)/RATE
+C
+C     MATRIX MULTIPLICATION STEP COMPLETE
+C
+C**********************************************************************C
+C     COMPLETE CONSTRUCTION OF ALL ONE-CENTRE CONTRIBUTIONS.           C
+C**********************************************************************C
+C
+C     EARLY EXIT FOR MQN SELECTION RULES
+5001  CONTINUE
+C     END LOOP OVER ALL |MQN| SIGNS
+5000  CONTINUE
+C     END LOOP OVER ALL |MQN| MAGNITUDES
+4000  CONTINUE
+C     END LOOP OVER IBAS AND JBAS
+3000  CONTINUE
+C     EARLY EXIT FOR KQN SELECTION RULES
+2001  CONTINUE
+C     END LOOP OVER ALL KQNS
+2000  CONTINUE
+C     EARLY EXIT FOR LQN SELECTION RULES
+1001  CONTINUE
+C     END LOOP OVER ALL LQNS
+1000  CONTINUE
+C
+C     MATRIX HERMITICITY (CLOSED-SHELL)
+      CALL SYSTEM_CLOCK(ICL1)
+      DO I=1,NDIM
+        DO J=I+1,NDIM
+          BXCH(J,I) = DCONJG(BXCH(I,J))
+        ENDDO
+      ENDDO
+C
+C     MATRIX HERMITICITY (OPEN-SHELL)
+      IF(NOPN.NE.0) THEN
+        DO I=1,NDIM
+          DO J=I+1,NDIM
+            BDIR(J,I) = DCONJG(BDIR(I,J))
+            WDIR(J,I) = DCONJG(WDIR(I,J))
+            WXCH(J,I) = DCONJG(WXCH(I,J))
+          ENDDO
+        ENDDO
+      ENDIF
+      CALL SYSTEM_CLOCK(ICL2)
+      TB1M = TB1M + DFLOAT(ICL2-ICL1)/RATE
+C
+C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
+      CALL SYSTEM_CLOCK(IBCH2)
+      IF(INTSYM) THEN
+        T2ES(1,5) = T2ES(1,5) + DFLOAT(IBCH2-IBCH1)/RATE
+      ELSE
+        T2ES(1,5) = T2ES(1,5) + 0.25D0*DFLOAT(IBCH2-IBCH1)/RATE
+        T2ES(1,6) = T2ES(1,6) + 0.25D0*DFLOAT(IBCH2-IBCH1)/RATE
+        T2ES(1,7) = T2ES(1,7) + 0.25D0*DFLOAT(IBCH2-IBCH1)/RATE
+        T2ES(1,8) = T2ES(1,8) + 0.25D0*DFLOAT(IBCH2-IBCH1)/RATE
+      ENDIF
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE BRTMAT1(XLSLS,XSLSL,XLSSL,XSLLS)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C      BBBBBBB  RRRRRRR TTTTTTTT MM       MM    AA   TTTTTTTT 11       C
+C      BB    BB RR    RR   TT    MMM     MMM   AAAA     TT   111       C
+C      BB    BB RR    RR   TT    MMMM   MMMM  AA  AA    TT    11       C
+C      BBBBBBB  RR    RR   TT    MM MM MM MM AA    AA   TT    11       C
+C      BB    BB RRRRRRR    TT    MM  MMM  MM AAAAAAAA   TT    11       C
+C      BB    BB RR    RR   TT    MM   M   MM AA    AA   TT    11       C
+C      BBBBBBB  RR    RR   TT    MM       MM AA    AA   TT   1111      C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  BRTMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
+C**********************************************************************C
+      INCLUDE 'parameters.h'
+      INCLUDE 'scfoptions.h'
+C
+      DIMENSION ISCF(11,6),IFLG(11)
+      DIMENSION XLSLS(MB2),XSLSL(MB2),XLSSL(MB2),XSLLS(MB2)
+C
+      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
+      COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
+     &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
+     &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
+     &           VSLF(MDM,MDM),VUEH(MDM,MDM),VWKR(MDM,MDM),
+     &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
+     &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
+C
+      COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/DENS/DENC,DENO,DENT
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
+     &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
+      COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
+C
+C     ISCF TELLS WHICH INTEGRALS TO INCLUDE BASED ON OVERLAP COMBINATION
+      DATA ISCF/1,1,1,1,1,1,1,1,0,0,0,
+     &          1,1,0,0,1,1,1,0,0,0,0,
+     &          1,0,1,1,1,0,1,0,0,0,0,
+     &          1,1,1,0,1,1,0,0,0,0,0,
+     &          1,0,1,0,1,0,0,0,0,0,0,
+     &          1,0,0,0,1,0,0,0,0,0,0/
+C
+C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
+      IF(SHAPE.EQ.'ATOMIC') THEN
+        ISYM = 2
+      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
+        ISYM = 1
+      ELSE
+        ISYM = 0
+      ENDIF
+C
+C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
+      IF(ISYM.NE.0) THEN
+        WRITE(6,*) 'In BRTMAT1: you probably should be using BRTMAT1Z.'
+        WRITE(7,*) 'In BRTMAT1: you probably should be using BRTMAT1Z.'
       ENDIF
 C
 C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)
@@ -21575,7 +22305,6 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)
           ENDDO
         ENDDO
       ENDIF
-6001  CONTINUE
 C
 C**********************************************************************C
 C     ADD THIS BATCH OF R-INTEGRALS TO OPEN-SHELL BREIT MATRIX.        C
@@ -21585,9 +22314,6 @@ C
       IF(NOPN.EQ.0) GOTO 6100
 C
 C     CLOSED-SHELL DIRECT MATRIX BDIR
-      IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-        IF(ISGN1.NE.ISGN2.OR.ISGN3.NE.ISGN4) GOTO 6002
-      ENDIF
 C
 C     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(LS)
       M = 0
@@ -21636,12 +22362,7 @@ C     &                  + ACFF*XSLLS(M)*DCONJG(DENO(NCL+KBAS,NDS+LBAS))
 C        ENDDO
 C      ENDDO
 C
-6002  CONTINUE
-C
 C     OPEN-SHELL DIRECT MATRIX WXCH
-      IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-        IF(ISGN1.NE.ISGN4.OR.ISGN3.NE.ISGN2) GOTO 6003
-      ENDIF
 C
 C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LL)
       IF(NAL.LE.NDL) THEN
@@ -21686,63 +22407,230 @@ C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SS)
           ENDDO
         ENDDO
       ENDIF
-6003  CONTINUE
 C
 6100  CONTINUE
 C
-C     MATRIX MULTIPLICATION STEP COMPLETE
-      CALL CPU_TIME(T3)
-      TB1M = TB1M+T3-T2
+      RETURN
+      END
 C
+C
+      SUBROUTINE BRTMAT1Z(XLSLS,XSLSL,XLSSL,XSLLS)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
-C     COMPLETE CONSTRUCTION OF ALL ONE-CENTRE CONTRIBUTIONS.           C
+C                                                                      C
+C BBBBBBB  RRRRRRR TTTTTTTT MM       MM    AA   TTTTTTTT 11  ZZZZZZZZ  C
+C BB    BB RR    RR   TT    MMM     MMM   AAAA     TT   111       ZZ   C
+C BB    BB RR    RR   TT    MMMM   MMMM  AA  AA    TT    11      ZZ    C
+C BBBBBBB  RR    RR   TT    MM MM MM MM AA    AA   TT    11     ZZ     C
+C BB    BB RRRRRRR    TT    MM  MMM  MM AAAAAAAA   TT    11    ZZ      C
+C BB    BB RR    RR   TT    MM   M   MM AA    AA   TT    11   ZZ       C
+C BBBBBBB  RR    RR   TT    MM       MM AA    AA   TT   1111 ZZZZZZZZ  C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  BRTMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
 C**********************************************************************C
+      INCLUDE 'parameters.h'
+      INCLUDE 'scfoptions.h'
 C
-C     EARLY EXIT FOR MQN SELECTION RULES
-5001  CONTINUE
-C     END LOOP OVER ALL |MQN| SIGNS
-5000  CONTINUE
-C     END LOOP OVER ALL |MQN| MAGNITUDES
-4000  CONTINUE
-C     END LOOP OVER IBAS AND JBAS
-3000  CONTINUE
-C     EARLY EXIT FOR KQN SELECTION RULES
-2001  CONTINUE
-C     END LOOP OVER ALL KQNS
-2000  CONTINUE
-C     EARLY EXIT FOR LQN SELECTION RULES
-1001  CONTINUE
-C     END LOOP OVER ALL LQNS
-1000  CONTINUE
+      DIMENSION ISCF(11,6),IFLG(11)
+      DIMENSION XLSLS(MB2),XSLSL(MB2),XLSSL(MB2),XSLLS(MB2)
 C
-C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
-      CALL CPU_TIME(TBCH2)
-      IF(INTSYM) THEN
-        T2ES(1,5) = T2ES(1,5)+TBCH2-TBCH1
+      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
+      COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
+     &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
+     &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
+     &           VSLF(MDM,MDM),VUEH(MDM,MDM),VWKR(MDM,MDM),
+     &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
+     &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
+C
+      COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/DENS/DENC,DENO,DENT
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
+     &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
+      COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
+C
+C     ISCF TELLS WHICH INTEGRALS TO INCLUDE BASED ON OVERLAP COMBINATION
+      DATA ISCF/1,1,1,1,1,1,1,1,0,0,0,
+     &          1,1,0,0,1,1,1,0,0,0,0,
+     &          1,0,1,1,1,0,1,0,0,0,0,
+     &          1,1,1,0,1,1,0,0,0,0,0,
+     &          1,0,1,0,1,0,0,0,0,0,0,
+     &          1,0,0,0,1,0,0,0,0,0,0/
+C
+C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
+      IF(SHAPE.EQ.'ATOMIC') THEN
+        ISYM = 2
+      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
+        ISYM = 1
       ELSE
-        T2ES(1,5) = T2ES(1,5) + 0.25D0*(TBCH2-TBCH1)
-        T2ES(1,6) = T2ES(1,6) + 0.25D0*(TBCH2-TBCH1)
-        T2ES(1,7) = T2ES(1,7) + 0.25D0*(TBCH2-TBCH1)
-        T2ES(1,8) = T2ES(1,8) + 0.25D0*(TBCH2-TBCH1)
+        ISYM = 0
       ENDIF
 C
-C     MATRIX HERMITICITY (CLOSED-SHELL)
-      DO I=1,NDIM
-        DO J=I+1,NDIM
-          BXCH(J,I) = DCONJG(BXCH(I,J))
-        ENDDO
-      ENDDO
+C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
+      IF(ISYM.EQ.0) THEN
+        WRITE(6,*) 'In BRTMAT1Z: you probably should be using BRTMAT1.'
+        WRITE(7,*) 'In BRTMAT1Z: you probably should be using BRTMAT1.'
+      ENDIF
 C
-C     MATRIX HERMITICITY (OPEN-SHELL)
-      IF(NOPN.NE.0) THEN
-        DO I=1,NDIM
-          DO J=I+1,NDIM
-            BDIR(J,I) = DCONJG(BDIR(I,J))
-            WDIR(J,I) = DCONJG(WDIR(I,J))
-            WXCH(J,I) = DCONJG(WXCH(I,J))
+C     CLOSED-SHELL EXCHANGE MATRIX BXCH
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 6001
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAL+IBAS,NDL+LBAS) = BXCH(NAL+IBAS,NDL+LBAS)
+     &                   +      XLSSL(M)*DREAL(DENT(NBS+JBAS,NCS+KBAS))
           ENDDO
         ENDDO
       ENDIF
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)
+      M = 0
+      DO KBAS=1,NBAS(3)
+        DO LBAS=1,NBAS(4)
+          M = M+1
+          BXCH(NAL+IBAS,NDS+LBAS) = BXCH(NAL+IBAS,NDS+LBAS)
+     &                   +      XLSLS(M)*DREAL(DENT(NBS+JBAS,NCL+KBAS))
+        ENDDO
+      ENDDO
+C
+CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          BXCH(NAS+IBAS,NDL+LBAS) = BXCH(NAS+IBAS,NDL+LBAS)
+C     &                  +      XSLSL(M)*DREAL(DENT(NBL+JBAS,NCS+KBAS))
+C        ENDDO
+C      ENDDO
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)
+      IF(NAS.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAS+IBAS,NDS+LBAS) = BXCH(NAS+IBAS,NDS+LBAS)
+     &                   +      XSLLS(M)*DREAL(DENT(NBL+JBAS,NCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+6001  CONTINUE
+C
+C**********************************************************************C
+C     ADD THIS BATCH OF R-INTEGRALS TO OPEN-SHELL BREIT MATRIX.        C
+C     THIS ALSO REQUIRES THE CLOSED-SHELL DIRECT MATRIX ELEMENTS.      C
+C**********************************************************************C
+C
+      IF(NOPN.EQ.0) GOTO 6100
+C
+C     CLOSED-SHELL DIRECT MATRIX BDIR
+      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 6002
+C
+C     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(LS)
+      M = 0
+      DO KBAS=1,NBAS(3)
+        DO LBAS=1,NBAS(4)
+          M = M+1
+          BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
+     &                   +      XLSLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
+     &                   +      XLSSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
+C
+        ENDDO
+      ENDDO
+CC
+CC     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(SL)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          BDIR(NAS+IBAS,NBL+JBAS) = BDIR(NAS+IBAS,NBL+JBAS)
+C     &                  +      XSLSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
+C     &                  +      XSLLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
+C        ENDDO
+C      ENDDO
+C
+C     OPEN-SHELL DIRECT MATRIX WDIR
+C
+C     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(LS)
+      M = 0
+      DO KBAS=1,NBAS(3)
+        DO LBAS=1,NBAS(4)
+          M = M+1
+          WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
+     &                   + ACFF*XLSLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
+     &                   + ACFF*XLSSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
+        ENDDO
+      ENDDO
+CC
+CC     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(SL)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          WDIR(NAS+IBAS,NBL+JBAS) = WDIR(NAS+IBAS,NBL+JBAS)
+C     &                  + ACFF*XSLSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
+C     &                  + ACFF*XSLLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
+C        ENDDO
+C      ENDDO
+C
+6002  CONTINUE
+C
+C     OPEN-SHELL DIRECT MATRIX WXCH
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 6003
+C
+C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LL)
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NAL+IBAS,NDL+LBAS) = WXCH(NAL+IBAS,NDL+LBAS)
+     &                   + BCFF*XLSSL(M)*DREAL(DENO(NBS+JBAS,NCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LS)
+      M = 0
+      DO KBAS=1,NBAS(3)
+        DO LBAS=1,NBAS(4)
+          M = M+1
+          WXCH(NAL+IBAS,NDS+LBAS) = WXCH(NAL+IBAS,NDS+LBAS)
+     &                   + BCFF*XLSLS(M)*DREAL(DENO(NBS+JBAS,NCL+KBAS))
+        ENDDO
+      ENDDO
+CC
+CC     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SL)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          WXCH(NAS+IBAS,NDL+LBAS) = WXCH(NAS+IBAS,NDL+LBAS)
+C     &                  + BCFF*XSLSL(M)*DREAL(DENO(NBL+JBAS,NCS+KBAS))
+C        ENDDO
+C      ENDDO
+C
+C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SS)
+      IF(NAS.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NAS+IBAS,NDS+LBAS) = WXCH(NAS+IBAS,NDS+LBAS)
+     &                   + BCFF*XSLLS(M)*DREAL(DENO(NBL+JBAS,NCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+6003  CONTINUE
+C
+6100  CONTINUE
 C
       RETURN
       END
@@ -31292,7 +32180,7 @@ C
 C
       COMMON/DENS/DENC,DENO,DENT
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
 C
 C     TIME AT START OF ROUTINE
@@ -32290,10 +33178,10 @@ C
       CLOSE(UNIT=9)
 C
 C     EXECUTE GNUPLOT COMMAND IN TERMINAL
-      CALL SYSTEM('gnuplot plots/'//TRIM(TITLE)//'_i.gnuplot')
       CALL SYSTEM('gnuplot plots/'//TRIM(TITLE)//'_r.gnuplot')
-      CALL SYSTEM('xdg-open plots/'//TRIM(TITLE)//'_i.pdf')
+C     CALL SYSTEM('gnuplot plots/'//TRIM(TITLE)//'_i.gnuplot')
       CALL SYSTEM('xdg-open plots/'//TRIM(TITLE)//'_r.pdf')
+C     CALL SYSTEM('xdg-open plots/'//TRIM(TITLE)//'_i.pdf')
 C
       RETURN
       END
