@@ -5124,9 +5124,6 @@ C**********************************************************************C
 C     ECONOMISATION STRATEGIES                                         C
 C**********************************************************************C
 C
-C     ONE-CENTRE INTEGRAL SYMMETRY RELATIONS FOR RECYCLING XK BATCHES
-      PRM1CT = .FALSE.
-C
 C     MULTI-CENTRE INTEGRAL SYMMETRY RELATIONS FOR RECYCLING RR BATCHES
       INTSYM = .TRUE.
 C
@@ -5197,12 +5194,12 @@ C
 C     CALCULATE THE FULL SET OF EQ-COEFFICIENTS
       CALL SYSTEM_CLOCK(ICL3)
       IF(EQFILE) THEN
-        CALL EQSAVE
+c       CALL EQSAVE
       ENDIF
       CALL SYSTEM_CLOCK(ICL4)
       TEPP = DFLOAT(ICL4-ICL3)/RATE
 C
-C     GOTO 998
+      GOTO 998
 C
 C     GENERATE DIAGONAL TWO-ELECTRON INTEGRALS FOR SCREENING LATER
       CALL SYSTEM_CLOCK(ICL3)
@@ -6110,23 +6107,25 @@ C       GENERATE MATRIX REP OF BREIT INTERACTION
 C
           CALL SYSTEM_CLOCK(ICL7)
 C         CALL BREIT
-          CALL BRTFAST
+c          CALL BRTFAST
           CALL SYSTEM_CLOCK(ICL8)
           TBR2 = TBR2 + DFLOAT(ICL8-ICL7)/RATE
           TB2T = TB2T + DFLOAT(ICL8-ICL7)/RATE
 C
           CALL SYSTEM_CLOCK(ICL7)
           IF(RACAH1) THEN
-            DO IZ=1,NCNT
-              CALL BREIT1(IZ)
-            ENDDO
+C            DO IZ=1,NCNT
+Cc             CALL BREIT1(IZ)
+C              CALL COULOMB1(IZ)
+C            ENDDO
+            CALL COULOMB1(1)
           ENDIF
 C         CALL BREIT2
           CALL SYSTEM_CLOCK(ICL8)
-C         TCR1 =        DFLOAT(ICL8-ICL7)/RATE
-C         TC1T = TC1T + DFLOAT(ICL8-ICL7)/RATE
-          TBR1 =        DFLOAT(ICL8-ICL7)/RATE
-          TB1T = TB1T + DFLOAT(ICL8-ICL7)/RATE
+          TCR1 =        DFLOAT(ICL8-ICL7)/RATE
+          TC1T = TC1T + DFLOAT(ICL8-ICL7)/RATE
+c          TBR1 =        DFLOAT(ICL8-ICL7)/RATE
+c          TB1T = TB1T + DFLOAT(ICL8-ICL7)/RATE
 C
         ENDIF
 c
@@ -6625,7 +6624,7 @@ C     HFSCF LABOUR ANALYIS
       WRITE(7, *) REPEAT('=',72)
       
       WRITE(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
-      WRITE(*,*) 'DIFFERENCE IS: ',EGXC-14.581177619D0
+      WRITE(*,*) 'DIFFERENCE IS: ',EGXC-288.119857292D0
       WRITE(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 C
       RETURN
@@ -12318,11 +12317,11 @@ C
         DO IAB=1,NTUVAB
 C
 C         RELATIVE EQ(AB) LIST STARTING ADDRESS
-          MAB = IABTT + (IAB-1)*MAXAB
+          MABt = IABTT + (IAB-1)*MAXAB
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MAB+M,1)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MABt+M,1)).GT.SENS) THEN
               IABR11(M,IAB,ITN(1)) = 1
             ELSE
               IABR11(M,IAB,ITN(1)) = 0
@@ -12331,7 +12330,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MAB+M,2)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MABt+M,2)).GT.SENS) THEN
               IABI11(M,IAB,ITN(1)) = 1
             ELSE
               IABI11(M,IAB,ITN(1)) = 0
@@ -12340,7 +12339,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MAB+M,3)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MABt+M,3)).GT.SENS) THEN
               IABR21(M,IAB,ITN(1)) = 1
             ELSE
               IABR21(M,IAB,ITN(1)) = 0
@@ -12349,7 +12348,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MAB+M,4)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MABt+M,4)).GT.SENS) THEN
               IABI21(M,IAB,ITN(1)) = 1
             ELSE
               IABI21(M,IAB,ITN(1)) = 0
@@ -12363,11 +12362,11 @@ C
         DO IAB=1,NTUVAB
 C
 C         RELATIVE EQ(AB) LIST STARTING ADDRESS
-          MAB = IABTT + (IAB-1)*MAXAB
+          MABt = IABTT + (IAB-1)*MAXAB
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MAB+M,1)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MABt+M,1)).GT.SENS) THEN
               IABR11(M,IAB,ITN(1)) = 1
             ELSE
               IABR11(M,IAB,ITN(1)) = 0
@@ -12376,7 +12375,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MAB+M,2)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MABt+M,2)).GT.SENS) THEN
               IABI11(M,IAB,ITN(1)) = 1
             ELSE
               IABI11(M,IAB,ITN(1)) = 0
@@ -12385,7 +12384,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MAB+M,3)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MABt+M,3)).GT.SENS) THEN
               IABR21(M,IAB,ITN(1)) = 1
             ELSE
               IABR21(M,IAB,ITN(1)) = 0
@@ -12394,7 +12393,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MAB+M,4)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MABt+M,4)).GT.SENS) THEN
               IABI21(M,IAB,ITN(1)) = 1
             ELSE
               IABI21(M,IAB,ITN(1)) = 0
@@ -12682,7 +12681,7 @@ C       LOOP OVER ALL FINITE EXPANSION ADDRESSES FOR E(CD| -)
         DO IAB=1,NTUVAB
 C
 C         RELATIVE EQ(AB) LIST STARTING ADDRESS
-          MAB = IABTT + (IAB-1)*MAXAB
+          MABt = IABTT + (IAB-1)*MAXAB
 C
 C         SKIP THIS STEP IF THE E(CD) FAILS SCREENING CONDITION
           IABALL = IABR11(IJ,IAB,ITN(1)) + IABI11(IJ,IAB,ITN(1))
@@ -12705,12 +12704,12 @@ C         CONTRIBUTIONS TO Re{G(CD|--)} FROM EACH Re{E(AB|--)} ADDRESS
           IF(ITN(1).EQ.1) THEN
             DO N=1,MAXN
               GCDR11(N,ICD) = GCDR11(N,ICD)
-     &                         + E0LLFL(MAB+IJ,1)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0LLFL(MABt+IJ,1)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ELSEIF(ITN(1).EQ.4) THEN
             DO N=1,MAXN
               GCDR11(N,ICD) = GCDR11(N,ICD)
-     &                         + E0SSFL(MAB+IJ,1)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0SSFL(MABt+IJ,1)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ENDIF
 421       CONTINUE
@@ -12721,12 +12720,12 @@ C         CONTRIBUTIONS TO Im{G(CD|--)} FROM EACH Im{E(AB|--)} ADDRESS
           IF(ITN(1).EQ.1) THEN
             DO N=1,MAXN
               GCDI11(N,ICD) = GCDI11(N,ICD)
-     &                         + E0LLFL(MAB+IJ,2)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0LLFL(MABt+IJ,2)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ELSEIF(ITN(1).EQ.4) THEN
             DO N=1,MAXN
               GCDI11(N,ICD) = GCDI11(N,ICD)
-     &                         + E0SSFL(MAB+IJ,2)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0SSFL(MABt+IJ,2)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ENDIF
 422       CONTINUE
@@ -12737,12 +12736,12 @@ C         CONTRIBUTIONS TO Re{G(CD|+-)} FROM EACH Re{E(AB|+-)} ADDRESS
           IF(ITN(1).EQ.1) THEN
             DO N=1,MAXN
               GCDR21(N,ICD) = GCDR21(N,ICD)
-     &                         + E0LLFL(MAB+IJ,3)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0LLFL(MABt+IJ,3)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ELSEIF(ITN(1).EQ.4) THEN
             DO N=1,MAXN
               GCDR21(N,ICD) = GCDR21(N,ICD)
-     &                         + E0SSFL(MAB+IJ,3)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0SSFL(MABt+IJ,3)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ENDIF
 423       CONTINUE
@@ -12753,12 +12752,12 @@ C         CONTRIBUTIONS TO Im{G(CD|+-)} FROM EACH Im{E(AB|+-)} ADDRESS
           IF(ITN(1).EQ.1) THEN
             DO N=1,MAXN
               GCDI21(N,ICD) = GCDI21(N,ICD)
-     &                         + E0LLFL(MAB+IJ,4)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0LLFL(MABt+IJ,4)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ELSEIF(ITN(1).EQ.4) THEN
             DO N=1,MAXN
               GCDI21(N,ICD) = GCDI21(N,ICD)
-     &                         + E0SSFL(MAB+IJ,4)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0SSFL(MABt+IJ,4)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ENDIF
 424       CONTINUE
@@ -18425,11 +18424,11 @@ C
 C     SCREENING PROCEDURE: NORM SUM OF EQ-COEFFICIENT LIST FOR EACH IAB
       DO IX=1,3
         DO IAB=1,NTUVAB
-          MAB = IABLS + (IAB-1)*MAXAB
+          MABt = IABLS + (IAB-1)*MAXAB
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MAB+M,4*(IX-1)+1)).GT.SENS) THEN
+            IF(DABS(EILSFL(MABt+M,4*(IX-1)+1)).GT.SENS) THEN
               IABR11(M,IAB,IX) = 1
             ELSE
               IABR11(M,IAB,IX) = 0
@@ -18438,7 +18437,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MAB+M,4*(IX-1)+2)).GT.SENS) THEN
+            IF(DABS(EILSFL(MABt+M,4*(IX-1)+2)).GT.SENS) THEN
               IABI11(M,IAB,IX) = 1
             ELSE
               IABI11(M,IAB,IX) = 0
@@ -18447,7 +18446,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MAB+M,4*(IX-1)+3)).GT.SENS) THEN
+            IF(DABS(EILSFL(MABt+M,4*(IX-1)+3)).GT.SENS) THEN
               IABR21(M,IAB,IX) = 1
             ELSE
               IABR21(M,IAB,IX) = 0
@@ -18456,7 +18455,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MAB+M,4*(IX-1)+4)).GT.SENS) THEN
+            IF(DABS(EILSFL(MABt+M,4*(IX-1)+4)).GT.SENS) THEN
               IABI21(M,IAB,IX) = 1
             ELSE
               IABI21(M,IAB,IX) = 0
@@ -18614,7 +18613,7 @@ C         LOOP OVER ALL FINITE EXPANSION ADDRESSES FOR E(AB| -)
           DO IAB=1,NTUVAB
 C
 C           RELATIVE EQ(AB) LIST STARTING ADDRESS
-            MAB = IABLS + (IAB-1)*MAXAB
+            MABt = IABLS + (IAB-1)*MAXAB
 C
 C           CALCULATE RC ADDRESS FOR THIS PARTICULAR AB/CD OVERLAP
             IRABCD = IABC(IA(IAB)+IA(ICD),IB(IAB)+IB(ICD),
@@ -18638,7 +18637,7 @@ C           CONTRIBUTIONS TO Re{G(CD|--)} FROM EACH Re{E(AB|--)}
             IF(IABR11(IJ,IAB,IX).EQ.0) GOTO 451
             DO N=1,MAXN
               GCDR11(N,ICD,IX) = GCDR11(N,ICD,IX)
-     &                + EILSFL(MAB+IJ,4*(IX-1)+1)*RCTTFL(MABCD+IMAP(N))
+     &                + EILSFL(MABt+IJ,4*(IX-1)+1)*RCTTFL(MABCD+IMAP(N))
             ENDDO
 451         CONTINUE
 C
@@ -18647,7 +18646,7 @@ C           CONTRIBUTIONS TO Im{G(CD|--)} FROM EACH Im{E(AB|--)}
             IF(IABI11(IJ,IAB,IX).EQ.0) GOTO 452
             DO N=1,MAXN
               GCDI11(N,ICD,IX) = GCDI11(N,ICD,IX)
-     &                + EILSFL(MAB+IJ,4*(IX-1)+2)*RCTTFL(MABCD+IMAP(N))
+     &                + EILSFL(MABt+IJ,4*(IX-1)+2)*RCTTFL(MABCD+IMAP(N))
             ENDDO
 452         CONTINUE
 C
@@ -18656,7 +18655,7 @@ C           CONTRIBUTIONS TO Re{G(CD|+-)} FROM EACH Re{E(AB|+-)}
             IF(IABR21(IJ,IAB,IX).EQ.0) GOTO 453
             DO N=1,MAXN
               GCDR21(N,ICD,IX) = GCDR21(N,ICD,IX)
-     &                + EILSFL(MAB+IJ,4*(IX-1)+3)*RCTTFL(MABCD+IMAP(N))
+     &                + EILSFL(MABt+IJ,4*(IX-1)+3)*RCTTFL(MABCD+IMAP(N))
             ENDDO
 453         CONTINUE
 C
@@ -18665,7 +18664,7 @@ C           CONTRIBUTIONS TO Im{G(CD|+-)} FROM EACH Im{E(AB|+-)}
             IF(IABI21(IJ,IAB,IX).EQ.0) GOTO 454
             DO N=1,MAXN
               GCDI21(N,ICD,IX) = GCDI21(N,ICD,IX)
-     &                + EILSFL(MAB+IJ,4*(IX-1)+4)*RCTTFL(MABCD+IMAP(N))
+     &                + EILSFL(MABt+IJ,4*(IX-1)+4)*RCTTFL(MABCD+IMAP(N))
             ENDDO
 454         CONTINUE
 C
@@ -18751,7 +18750,7 @@ C             CONTRIBUTIONS TO Re{G(CD|--)} FROM EACH Re{E(AB|--)}
               IF(IABR11(IJ,IAB,JX).EQ.0) GOTO 415
               DO N=1,MAXN
                 GCDR11(N,ICD,IX) = GCDR11(N,ICD,IX)
-     &                                 - EILSFL(MAB+IJ,4*(JX-1)+1)*T(N)
+     &                                 - EILSFL(MABt+IJ,4*(JX-1)+1)*T(N)
               ENDDO
 415           CONTINUE
 C
@@ -18760,7 +18759,7 @@ C             CONTRIBUTIONS TO Im{G(CD|--)} FROM EACH Im{E(AB|--)}
               IF(IABI11(IJ,IAB,JX).EQ.0) GOTO 416
               DO N=1,MAXN
                 GCDI11(N,ICD,IX) = GCDI11(N,ICD,IX)
-     &                                 - EILSFL(MAB+IJ,4*(JX-1)+2)*T(N)
+     &                                 - EILSFL(MABt+IJ,4*(JX-1)+2)*T(N)
               ENDDO
 416           CONTINUE
 C
@@ -18769,7 +18768,7 @@ C             CONTRIBUTIONS TO Re{G(CD|--)} FROM EACH Re{E(AB|--)}
               IF(IABR21(IJ,IAB,JX).EQ.0) GOTO 417
               DO N=1,MAXN
                 GCDR21(N,ICD,IX) = GCDR21(N,ICD,IX)
-     &                                 - EILSFL(MAB+IJ,4*(JX-1)+3)*T(N)
+     &                                 - EILSFL(MABt+IJ,4*(JX-1)+3)*T(N)
               ENDDO
 417           CONTINUE
 C
@@ -18778,7 +18777,7 @@ C             CONTRIBUTIONS TO Im{G(CD|--)} FROM EACH Im{E(AB|--)}
               IF(IABI21(IJ,IAB,JX).EQ.0) GOTO 418
               DO N=1,MAXN
                 GCDI21(N,ICD,IX) = GCDI21(N,ICD,IX)
-     &                                 - EILSFL(MAB+IJ,4*(JX-1)+4)*T(N)
+     &                                 - EILSFL(MABt+IJ,4*(JX-1)+4)*T(N)
               ENDDO
 418           CONTINUE
 C
@@ -21530,7 +21529,7 @@ C**********************************************************************C
 C
       CHARACTER*80 TITLE
 C
-      DIMENSION INDEX(-(MEL+1):MEL,MKP,2)
+      DIMENSION INDEX(2*MEL+1,MEL+1,2)
       DIMENSION DKAB(MNU,MKP+1,MKP+1),DKCD(MNU,MKP+1,MKP+1)
       DIMENSION RJLLLL(MB2,MNU),RJLLSS(MB2,MNU),
      &          RJSSLL(MB2,MNU),RJSSSS(MB2,MNU)
@@ -21545,6 +21544,9 @@ C
 C
       COMPLEX*16 GPLT(MDM,MDM)
       DIMENSION GTRU(MDM,MDM)
+      DIMENSION XDIR(64,64),XXCH(64,64)
+      DIMENSION YDIR(64,64),YXCH(64,64)
+      DIMENSION ZDIR(64,64),ZXCH(64,64)
 C
       COMMON/B0IJ/EIJ(MB2,-MTN:MTN),RNIJ(MB2,4),EI(MB2),EJ(MB2),MAXAB
       COMMON/B0KL/EKL(MB2,-MTN:MTN),RNKL(MB2,4),EK(MB2),EL(MB2),MAXCD
@@ -21553,7 +21555,7 @@ C
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,IQ3,IQ4,
      &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -21582,31 +21584,56 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
         ISYM = 0
       ENDIF
 C
-      PRM1CT = .FALSE.
-      CDPRM  = .FALSE.
+      PRM1IJ = .TRUE.
       PRM1KL = .FALSE.
 C
 C**********************************************************************C
-C     ORDERED INDEX OF (KQN,MQN) COMBINATIONS                          C
+C     ORDERED INDEX OF (MQN,KQN) BLOCKS WITHIN FOCK                    C
 C**********************************************************************C
 C
-C     LOOP OVER KAPPA VALUES FOR THIS NUCLEAR CENTRE
+      DO M=1,64
+        DO N=1,64
+          ZDIR(M,N) = 0.0D0
+          ZXCH(M,N) = 0.0D0
+        ENDDO
+      ENDDO
+C
+C     INITIALISE COUTNER
       ICOUNT = 0
-      DO KN=1,NKAP(IZ)
 C
-C       IMPORT KAPPA, MAXIMUM MQN
-        KAPPA = KAPA(KN,IZ)
-        MJMAX = 2*IABS(KAPPA)-1
-C
-C       LOOP OVER |MQN| VALUES
-        DO MJ=1,MJMAX,2
-C         LOOP OVER MQN SIGNS
-          DO ISGN=1,2
-            ICOUNT               = ICOUNT+1
-            INDEX(KAPPA,MJ,ISGN) = ICOUNT
+C     LOOP OVER ALL MQN VALUES
+      DO MJ=1,IABS(KAPA(NKAP(IZ),IZ))
+C       LOOP OVER SIGNS OF THIS MQN
+        DO MMJ=1,2
+C         LOOP OVER ALL KQN VALUES
+          DO KN=1,NKAP(IZ)
+C           ADD TO BLOCK COUNTER ONLY IF |MQN|.LE.(2*|KQN|-1)/2
+            IF(2*MJ-1.LE.KN) THEN
+              ICOUNT           = ICOUNT+1
+              INDEX(KN,MJ,MMJ) = ICOUNT
+            ENDIF
           ENDDO
         ENDDO
       ENDDO
+CC
+CC
+CC     LOOP OVER KAPPA VALUES FOR THIS NUCLEAR CENTRE
+C      ICOUNT = 0
+C      DO KN=1,NKAP(IZ)
+CC
+CC       IMPORT KAPPA, MAXIMUM MQN
+C        KAPPA = KAPA(KN,IZ)
+C        MJMAX = 2*IABS(KAPPA)-1
+CC
+CC       LOOP OVER |MQN| VALUES
+C        DO MJ=1,MJMAX,2
+CC         LOOP OVER MQN SIGNS
+C          DO ISGN=1,2
+C            ICOUNT               = ICOUNT+1
+C            INDEX(KAPPA,MJ,ISGN) = ICOUNT
+C          ENDDO
+C        ENDDO
+C      ENDDO
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 1000)                 C
@@ -21640,16 +21667,10 @@ C       NUMBER OF BASIS FUNCTIONS IN (AB) BLOCK
         MAXAB = NBAS(1)*NBAS(2)
 C
 C      TRIANGLE RULE FOR LA <-> LB
-       IF(PRM1CT) THEN
-         IF(LA.GT.LB) GOTO 1001
-       ENDIF
+C        IF(PRM1IJ) THEN
+C          IF(LA.LT.LB) GOTO 1001
+C        ENDIF
 C
-C       PRM1CT BREAKDOWN
-cc       if(la.ne.0.or.lb.ne.1) goto 1001
-c        if(la.ne.2.or.lb.ne.2) goto 1001
-cc       if(la.NE.lb) goto 1001
-cC       if(la+lb.ne.1) goto 1001
-cC
 C     LOOP OVER LQN(C) VALUES
       DO 1100 LC=0,(NKAP(IZ)-1)/2
 C
@@ -21678,7 +21699,7 @@ C       NUMBER OF BASIS FUNCTIONS IN (CD) BLOCK
         MAXCD = NBAS(3)*NBAS(4)
 cC
 cC       TRIANGLE RULE FOR LC <-> LD
-c        IF(CDPRM) THEN
+c        IF(PRM1KL) THEN
 c          IF(LC.GT.LD) GOTO 1101
 c        ENDIF
 C
@@ -21714,11 +21735,11 @@ C     LOOP OVER KQN(B) VALUES
 C
 C       QUANTUM NUMBERS FOR BLOCK B
         KQN(2) = KAPA(KB,IZ)
-cC
-cC       TRIANGLE RULE FOR KA <-> KB
-c        IF(PRM1CT) THEN
-c          IF(KA.GT.KB) GOTO 2001
-c        ENDIF
+CC
+CC       TRIANGLE RULE FOR KA <-> KB
+C        IF(PRM1IJ) THEN
+C          IF(KA.LT.KB) GOTO 2001
+C        ENDIF
 C
 C     LOOP OVER KQN(C) VALUES
       DO 2100 NC=1,KRONECK(LC,0),-1
@@ -21735,7 +21756,7 @@ C       QUANTUM NUMBERS FOR BLOCK D
         KQN(4) = KAPA(KD,IZ)
 C
 C       TRIANGLE RULE FOR KC <-> KD
-        IF(CDPRM) THEN
+        IF(PRM1KL) THEN
           IF(KC.GT.KD) GOTO 2101
         ENDIF
 C
@@ -21849,12 +21870,12 @@ C
 C
       DO 4000 MB=1,IABS(KQN(2))
         MQN(2) = 2*MB-1
-C
-C       TRIANGLE RULE FOR MA <-> MB
-C        IF(PRM1CT) THEN
-C          IF(MA.GT.MB) GOTO 4001
-C         if(ma.ne.1.or.mb.ne.1) goto 4001
-C       ENDIF
+CC
+CC       TRIANGLE RULE FOR MA <-> MB
+C        IF(PRM1IJ) THEN
+C          IF(MA.LT.MB) GOTO 4001
+CC         if(ma.ne.1.or.mb.ne.1) goto 4001
+C        ENDIF
 C
       DO 4100 MC=1,IABS(KQN(3))
         MQN(3) = 2*MC-1
@@ -21863,7 +21884,7 @@ C
         MQN(4) = 2*MD-1
 cC
 cC       TRIANGLE RULE FOR MC <-> MD
-c        IF(CDPRM) THEN
+c        IF(PRM1KL) THEN
 c          IF(MC.GT.MD) GOTO 4101
 c        ENDIF
 C
@@ -21878,14 +21899,11 @@ C
       DO 5000 MMB=1,2
         MMJB = MQN(2)*((-1)**MMB)
         IMJB = MQN(2)+MMB-1
-cC
-cC       TRIANGLE RULE FOR |MA| <-> |MB|
-c        IF(PRM1CT) THEN
-c          IF(MMA.GT.MMB) GOTO 5001
-c        ENDIF
-C
-C       PRM1CT BREAKDOWN
-c       if(mma.ne.1.or.mmb.ne.1) goto 5001
+CC
+CC       TRIANGLE RULE FOR |MA| <-> |MB|
+C        IF(PRM1IJ) THEN
+C          IF(MMA.LT.MMB) GOTO 5001
+C        ENDIF
 C
       DO 5100 MMC=1,2
         MMJC = MQN(3)*((-1)**MMC)
@@ -21896,26 +21914,19 @@ C
         IMJD = MQN(4)+MMD-1
 cC
 cC       TRIANGLE RULE FOR |MC| <-> |MD|
-c        IF(CDPRM) THEN
+c        IF(PRM1KL) THEN
 c          IF(MMC.GT.MMD) GOTO 5101
 c        ENDIF
 C
-cC       CALCULATE BLOCK INDICES FOR {ABCD} COMBINATIONS
-c        IQ1 = INDEX(KQN(1),MQN(1),MMA)
-c        IQ2 = INDEX(KQN(2),MQN(2),MMB)
-c        IQ3 = INDEX(KQN(3),MQN(3),MMC)
-c        IQ4 = INDEX(KQN(4),MQN(4),MMD)
-cC
-cC     SKIP CONTRIBUTIONS THAT ARISE BY PERMUTATION OF INTEGRALS
-c      IF(PRM1CT.AND.IQ1.LT.IQ2) GOTO 5101
-C      IF(PRM1KL.AND.IQ3.LT.IQ4) GOTO 5101
+C       CALCULATE BLOCK INDICES FOR {ABCD} COMBINATIONS
+        IQ1 = INDEX(KA,MA,MMA)
+        IQ2 = INDEX(KB,MB,MMB)
+        IQ3 = INDEX(KC,MC,MMC)
+        IQ4 = INDEX(KD,MD,MMD)
 C
-cC       PRM1CT BREAKDOWN
-c        if(ka.ne.4.or.kb.ne.4) goto 5001
-cc       if(ka.ne.kb) goto 5001
-cC       if(ka+kb.ne.3) goto 5001
-cc        kthis = 3
-cc        if(ka.ne.kthis.or.kb.ne.kthis) goto 5001
+C     SKIP CONTRIBUTIONS THAT ARISE BY PERMUTATION OF INTEGRALS
+      IF(PRM1IJ.AND.IQ1.LT.IQ2) GOTO 5101
+C     IF(PRM1KL.AND.IQ3.LT.IQ4) GOTO 5101
 C
 C     STARTING FOCK ADDRESS FOR EACH BASIS LIST
       NAL = LRGE(IZ,KA,IMJA)
@@ -21929,24 +21940,33 @@ C
       NDS = LRGE(IZ,KD,IMJD)+NSKP
 C
 CC     ONLY WANT THE UPPER TRIANGULAR MATRIX
-C      IF(PRM1CT) THEN
+C      IF(PRM1IJ) THEN
 C        IF(NAL.GT.NBL) GOTO 5101
 C      ENDIF
 C
-cC     ONLY WANT THE UPPER TRIANGULAR MATRIX
-c      IF(CDPRM) THEN
-c        IF(NCL.GT.NDL) GOTO 5101
-c      ENDIF
+CC     ONLY WANT THE UPPER TRIANGULAR MATRIX
+C      IF(PRM1KL) THEN
+C        IF(NCL.GT.NDL) GOTO 5101
+C      ENDIF
 C
-C     APPLY ANGULAR MQN SELECTION RULE
-      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 5101
-      IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-c       remember to carry through index swaps here
-        IF(MMA.EQ.MMB.AND.MMC.EQ.MMD) GOTO 5102
-        IF(MMA.EQ.MMD.AND.MMC.EQ.MMB) GOTO 5102
-C       IF(MMB.NE.MMD.AND.MMC.NE.MMA) GOTO 5102
-        GOTO 5101
+C     APPLY ANGULAR MQN SELECTION RULES
+      IF(MMJA-MMJB.EQ.MMJD-MMJC) THEN
+        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
+          IF(MMA.EQ.MMB.AND.MMC.EQ.MMD) GOTO 5102
+          IF(MMA.EQ.MMD.AND.MMC.EQ.MMB) GOTO 5102
+        ENDIF
       ENDIF
+C
+C     THIS SELECTION RULE IS FOR THE IJ PERMUTATION
+      IF(MMJB-MMJA.EQ.MMJD-MMJC) THEN
+        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
+          IF(MMB.EQ.MMA.AND.MMC.EQ.MMD) GOTO 5102
+          IF(MMB.EQ.MMD.AND.MMC.EQ.MMA) GOTO 5102
+        ENDIF
+      ENDIF
+C
+C     ALL OTHER COMBINATIONS GET SKIPPED
+      GOTO 5101
 5102  CONTINUE
 C
 C     INITIALISE EFFECTIVE INTERACTION STRENGTH VALUES
@@ -22013,7 +22033,7 @@ C     MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
       IF(ISYM.EQ.0) THEN
         CALL CLMMAT1(XLLLL,XSSLL,XLLSS,XSSSS)
       ELSE
-        CALL CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS)
+        CALL CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX)
       ENDIF
 C
 C     MATRIX MULTIPLICATION STEP COMPLETE
@@ -22092,55 +22112,101 @@ C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
         T2ES(1,3) = T2ES(1,3) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
         T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
       ENDIF
-      
-      return
 C
 C     READ IN 'SOURCE OF TRUTH'
-      OPEN(UNIT=8,FILE="plots/GXCH-LL-TRUTH_r.dat",STATUS='UNKNOWN')
+      OPEN(UNIT=8,FILE="plots/ZDIR-TRUTH.dat",STATUS='UNKNOWN')
       REWIND(UNIT=8)
-      DO I=1,470
-        READ(8, *) (GTRU(I,J),J=1,470)
+      DO I=1,64
+        READ(8, *) (YDIR(I,J),J=1,64)
+      ENDDO
+      CLOSE(UNIT=8)
+      OPEN(UNIT=8,FILE="plots/ZXCH-TRUTH.dat",STATUS='UNKNOWN')
+      REWIND(UNIT=8)
+      DO I=1,64
+        READ(8, *) (YXCH(I,J),J=1,64)
       ENDDO
       CLOSE(UNIT=8)
 C
-      TITLE = 'GXCH'
-      CALL ZGNUMAP(GXCH,TITLE,470)
+CC     HEAT MAP OF ZDIR BLOCKS
+C      TITLE = 'ZDIR-TRUTH'
+C      CALL DGNUMAP(ZDIR,TITLE,64)
+CC
+CC     HEAT MAP OF ZXCH BLOCKS
+C      TITLE = 'ZXCH-TRUTH'
+C      CALL DGNUMAP(ZXCH,TITLE,64)
 C
 C     CALCULATE DIFFERENCE BETWEEN TRUTH AND WHAT WE HAVE
-      DO I=203,232
-        DO J=203,232
-          GPLT(I-202,J-202) = GXCH(I,J)-DCMPLX(GTRU(I,J),0.0D0)
-c         GPLT(I,J) = GXCH(I,J)
+      DO I=1,64
+        DO J=1,64
+          XDIR(I,J) = YDIR(I,J)-ZDIR(I,J)
+          XXCH(I,J) = YXCH(I,J)-ZXCH(I,J)
         ENDDO
       ENDDO
 C
-C     LARGEST ELEMENT AND LOCATION
-      GBIG = 0.0D0
-      IBIG = 0
-      JBIG = 0
-      DO I=1,250
-        DO J=1,250
-          IF(ABS(GPLT(I,J)).GT.GBIG) THEN
-            GBIG = ABS(GPLT(I,J))
-            IBIG = I
-            JBIG = J
-          ENDIF
-        ENDDO
-      ENDDO
-      WRITE(*,*) 'BIGGEST IS ',GBIG,' AT I,J=',IBIG,JBIG
+C     HEAT MAP OF ZDIR BLOCKS
+      TITLE = 'ZDIR-GUESS'
+      CALL DGNUMAP(ZDIR,TITLE,64)
 C
-      TITLE = 'GXCH-DIFF'
-      CALL ZGNUMAP(GPLT,TITLE,30)
+C     HEAT MAP OF ZXCH BLOCKS
+      TITLE = 'ZXCH-GUESS'
+      CALL DGNUMAP(ZXCH,TITLE,64)
+C
+C     HEAT MAP OF XDIR BLOCKS
+      TITLE = 'ZDIR-DIFF'
+      CALL DGNUMAP(XDIR,TITLE,64)
+C
+C     HEAT MAP OF XXCH BLOCKS
+      TITLE = 'ZXCH-DIFF'
+      CALL DGNUMAP(XXCH,TITLE,64)
       
-      do i=1,30
-        write(*,*) i,dreal(gplt(i,i))
-      enddo
+      return
+CC
+CC     READ IN 'SOURCE OF TRUTH'
+C      OPEN(UNIT=8,FILE="plots/GXCH-LL-TRUTH_r.dat",STATUS='UNKNOWN')
+C      REWIND(UNIT=8)
+C      DO I=1,470
+C        READ(8, *) (GTRU(I,J),J=1,470)
+C      ENDDO
+C      CLOSE(UNIT=8)
+CC
+C      TITLE = 'GXCH'
+C      CALL ZGNUMAP(GXCH,TITLE,470)
+CC
+CC     CALCULATE DIFFERENCE BETWEEN TRUTH AND WHAT WE HAVE
+C      DO I=203,232
+C        DO J=203,232
+C          GPLT(I-202,J-202) = GXCH(I,J)-DCMPLX(GTRU(I,J),0.0D0)
+Cc         GPLT(I,J) = GXCH(I,J)
+C        ENDDO
+C      ENDDO
+CC
+CC     LARGEST ELEMENT AND LOCATION
+C      GBIG = 0.0D0
+C      IBIG = 0
+C      JBIG = 0
+C      DO I=1,250
+C        DO J=1,250
+C          IF(ABS(GPLT(I,J)).GT.GBIG) THEN
+C            GBIG = ABS(GPLT(I,J))
+C            IBIG = I
+C            JBIG = J
+C          ENDIF
+C        ENDDO
+C      ENDDO
+C      WRITE(*,*) 'BIGGEST IS ',GBIG,' AT I,J=',IBIG,JBIG
+CC
+C      TITLE = 'GXCH-DIFF'
+C      CALL ZGNUMAP(GPLT,TITLE,30)
+C      
+C      do i=1,30
+C        write(*,*) i,dreal(gplt(i,i))
+C      enddo
 C
       RETURN
       END
 C
 C
-      SUBROUTINE CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS)
+      SUBROUTINE CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
@@ -22159,7 +22225,9 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
+      DIMENSION INDEX(2*MEL+1,MEL+1,2)
       DIMENSION ISCF(11,6),IFLG(11)
+      DIMENSION ZDIR(64,64),ZXCH(64,64)
       DIMENSION XLLLL(MB2),XSSLL(MB2),XLLSS(MB2),XSSSS(MB2)
 C
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -22172,7 +22240,7 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,IQ3,IQ4,
      &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -22201,17 +22269,21 @@ C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
         WRITE(7,*) 'In CLMMAT1Z: you probably should be using CLMMAT1.'
       ENDIF
 C
+C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
+      MMJA = MA*((-1)**MMA)
+      MMJB = MB*((-1)**MMB)
+      MMJC = MC*((-1)**MMC)
+      MMJD = MD*((-1)**MMD)
+C
 C**********************************************************************C
 C     ASSEMBLE THE CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)           C
 C**********************************************************************C
-C
-cC       PRM1CT BREAKDOWN
-c        GOTO 999
 C
 C     NON-RELATIVISTIC HAMILTONIAN
       IF(HMLT.EQ.'NORL') THEN
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
+        IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 101
         IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 101
         IF(NAL.LE.NBL) THEN
           M = 0
@@ -22228,11 +22300,22 @@ C
 C     RELATIVISTIC HAMILTONIAN
       ELSE
 C
-C       MQN SIGN SELECTION RULE
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: NO PERMUTATION SYMMETRY EMPLOYED                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+        IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 102
         IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 102
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
         IF(NAL.LE.NBL) THEN
+
+          IF(IJ.EQ.1) THEN
+            I = INDEX(KA,MA,MMA)
+            J = INDEX(KB,MB,MMB)
+            ZDIR(I   ,J   ) = ZDIR(I   ,J   ) + 1.0D0
+          ENDIF
+
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22242,10 +22325,18 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
      &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
           ENDDO
+C
         ENDIF
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
         IF(NAS.LE.NBS) THEN
+
+          IF(IJ.EQ.1) THEN
+            I = INDEX(KA,MA,MMA)
+            J = INDEX(KB,MB,MMB)
+            ZDIR(I+32,J+32) = ZDIR(I+32,J+32) + 1.0D0
+          ENDIF
+
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22255,23 +22346,34 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
      &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
           ENDDO
+C
         ENDIF
 C
 102     CONTINUE
 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: PERMUTATION SYMMETRY I⇄J                                 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1CT) GOTO 150
-        GOTO 150
+        IF(.NOT.PRM1IJ) GOTO 103
 C
 C       PERMUTATION BLOCK  I⇄J
+        IF(IQ1.LE.IQ2) GOTO 103
 C
 C       MQN SIGN SELECTION RULE
+        IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 103
         IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 103
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
-C       THIS CONDITIONAL WILL NEVER SUCCEED
-        IF(IQ1.GT.IQ2) THEN
-C       IF(NBL.LT.NAL) THEN
+        IF(NBL.LE.NAL) THEN
+C
+          IF(IJ.EQ.1) THEN
+            I = INDEX(KA,MA,MMA)
+            J = INDEX(KB,MB,MMB)
+            ZDIR(J   ,I   ) = ZDIR(J   ,I   ) + 1.0D0
+          ENDIF
+C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22281,10 +22383,18 @@ C       IF(NBL.LT.NAL) THEN
      &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
           ENDDO
+C
         ENDIF
 
 C       THIS CONDITIONAL WILL NEVER SUCCEED
-        IF(NBS.LT.NAS) THEN
+        IF(NBS.LE.NAS) THEN
+C
+          IF(IJ.EQ.1) THEN
+            I = INDEX(KA,MA,MMA)
+            J = INDEX(KB,MB,MMB)
+            ZDIR(J+32,I+32) = ZDIR(J+32,I+32) + 1.0D0
+          ENDIF
+C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22298,46 +22408,48 @@ C       THIS CONDITIONAL WILL NEVER SUCCEED
 C
 103     CONTINUE
 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: PERMUTATION SYMMETRY K⇄L                                 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+CC
+CC
+CC       MQN SIGN SELECTION RULE
+C        IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 104
+C        IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 104
+CC
+CC       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
+CC       THIS CONDITIONAL WILL NEVER SUCCEED
+C        IF(IQ3.GT.IQ4.AND.MA.EQ.MB.AND.MC.LT.MD) THEN
+CC       IF(NBL.LT.NAL) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+C     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
+C     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+C            ENDDO
+C          ENDDO
+C        ENDIF
 C
-C       MQN SIGN SELECTION RULE
-        IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 104
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
-C       THIS CONDITIONAL WILL NEVER SUCCEED
-        IF(IQ3.GT.IQ4.AND.MA.EQ.MB.AND.MC.LT.MD) THEN
-C       IF(NBL.LT.NAL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
-     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-
-C       THIS CONDITIONAL WILL NEVER SUCCEED
-        IF(IQ3.GT.IQ4.AND.MA.EQ.MB.AND.MC.LT.MD) THEN
-C       IF(NAS.LT.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
-     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
-     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-104     CONTINUE
-C
-150     CONTINUE
+CC       THIS CONDITIONAL WILL NEVER SUCCEED
+C        IF(IQ3.GT.IQ4.AND.MA.EQ.MB.AND.MC.LT.MD) THEN
+CC       IF(NAS.LT.NBS) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
+C     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+C            ENDDO
+C          ENDDO
+C        ENDIF
+CC
+C104     CONTINUE
 C
 C     END CONDITIONAL OVER HMLT TYPES
       ENDIF
-999   CONTINUE
 C
 C**********************************************************************C
 C     ASSEMBLE THE CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)         C
@@ -22347,6 +22459,7 @@ C     NON-RELATIVISTIC HAMILTONIAN
       IF(HMLT.EQ.'NORL') THEN
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GXCH(LL)
+        IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 201
         IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 201
         IF(NAL.LE.NDL) THEN
           M = 0
@@ -22363,12 +22476,23 @@ C
 C     RELATIVISTIC HAMILTONIAN
       ELSE
 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: NO PERMUTATION SYMMETRY EMPLOYED                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
 C       CLOSED-SHELL EXCHANGE MATRIX GXCH
+        IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 202
         IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 202
 C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
         IF(NAL.LE.NDL) THEN
+C
+          IF(IJ.EQ.1) THEN
+            I = INDEX(KA,MA,MMA)
+            L = INDEX(KD,MD,MMD)
+            ZXCH(I   ,L   ) = ZXCH(I   ,L   ) + 1.0D0
+          ENDIF
+C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22377,13 +22501,18 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
      &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
             ENDDO
           ENDDO
-        ENDIF
 C
-cC       PRM1CT BREAKDOWN
-c        GOTO 950
+        ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
         IF(NAL.LE.NDS) THEN
+C
+          IF(IJ.EQ.1) THEN
+            I = INDEX(KA,MA,MMA)
+            L = INDEX(KD,MD,MMD)
+            ZXCH(I   ,L+32) = ZXCH(I   ,L+32) + 1.0D0
+          ENDIF
+C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22392,6 +22521,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
      &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
             ENDDO
           ENDDO
+C
         ENDIF
 CC
 CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
@@ -22406,6 +22536,13 @@ C        ENDDO
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
         IF(NAS.LE.NDS) THEN
+C
+          IF(IJ.EQ.1) THEN
+            I = INDEX(KA,MA,MMA)
+            L = INDEX(KD,MD,MMD)
+            ZXCH(I+32,L+32) = ZXCH(I+32,L+32) + 1.0D0
+          ENDIF
+C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22414,232 +22551,245 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
      &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
             ENDDO
           ENDDO
+C
         ENDIF
-950     CONTINUE
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
 202     CONTINUE
 C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1CT) GOTO 250
-        goto 250
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: PERMUTATION SYMMETRY I⇄J                                 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
-C       PERMUTATION BLOCK  I⇄J
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1IJ) GOTO 203
+C
+        IF(IQ1.LE.IQ2) GOTO 203
 C
 C       MQN SIGN SELECTION RULE
+        IF(MMJB-MMJD.NE.MMJA-MMJC) GOTO 203
         IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 203
 C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-C          IF(NBL.LT.NDL) THEN
-c          IF(KA.LT.KB) THEN
-           IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+        IF(NBL.LE.NDL) THEN
+C
+C         IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
+          IF(IJ.EQ.1) THEN
+            J = INDEX(KB,MB,MMB)
+            L = INDEX(KD,MD,MMD)
+            ZXCH(J   ,L   ) = ZXCH(J   ,L   ) + 1.0D0
+          ENDIF
+
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
      &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NAL+IBAS))
-              ENDDO
             ENDDO
-          ENDIF
-cC
-cC       PRM1CT BREAKDOWN
-c        GOTO 960
+          ENDDO
+        ENDIF
 C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-C         IF(NBL.LT.NDL) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+        IF(NBL.LE.NDS) THEN
+C
+          IF(IJ.EQ.1) THEN
+            J = INDEX(KB,MB,MMB)
+            L = INDEX(KD,MD,MMD)
+            ZXCH(J   ,L+32) = ZXCH(J   ,L+32) + 1.0D0
+          ENDIF
+C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
      &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NAL+IBAS))
-              ENDDO
             ENDDO
-          ENDIF
+          ENDDO
 C
-CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C          IF(NBS.LT.NDL) THEN
-C            M = 0
-C            DO KBAS=1,NBAS(3)
-C              DO LBAS=1,NBAS(4)
-C                M = M+1
-C                GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
+        ENDIF
+C
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C        IF(NBS.LT.NDL) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
 C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NAS+IBAS))
-C              ENDDO
 C            ENDDO
-C          ENDIF
+C          ENDDO
+C        ENDIF
 C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-C         IF(NBS.LT.NDS) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
-     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NAS+IBAS))
-              ENDDO
-            ENDDO
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+        IF(NBS.LE.NDS) THEN
+C
+          IF(IJ.EQ.1) THEN
+            J = INDEX(KB,MB,MMB)
+            L = INDEX(KD,MD,MMD)
+            ZXCH(J+32,L+32) = ZXCH(J+32,L+32) + 1.0D0
           ENDIF
+C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NAS+IBAS))
+            ENDDO
+          ENDDO
+C
+        ENDIF
 C
 203     CONTINUE
-250     CONTINUE
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
-C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.CDPRM) GOTO 260
-        goto 260
-C
-C       PERMUTATION BLOCK  K⇄L
-C
-C       MQN SIGN SELECTION RULE
-        IF(MMA.NE.MMC.OR.MMD.NE.MMB) GOTO 214
-C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-C          IF(NBL.LT.NDL) THEN
-c          IF(KA.LT.KB) THEN
-           IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NAL+IBAS,NCL+KBAS) = GXCH(NAL+IBAS,NCL+KBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NBL+JBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-cC
-cC       PRM1CT BREAKDOWN
-c        GOTO 960
-C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-C         IF(NBL.LT.NDL) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NAL+IBAS,NCS+KBAS) = GXCH(NAL+IBAS,NCS+KBAS)
-     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NBL+JBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-C
-CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C          IF(NBS.LT.NDL) THEN
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: PERMUTATION SYMMETRY K⇄L                                 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+CC
+CC       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+C        IF(.NOT.PRM1KL) GOTO 260
+C        GOTO 260
+CC
+CC       PERMUTATION BLOCK  K⇄L
+CC
+CC       MQN SIGN SELECTION RULE
+C        IF(MMJA-MMJC.NE.MMJB-MMJD) GOTO 214
+C        IF(MMA.NE.MMC.OR.MMD.NE.MMB) GOTO 214
+CC
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+CC          IF(NBL.LT.NDL) THEN
+Cc          IF(KA.LT.KB) THEN
+C           IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
+CC          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
 C            M = 0
 C            DO KBAS=1,NBAS(3)
 C              DO LBAS=1,NBAS(4)
 C                M = M+1
-C                GXCH(NAS+IBAS,NCL+KBAS) = GXCH(NAS+IBAS,NCL+KBAS)
-C     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NBS+JBAS))
+C                GXCH(NAL+IBAS,NCL+KBAS) = GXCH(NAL+IBAS,NCL+KBAS)
+C     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NBL+JBAS))
 C              ENDDO
 C            ENDDO
 C          ENDIF
-C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-C         IF(NBS.LT.NDS) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NAS+IBAS,NCS+KBAS) = GXCH(NAS+IBAS,NCS+KBAS)
-     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NBS+JBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C
-214     CONTINUE
-260     CONTINUE
-C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.CDPRM.OR..NOT.PRM1CT) GOTO 270
-        goto 270
-C
-C       PERMUTATION BLOCK  I⇄J AND K⇄L
-C
-C       MQN SIGN SELECTION RULE
-        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 205
-C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-C          IF(NBL.LT.NDL) THEN
-c          IF(KA.LT.KB) THEN
-           IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
-C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NCL+KBAS) = GXCH(NBL+JBAS,NCL+KBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NAL+IBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-cC
-cC       PRM1CT BREAKDOWN
-c        GOTO 960
-C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-C         IF(NBL.LT.NDL) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NCS+KBAS) = GXCH(NBL+JBAS,NCS+KBAS)
-     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NAL+IBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-C
-CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C          IF(NBS.LT.NDL) THEN
+CC
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+CC         IF(NBL.LT.NDL) THEN
+CC         IF(KA.LT.KB) THEN
+C          IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
 C            M = 0
 C            DO KBAS=1,NBAS(3)
 C              DO LBAS=1,NBAS(4)
 C                M = M+1
-C                GXCH(NBS+JBAS,NCL+KBAS) = GXCH(NBS+JBAS,NCL+KBAS)
-C     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NAS+IBAS))
+C                GXCH(NAL+IBAS,NCS+KBAS) = GXCH(NAL+IBAS,NCS+KBAS)
+C     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NBL+JBAS))
 C              ENDDO
 C            ENDDO
 C          ENDIF
+CC
+CCC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+CC          IF(NBS.LT.NDL) THEN
+CC            M = 0
+CC            DO KBAS=1,NBAS(3)
+CC              DO LBAS=1,NBAS(4)
+CC                M = M+1
+CC                GXCH(NAS+IBAS,NCL+KBAS) = GXCH(NAS+IBAS,NCL+KBAS)
+CC     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NBS+JBAS))
+CC              ENDDO
+CC            ENDDO
+CC          ENDIF
+CC
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+CC         IF(NBS.LT.NDS) THEN
+CC         IF(KA.LT.KB) THEN
+C          IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
+C            M = 0
+C            DO KBAS=1,NBAS(3)
+C              DO LBAS=1,NBAS(4)
+C                M = M+1
+C                GXCH(NAS+IBAS,NCS+KBAS) = GXCH(NAS+IBAS,NCS+KBAS)
+C     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NBS+JBAS))
+C              ENDDO
+C            ENDDO
+C          ENDIF
+CC
+C214     CONTINUE
+C260     CONTINUE
+CC
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       PERMUTATION SYMMETRY I⇄J AND K⇄L                               C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-C         IF(NBS.LT.NDS) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBS+JBAS,NCS+KBAS) = GXCH(NBS+JBAS,NCS+KBAS)
-     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NAS+IBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C
-960       CONTINUE
-C
-205     CONTINUE
-C
-270     CONTINUE
-C
+CC       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+C        IF(.NOT.PRM1KL.OR..NOT.PRM1IJ) GOTO 270
+C        goto 270
+CC
+CC       PERMUTATION BLOCK  I⇄J AND K⇄L
+CC
+CC       MQN SIGN SELECTION RULE
+C        IF(MMJB-MMJD.NE.MMJA-MMJC) GOTO 205
+C        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 205
+CC
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+CC          IF(NBL.LT.NDL) THEN
+Cc          IF(KA.LT.KB) THEN
+C           IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
+CC          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
+C            M = 0
+C            DO KBAS=1,NBAS(3)
+C              DO LBAS=1,NBAS(4)
+C                M = M+1
+C                GXCH(NBL+JBAS,NCL+KBAS) = GXCH(NBL+JBAS,NCL+KBAS)
+C     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NAL+IBAS))
+C              ENDDO
+C            ENDDO
+C          ENDIF
+CC
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+CC         IF(NBL.LT.NDL) THEN
+CC         IF(KA.LT.KB) THEN
+C          IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
+C            M = 0
+C            DO KBAS=1,NBAS(3)
+C              DO LBAS=1,NBAS(4)
+C                M = M+1
+C                GXCH(NBL+JBAS,NCS+KBAS) = GXCH(NBL+JBAS,NCS+KBAS)
+C     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NAL+IBAS))
+C              ENDDO
+C            ENDDO
+C          ENDIF
+CC
+CCC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+CC          IF(NBS.LT.NDL) THEN
+CC            M = 0
+CC            DO KBAS=1,NBAS(3)
+CC              DO LBAS=1,NBAS(4)
+CC                M = M+1
+CC                GXCH(NBS+JBAS,NCL+KBAS) = GXCH(NBS+JBAS,NCL+KBAS)
+CC     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NAS+IBAS))
+CC              ENDDO
+CC            ENDDO
+CC          ENDIF
+CC
+CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+CC         IF(NBS.LT.NDS) THEN
+CC         IF(KA.LT.KB) THEN
+C          IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
+C            M = 0
+C            DO KBAS=1,NBAS(3)
+C              DO LBAS=1,NBAS(4)
+C                M = M+1
+C                GXCH(NBS+JBAS,NCS+KBAS) = GXCH(NBS+JBAS,NCS+KBAS)
+C     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NAS+IBAS))
+C              ENDDO
+C            ENDDO
+C          ENDIF
+CC
+C960       CONTINUE
+CC
+C205     CONTINUE
+CC
+C270     CONTINUE
+CC
 C     END CONDITIONAL OVER HMLT TYPES
       ENDIF
 C
@@ -22823,7 +22973,7 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,IQ3,IQ4,
      &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -22908,7 +23058,7 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
           ENDDO
         ENDIF
 C
-        IF(.NOT.PRM1CT) GOTO 6900
+        IF(.NOT.PRM1IJ) GOTO 6900
         GOTO 6900
 C
 C       PERMUTATION BLOCK  A <-> B
@@ -22995,7 +23145,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
           ENDDO
         ENDIF
 C
-        IF(.NOT.PRM1CT) GOTO 6901
+        IF(.NOT.PRM1IJ) GOTO 6901
 C       GOTO 6901
 C
 C       PERMUTATION BLOCK  A <-> B
@@ -23854,7 +24004,7 @@ C
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,IQ3,IQ4,
      &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -24302,7 +24452,7 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,IQ3,IQ4,
      &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -24515,7 +24665,7 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,IQ3,IQ4,
      &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE

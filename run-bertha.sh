@@ -4,7 +4,7 @@ ulimit -s unlimited
 #./bertha-budget < input/$NAME
 #./bertha-nuclear < input/$NAME
 #./bertha-atomic < input/$NAME
-gfortran -mcmodel=large -O4 bertha-scf-09-04-2021.f -o bertha-scf -llapack -lblas
+gfortran -mcmodel=large -O4 bertha-scf.f -o bertha-scf -llapack -lblas
 ./bertha-scf < input/$NAME
 #./bertha-mbpt < input/$NAME
 #./bertha-rspt < input/$NAME
