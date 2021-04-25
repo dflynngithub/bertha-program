@@ -35307,6 +35307,72 @@ C
       END
 C
 C
+      SUBROUTINE DGNUMAP(ARRAY,TITLE,NDIM)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C  DDDDDDD   GGGGGG  NN    NN UU    UU MM       MM    AA    PPPPPPP    C
+C  DD    DD GG    GG NNN   NN UU    UU MMM     MMM   AAAA   PP    PP   C
+C  DD    DD GG       NNNN  NN UU    UU MMMM   MMMM  AA  AA  PP    PP   C
+C  DD    DD GG       NN NN NN UU    UU MM MM MM MM AA    AA PP    PP   C
+C  DD    DD GG   GGG NN  NNNN UU    UU MM  MMM  MM AAAAAAAA PPPPPPP    C
+C  DD    DD GG    GG NN   NNN UU    UU MM   M   MM AA    AA PP         C
+C  DDDDDDD   GGGGGG  NN    NN  UUUUUU  MM       MM AA    AA PP         C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  DGNUMAP EXPORTS AN ARRAY OF DOUBLE-PRECISION NUMBERS TO AN EXTERNAL C
+C  DATA FILE AND PLOTS IT AS ONE HEAT MAP.                             C
+C**********************************************************************C
+      INCLUDE 'parameters.h'
+C
+      CHARACTER*80 TITLE
+C
+      DIMENSION ARRAY(NDIM,NDIM)
+C
+C     PRINT TO EXTERNAL DATA FILE
+      OPEN(UNIT=8,FILE="plots/"//TRIM(TITLE)//".dat",STATUS='UNKNOWN')
+      REWIND(UNIT=8)
+      DO I=1,NDIM
+        WRITE(8, *) (ARRAY(I,J),J=1,NDIM)
+      ENDDO
+      CLOSE(UNIT=8)
+C
+      XEND = DFLOAT(NDIM)-0.5D0
+      YEND = DFLOAT(NDIM)-0.5D0
+C
+C     WRITE GNUPLOT MAKE FILE
+      OPEN(UNIT=9,FILE='plots/'//TRIM(TITLE)//'.gnuplot',
+     &                                                 STATUS='REPLACE')
+      WRITE(9,'(A)') '#'//TRIM(TITLE)//'.gnuplot'
+      WRITE(9,'(A)') '#'
+      WRITE(9,'(A)') '#  Usage:'
+      WRITE(9,'(A)') '#  gnuplot < '//TRIM(TITLE)//'.gnuplot'
+      WRITE(9,'(A)') '#'
+      WRITE(9,'(A)') '#'
+      WRITE(9,'(A)') '# Terminal output specs'
+      WRITE(9,'(A)') 'set terminal pdf size 4,4'
+      WRITE(9,'(A)') 'set output "plots/'//TRIM(TITLE)//'.pdf"'
+      WRITE(9,'(A)') '#'
+      WRITE(9,'(A)') 'load "plots/pals/jet2.pal"'
+      WRITE(9,'(A)') '#'
+      WRITE(9,'(A)') '# Axes and title'
+      WRITE(9,'(A)') 'set title sprintf("'//TRIM(TITLE)//'")'
+      WRITE(9,'(A,F6.1,A)') 'set xrange [-0.5:',XEND,']'
+      WRITE(9,'(A,F6.1,A)') 'set yrange [',YEND,':-0.5] reverse'
+      WRITE(9,'(A)') '#'
+      WRITE(9,'(A)') '# Plot data to file'
+      WRITE(9,'(A,I2,A,I2,A)') 'plot "plots/'//TRIM(TITLE)//'.dat"'
+     &                                    //' matrix with image notitle'
+      CLOSE(UNIT=9)
+C
+C     EXECUTE GNUPLOT COMMAND IN TERMINAL
+      CALL SYSTEM('gnuplot plots/'//TRIM(TITLE)//'.gnuplot')
+      CALL SYSTEM('xdg-open plots/'//TRIM(TITLE)//'.pdf')
+C
+      RETURN
+      END
+C
+C
       SUBROUTINE ZGNUMAP(ARRAY,TITLE,NDIM)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
