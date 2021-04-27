@@ -13225,7 +13225,7 @@ C
 C     BATCH TYPE 01: 
 C     DIRECT INTEGRALS   ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES G^{T1 T1,T2 T2}
-      IF(IFLG(1).EQ.1) THEN
+      IF(IFLG(1).EQ.1.AND.MA.EQ.MB.AND.MC.EQ.MD) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13254,7 +13254,7 @@ C
 C     BATCH TYPE 02:
 C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
 C     CALCULATES G^{T1 T1,T2 T2}
-      IF(IFLG(2).EQ.1) THEN
+      IF(IFLG(2).EQ.1.AND.MA.EQ.MB.AND.MD.EQ.MC) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13280,7 +13280,7 @@ C
 C     BATCH TYPE 03:
 C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES G^{T2 T2,T1 T1}
-      IF(IFLG(3).EQ.1) THEN
+      IF(IFLG(3).EQ.1.AND.MC.EQ.MD.AND.MA.EQ.MB) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13306,7 +13306,7 @@ C
 C     BATCH TYPE 04:
 C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES G^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(4).EQ.1) THEN
+      IF(IFLG(4).EQ.1.AND.MC.EQ.MD.AND.MB.EQ.MA) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13335,7 +13335,7 @@ C
 C     BATCH TYPE 05:             ~       ~
 C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES G^{T1 T2,T2 T1}
-      IF(IFLG(5).EQ.1) THEN
+      IF(IFLG(5).EQ.1.AND.MA.EQ.MD.AND.MC.EQ.MB) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13364,7 +13364,7 @@ C
 C     BATCH TYPE 06:             ~       ~
 C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
 C     CALCULATES G^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(6).EQ.1) THEN
+      IF(IFLG(6).EQ.1.AND.MA.EQ.MC.AND.MD.EQ.MB) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13390,7 +13390,7 @@ C
 C     BATCH TYPE 07:             ~       ~
 C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES G^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(7).EQ.1) THEN
+      IF(IFLG(7).EQ.1.AND.MB.EQ.MD.AND.MC.EQ.MA) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13416,7 +13416,7 @@ C
 C     BATCH TYPE 08:             ~       ~
 C     EXCHANGE INTEGRALS  ( MB, MC| MD, MA) =         ( MB, MA| MD, MC)
 C     CALCULATES G^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
-      IF(IFLG(8).EQ.1) THEN
+      IF(IFLG(8).EQ.1.AND.MB.EQ.MC.AND.MD.EQ.MA) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13442,7 +13442,7 @@ C
 C     BATCH TYPE 09:         ~       ~    
 C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES G^{T2 T1,T1 T2}
-      IF(IFLG(9).EQ.1) THEN
+      IF(IFLG(9).EQ.1.AND.MC.EQ.MB.AND.MA.EQ.MD) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13468,7 +13468,7 @@ C
 C     BATCH TYPE 10:         ~       ~    
 C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
 C     CALCULATES G^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(10).EQ.1) THEN
+      IF(IFLG(10).EQ.1.AND.MC.EQ.MA.AND.MB.EQ.MD) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13494,7 +13494,7 @@ C
 C     BATCH TYPE 11:         ~       ~
 C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
 C     CALCULATES G^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(11).EQ.1) THEN
+      IF(IFLG(11).EQ.1.AND.MD.EQ.MB.AND.MA.EQ.MC) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13528,7 +13528,7 @@ C
 C     BATCH TYPE 01: 
 C     DIRECT INTEGRALS   ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES Q^{T1 T1,T2 T2}
-      IF(IFLG(1).EQ.1) THEN
+      IF(IFLG(1).EQ.1.AND.MA.EQ.MB.AND.MC.EQ.MD) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13557,7 +13557,7 @@ C
 C     BATCH TYPE 02:
 C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
 C     CALCULATES Q^{T1 T1,T2 T2}
-      IF(IFLG(2).EQ.1) THEN
+      IF(IFLG(2).EQ.1.AND.MA.EQ.MB.AND.MD.EQ.MC) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13583,7 +13583,7 @@ C
 C     BATCH TYPE 03:
 C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES Q^{T2 T2,T1 T1}
-      IF(IFLG(3).EQ.1) THEN
+      IF(IFLG(3).EQ.1.AND.MC.EQ.MD.AND.MA.EQ.MB) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13609,7 +13609,7 @@ C
 C     BATCH TYPE 04:
 C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES Q^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(4).EQ.1) THEN
+      IF(IFLG(4).EQ.1.AND.MC.EQ.MD.AND.MB.EQ.MA) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13638,7 +13638,7 @@ C
 C     BATCH TYPE 05:             ~       ~
 C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES Q^{T1 T2,T2 T1}
-      IF(IFLG(5).EQ.1) THEN
+      IF(IFLG(5).EQ.1.AND.MA.EQ.MD.AND.MC.EQ.MB) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13667,7 +13667,7 @@ C
 C     BATCH TYPE 06:             ~       ~
 C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
 C     CALCULATES Q^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(6).EQ.1) THEN
+      IF(IFLG(6).EQ.1.AND.MA.EQ.MC.AND.MD.EQ.MB) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13693,7 +13693,7 @@ C
 C     BATCH TYPE 07:             ~       ~
 C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(7).EQ.1) THEN
+      IF(IFLG(7).EQ.1.AND.MB.EQ.MD.AND.MC.EQ.MA) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13719,7 +13719,7 @@ C
 C     BATCH TYPE 08:             ~       ~
 C     EXCHANGE INTEGRALS  ( MB, MC| MD, MA) =         ( MB, MA| MD, MC)
 C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
-      IF(IFLG(8).EQ.1) THEN
+      IF(IFLG(8).EQ.1.AND.MB.EQ.MC.AND.MD.EQ.MA) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13745,7 +13745,7 @@ C
 C     BATCH TYPE 09:         ~       ~    
 C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES Q^{T2 T1,T1 T2}
-      IF(IFLG(9).EQ.1) THEN
+      IF(IFLG(9).EQ.1.AND.MC.EQ.MB.AND.MA.EQ.MD) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13771,7 +13771,7 @@ C
 C     BATCH TYPE 10:         ~       ~    
 C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
 C     CALCULATES Q^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(10).EQ.1) THEN
+      IF(IFLG(10).EQ.1.AND.MC.EQ.MA.AND.MB.EQ.MD) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13797,7 +13797,7 @@ C
 C     BATCH TYPE 11:         ~       ~
 C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
 C     CALCULATES Q^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(11).EQ.1) THEN
+      IF(IFLG(11).EQ.1.AND.MD.EQ.MB.AND.MA.EQ.MC) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
