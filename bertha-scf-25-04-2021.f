@@ -13921,10 +13921,26 @@ C     CALCULATES G^{T1 T1,T2 T2}
 C
             GDIR(NA1+IBAS,NB1+JBAS) = GDIR(NA1+IBAS,NB1+JBAS)
      &                     +           RR(N, 1)*DENT(NC1+KBAS,ND1+LBAS)
+     &                     +           RR(N, 2)*DENT(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N, 3)*DENT(NC2+KBAS,ND1+LBAS)
      &                     +           RR(N, 4)*DENT(NC2+KBAS,ND2+LBAS)
+C
+            GDIR(NA1+IBAS,NB2+JBAS) = GDIR(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N, 5)*DENT(NC1+KBAS,ND1+LBAS)
+     &                     +           RR(N, 6)*DENT(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N, 7)*DENT(NC2+KBAS,ND1+LBAS)
+     &                     +           RR(N, 8)*DENT(NC2+KBAS,ND2+LBAS)
+C
+            GDIR(NA2+IBAS,NB1+JBAS) = GDIR(NA2+IBAS,NB1+JBAS)
+     &                     +           RR(N, 9)*DENT(NC1+KBAS,ND1+LBAS)
+     &                     +           RR(N,10)*DENT(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N,11)*DENT(NC2+KBAS,ND1+LBAS)
+     &                     +           RR(N,12)*DENT(NC2+KBAS,ND2+LBAS)
 C
             GDIR(NA2+IBAS,NB2+JBAS) = GDIR(NA2+IBAS,NB2+JBAS)
      &                     +           RR(N,13)*DENT(NC1+KBAS,ND1+LBAS)
+     &                     +           RR(N,14)*DENT(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N,15)*DENT(NC2+KBAS,ND1+LBAS)
      &                     +           RR(N,16)*DENT(NC2+KBAS,ND2+LBAS)
 C
 101         CONTINUE
@@ -13950,10 +13966,26 @@ C     CALCULATES G^{T1 T1,T2 T2}
 C
               GDIR(NA1+IBAS,NB1+JBAS) = GDIR(NA1+IBAS,NB1+JBAS)
      &                     +      PCD1*RR(N, 4)*DENT(ND1+LBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N, 2)*DENT(ND1+LBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N, 3)*DENT(ND2+LBAS,NC1+KBAS)
      &                     +      PCD1*RR(N, 1)*DENT(ND2+LBAS,NC2+KBAS)
+C
+              GDIR(NA1+IBAS,NB2+JBAS) = GDIR(NA1+IBAS,NB2+JBAS)
+     &                     +      PCD1*RR(N, 8)*DENT(ND1+LBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N, 6)*DENT(ND1+LBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N, 7)*DENT(ND2+LBAS,NC1+KBAS)
+     &                     +      PCD1*RR(N, 5)*DENT(ND2+LBAS,NC2+KBAS)
+C
+              GDIR(NA2+IBAS,NB1+JBAS) = GDIR(NA2+IBAS,NB1+JBAS)
+     &                     +      PCD1*RR(N,12)*DENT(ND1+LBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N,10)*DENT(ND1+LBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N,11)*DENT(ND2+LBAS,NC1+KBAS)
+     &                     +      PCD1*RR(N, 9)*DENT(ND2+LBAS,NC2+KBAS)
 C
               GDIR(NA2+IBAS,NB2+JBAS) = GDIR(NA2+IBAS,NB2+JBAS)
      &                     +      PCD1*RR(N,16)*DENT(ND1+LBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N,14)*DENT(ND1+LBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N,15)*DENT(ND2+LBAS,NC1+KBAS)
      &                     +      PCD1*RR(N,13)*DENT(ND2+LBAS,NC2+KBAS)
 C
 102         CONTINUE
@@ -13976,10 +14008,26 @@ C     CALCULATES G^{T2 T2,T1 T1}
 C
             GDIR(NC1+KBAS,ND1+LBAS) = GDIR(NC1+KBAS,ND1+LBAS)
      &                     +           RR(N, 1)*DENT(NA1+IBAS,NB1+JBAS)
+     &                     +           RR(N, 5)*DENT(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N, 9)*DENT(NA2+IBAS,NB1+JBAS)
      &                     +           RR(N,13)*DENT(NA2+IBAS,NB2+JBAS)
+C
+            GDIR(NC1+KBAS,ND2+LBAS) = GDIR(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N, 2)*DENT(NA1+IBAS,NB1+JBAS)
+     &                     +           RR(N, 6)*DENT(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N,10)*DENT(NA2+IBAS,NB1+JBAS)
+     &                     +           RR(N,14)*DENT(NA2+IBAS,NB2+JBAS)
+C
+            GDIR(NC2+KBAS,ND1+LBAS) = GDIR(NC2+KBAS,ND1+LBAS)
+     &                     +           RR(N, 3)*DENT(NA1+IBAS,NB1+JBAS)
+     &                     +           RR(N, 7)*DENT(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N,11)*DENT(NA2+IBAS,NB1+JBAS)
+     &                     +           RR(N,15)*DENT(NA2+IBAS,NB2+JBAS)
 C
             GDIR(NC2+KBAS,ND2+LBAS) = GDIR(NC2+KBAS,ND2+LBAS)
      &                     +           RR(N, 4)*DENT(NA1+IBAS,NB1+JBAS)
+     &                     +           RR(N, 8)*DENT(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N,12)*DENT(NA2+IBAS,NB1+JBAS)
      &                     +           RR(N,16)*DENT(NA2+IBAS,NB2+JBAS)
 C
 103         CONTINUE
@@ -14002,10 +14050,26 @@ C     CALCULATES G^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
 C
             GDIR(NC1+KBAS,ND1+LBAS) = GDIR(NC1+KBAS,ND1+LBAS)
      &                     + PAB1*     RR(N,13)*DENT(NB1+JBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 5)*DENT(NB1+JBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N, 9)*DENT(NB2+JBAS,NA1+IBAS)
      &                     + PAB1*     RR(N, 1)*DENT(NB2+JBAS,NA2+IBAS)
+C
+            GDIR(NC1+KBAS,ND2+LBAS) = GDIR(NC1+KBAS,ND2+LBAS)
+     &                     + PAB1*     RR(N,14)*DENT(NB1+JBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 6)*DENT(NB1+JBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,10)*DENT(NB2+JBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 2)*DENT(NB2+JBAS,NA2+IBAS)
+C
+            GDIR(NC2+KBAS,ND1+LBAS) = GDIR(NC2+KBAS,ND1+LBAS)
+     &                     + PAB1*     RR(N,15)*DENT(NB1+JBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 7)*DENT(NB1+JBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,11)*DENT(NB2+JBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 3)*DENT(NB2+JBAS,NA2+IBAS)
 C
             GDIR(NC2+KBAS,ND2+LBAS) = GDIR(NC2+KBAS,ND2+LBAS)
      &                     + PAB1*     RR(N,16)*DENT(NB1+JBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 8)*DENT(NB1+JBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,12)*DENT(NB2+JBAS,NA1+IBAS)
      &                     + PAB1*     RR(N, 4)*DENT(NB2+JBAS,NA2+IBAS)
 C
 104         CONTINUE
@@ -14031,10 +14095,26 @@ C     CALCULATES G^{T1 T2,T2 T1}
 C
             GXCH(NA1+IBAS,ND1+LBAS) = GXCH(NA1+IBAS,ND1+LBAS)
      &                     +           RR(N, 1)*DENT(NC1+KBAS,NB1+JBAS)
+     &                     +           RR(N, 5)*DENT(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N, 3)*DENT(NC2+KBAS,NB1+JBAS)
      &                     +           RR(N, 7)*DENT(NC2+KBAS,NB2+JBAS)
+C
+            GXCH(NA1+IBAS,ND2+LBAS) = GXCH(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N, 2)*DENT(NC1+KBAS,NB1+JBAS)
+     &                     +           RR(N, 6)*DENT(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N, 4)*DENT(NC2+KBAS,NB1+JBAS)
+     &                     +           RR(N, 8)*DENT(NC2+KBAS,NB2+JBAS)
+C
+            GXCH(NA2+IBAS,ND1+LBAS) = GXCH(NA2+IBAS,ND1+LBAS)
+     &                     +           RR(N, 9)*DENT(NC1+KBAS,NB1+JBAS)
+     &                     +           RR(N,13)*DENT(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N,11)*DENT(NC2+KBAS,NB1+JBAS)
+     &                     +           RR(N,15)*DENT(NC2+KBAS,NB2+JBAS)
 C
             GXCH(NA2+IBAS,ND2+LBAS) = GXCH(NA2+IBAS,ND2+LBAS)
      &                     +           RR(N,10)*DENT(NC1+KBAS,NB1+JBAS)
+     &                     +           RR(N,14)*DENT(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N,12)*DENT(NC2+KBAS,NB1+JBAS)
      &                     +           RR(N,16)*DENT(NC2+KBAS,NB2+JBAS)
 C
 105         CONTINUE
@@ -14060,10 +14140,26 @@ C     CALCULATES G^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
 C
             GXCH(NA1+IBAS,NC1+KBAS) = GXCH(NA1+IBAS,NC1+KBAS)
      &                     +      PCD1*RR(N, 4)*DENT(ND1+LBAS,NB1+JBAS)
+     &                     +      PCD1*RR(N, 8)*DENT(ND1+LBAS,NB2+JBAS)
+     &                     +      PCD2*RR(N, 3)*DENT(ND2+LBAS,NB1+JBAS)
      &                     +      PCD2*RR(N, 7)*DENT(ND2+LBAS,NB2+JBAS)
+C
+            GXCH(NA1+IBAS,NC2+KBAS) = GXCH(NA1+IBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N, 2)*DENT(ND1+LBAS,NB1+JBAS)
+     &                     +      PCD2*RR(N, 6)*DENT(ND1+LBAS,NB2+JBAS)
+     &                     +      PCD1*RR(N, 1)*DENT(ND2+LBAS,NB1+JBAS)
+     &                     +      PCD1*RR(N, 5)*DENT(ND2+LBAS,NB2+JBAS)
+C
+            GXCH(NA2+IBAS,NC1+KBAS) = GXCH(NA2+IBAS,NC1+KBAS)
+     &                     +      PCD1*RR(N,12)*DENT(ND1+LBAS,NB1+JBAS)
+     &                     +      PCD1*RR(N,16)*DENT(ND1+LBAS,NB2+JBAS)
+     &                     +      PCD2*RR(N,11)*DENT(ND2+LBAS,NB1+JBAS)
+     &                     +      PCD2*RR(N,15)*DENT(ND2+LBAS,NB2+JBAS)
 C
             GXCH(NA2+IBAS,NC2+KBAS) = GXCH(NA2+IBAS,NC2+KBAS)
      &                     +      PCD2*RR(N,10)*DENT(ND1+LBAS,NB1+JBAS)
+     &                     +      PCD2*RR(N,14)*DENT(ND1+LBAS,NB2+JBAS)
+     &                     +      PCD1*RR(N, 9)*DENT(ND2+LBAS,NB1+JBAS)
      &                     +      PCD1*RR(N,13)*DENT(ND2+LBAS,NB2+JBAS)
 C
 106         CONTINUE
@@ -14086,10 +14182,26 @@ C     CALCULATES G^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
 C
             GXCH(NB1+JBAS,ND1+LBAS) = GXCH(NB1+JBAS,ND1+LBAS)
      &                     + PAB1*     RR(N,13)*DENT(NC1+KBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 5)*DENT(NC1+KBAS,NA2+IBAS)
+     &                     + PAB1*     RR(N,15)*DENT(NC2+KBAS,NA1+IBAS)
      &                     + PAB2*     RR(N, 7)*DENT(NC2+KBAS,NA2+IBAS)
+C
+            GXCH(NB1+JBAS,ND2+LBAS) = GXCH(NB1+JBAS,ND2+LBAS)
+     &                     + PAB1*     RR(N,14)*DENT(NC1+KBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 6)*DENT(NC1+KBAS,NA2+IBAS)
+     &                     + PAB1*     RR(N,16)*DENT(NC2+KBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 8)*DENT(NC2+KBAS,NA2+IBAS)
+C
+            GXCH(NB2+JBAS,ND1+LBAS) = GXCH(NB2+JBAS,ND1+LBAS)
+     &                     + PAB2*     RR(N, 9)*DENT(NC1+KBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 1)*DENT(NC1+KBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,11)*DENT(NC2+KBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 3)*DENT(NC2+KBAS,NA2+IBAS)
 C
             GXCH(NB2+JBAS,ND2+LBAS) = GXCH(NB2+JBAS,ND2+LBAS)
      &                     + PAB2*     RR(N,10)*DENT(NC1+KBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 2)*DENT(NC1+KBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,12)*DENT(NC2+KBAS,NA1+IBAS)
      &                     + PAB1*     RR(N, 4)*DENT(NC2+KBAS,NA2+IBAS)
 C
 107         CONTINUE
@@ -14112,11 +14224,27 @@ C     CALCULATES G^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
 C
             GXCH(NB1+JBAS,NC1+KBAS) = GXCH(NB1+JBAS,NC1+KBAS)
      &                     + PAB1*PCD1*RR(N,16)*DENT(ND1+LBAS,NA1+IBAS)
+     &                     + PAB2*PCD1*RR(N, 8)*DENT(ND1+LBAS,NA2+IBAS)
+     &                     + PAB1*PCD2*RR(N,15)*DENT(ND2+LBAS,NA1+IBAS)
      &                     + PAB2*PCD2*RR(N, 7)*DENT(ND2+LBAS,NA2+IBAS)
 C
+            GXCH(NB1+JBAS,NC2+KBAS) = GXCH(NB1+JBAS,NC2+KBAS)
+     &                     + PAB1*PCD2*RR(N,14)*DENT(ND1+LBAS,NA1+IBAS)
+     &                     + PAB2*PCD2*RR(N, 6)*DENT(ND1+LBAS,NA2+IBAS)
+     &                     + PAB1*PCD1*RR(N,13)*DENT(ND2+LBAS,NA1+IBAS)
+     &                     + PAB2*PCD1*RR(N, 5)*DENT(ND2+LBAS,NA2+IBAS)
+C
+            GXCH(NB2+JBAS,NC1+KBAS) = GXCH(NB2+JBAS,NC1+KBAS)
+     &                     + PAB2*PCD1*RR(N,12)*DENT(ND1+LBAS,NA1+IBAS)
+     &                     + PAB1*PCD1*RR(N, 4)*DENT(ND1+LBAS,NA2+IBAS)
+     &                     + PAB2*PCD2*RR(N,11)*DENT(ND2+LBAS,NA1+IBAS)
+     &                     + PAB1*PCD2*RR(N, 3)*DENT(ND2+LBAS,NA2+IBAS)
+C
             GXCH(NB2+JBAS,NC2+KBAS) = GXCH(NB2+JBAS,NC2+KBAS)
-     &                     + PAB1*PCD1*RR(N, 1)*DENT(ND2+LBAS,NA2+IBAS)
      &                     + PAB2*PCD2*RR(N,10)*DENT(ND1+LBAS,NA1+IBAS)
+     &                     + PAB1*PCD2*RR(N, 2)*DENT(ND1+LBAS,NA2+IBAS)
+     &                     + PAB2*PCD1*RR(N, 9)*DENT(ND2+LBAS,NA1+IBAS)
+     &                     + PAB1*PCD1*RR(N, 1)*DENT(ND2+LBAS,NA2+IBAS)
 C
 108         CONTINUE
           ENDDO
@@ -14138,10 +14266,26 @@ C     CALCULATES G^{T2 T1,T1 T2}
 C
             GXCH(NC1+KBAS,NB1+JBAS) = GXCH(NC1+KBAS,NB1+JBAS)
      &                     +           RR(N, 1)*DENT(NA1+IBAS,ND1+LBAS)
+     &                     +           RR(N, 2)*DENT(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N, 9)*DENT(NA2+IBAS,ND1+LBAS)
      &                     +           RR(N,10)*DENT(NA2+IBAS,ND2+LBAS)
+C
+            GXCH(NC1+KBAS,NB2+JBAS) = GXCH(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N, 5)*DENT(NA1+IBAS,ND1+LBAS)
+     &                     +           RR(N, 6)*DENT(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N,13)*DENT(NA2+IBAS,ND1+LBAS)
+     &                     +           RR(N,14)*DENT(NA2+IBAS,ND2+LBAS)
+C
+            GXCH(NC2+KBAS,NB1+JBAS) = GXCH(NC2+KBAS,NB1+JBAS)
+     &                     +           RR(N, 3)*DENT(NA1+IBAS,ND1+LBAS)
+     &                     +           RR(N, 4)*DENT(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N,11)*DENT(NA2+IBAS,ND1+LBAS)
+     &                     +           RR(N,12)*DENT(NA2+IBAS,ND2+LBAS)
 C
             GXCH(NC2+KBAS,NB2+JBAS) = GXCH(NC2+KBAS,NB2+JBAS)
      &                     +           RR(N, 7)*DENT(NA1+IBAS,ND1+LBAS)
+     &                     +           RR(N, 8)*DENT(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N,15)*DENT(NA2+IBAS,ND1+LBAS)
      &                     +           RR(N,16)*DENT(NA2+IBAS,ND2+LBAS)
 C
 109         CONTINUE
@@ -14164,10 +14308,26 @@ C     CALCULATES G^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
 C
             GXCH(NC1+KBAS,NA1+IBAS) = GXCH(NC1+KBAS,NA1+IBAS)
      &                     + PAB1*     RR(N,13)*DENT(NB1+JBAS,ND1+LBAS)
+     &                     + PAB1*     RR(N,14)*DENT(NB1+JBAS,ND2+LBAS)
+     &                     + PAB2*     RR(N, 9)*DENT(NB2+JBAS,ND1+LBAS)
      &                     + PAB2*     RR(N,10)*DENT(NB2+JBAS,ND2+LBAS)
+C
+            GXCH(NC1+KBAS,NA2+IBAS) = GXCH(NC1+KBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N, 5)*DENT(NB1+JBAS,ND1+LBAS)
+     &                     + PAB2*     RR(N, 6)*DENT(NB1+JBAS,ND2+LBAS)
+     &                     + PAB1*     RR(N, 1)*DENT(NB2+JBAS,ND1+LBAS)
+     &                     + PAB1*     RR(N, 2)*DENT(NB2+JBAS,ND2+LBAS)
+C
+            GXCH(NC2+KBAS,NA1+IBAS) = GXCH(NC2+KBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N,15)*DENT(NB1+JBAS,ND1+LBAS)
+     &                     + PAB1*     RR(N,16)*DENT(NB1+JBAS,ND2+LBAS)
+     &                     + PAB2*     RR(N,11)*DENT(NB2+JBAS,ND1+LBAS)
+     &                     + PAB2*     RR(N,12)*DENT(NB2+JBAS,ND2+LBAS)
 C
             GXCH(NC2+KBAS,NA2+IBAS) = GXCH(NC2+KBAS,NA2+IBAS)
      &                     + PAB2*     RR(N, 7)*DENT(NB1+JBAS,ND1+LBAS)
+     &                     + PAB2*     RR(N, 8)*DENT(NB1+JBAS,ND2+LBAS)
+     &                     + PAB1*     RR(N, 3)*DENT(NB2+JBAS,ND1+LBAS)
      &                     + PAB1*     RR(N, 4)*DENT(NB2+JBAS,ND2+LBAS)
 C
 110         CONTINUE
@@ -14190,428 +14350,9 @@ C     CALCULATES G^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
 C
             GXCH(ND1+LBAS,NB1+JBAS) = GXCH(ND1+LBAS,NB1+JBAS)
      &                     +      PCD1*RR(N, 4)*DENT(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD2*RR(N,10)*DENT(NA2+IBAS,NC2+KBAS)
-C
-            GXCH(ND2+LBAS,NB2+JBAS) = GXCH(ND2+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N, 7)*DENT(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N,13)*DENT(NA2+IBAS,NC2+KBAS)
-111         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     SKIP POINT FOR INTEGRAL SYMMETRY
-170   CONTINUE
-C
-C     ADD MORE CONTRIBUTIONS FOR GENERAL MOLECULAR BATCH
-      IF(ISYM.EQ.1) GOTO 200
-      IF(ISYM.EQ.2) GOTO 200
-C
-C     BATCH TYPE 01: 
-C     DIRECT INTEGRALS   ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
-C     CALCULATES G^{T1 T1,T2 T2}
-      IF(IFLG(1).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 201
-            N = N+1
-            IF(IMTX(M, 1).EQ.0) GOTO 201
-C
-            GDIR(NA1+IBAS,NB1+JBAS) = GDIR(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N, 2)*DENT(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N, 3)*DENT(NC2+KBAS,ND1+LBAS)
-C
-            GDIR(NA1+IBAS,NB2+JBAS) = GDIR(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N, 5)*DENT(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N, 6)*DENT(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N, 7)*DENT(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(N, 8)*DENT(NC2+KBAS,ND2+LBAS)
-C
-            GDIR(NA2+IBAS,NB1+JBAS) = GDIR(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(N, 9)*DENT(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N,10)*DENT(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N,11)*DENT(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(N,12)*DENT(NC2+KBAS,ND2+LBAS)
-C
-            GDIR(NA2+IBAS,NB2+JBAS) = GDIR(NA2+IBAS,NB2+JBAS)
-     &                     +           RR(N,14)*DENT(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N,15)*DENT(NC2+KBAS,ND1+LBAS)
-C
-201         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     SKIP REMAINING DIRECT BATCHES IF INTEGRAL SYMMETRY IS DISABLED
-      IF(.NOT.INTSYM) GOTO 260
-C
-C     BATCH TYPE 02:
-C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
-C     CALCULATES G^{T1 T1,T2 T2}
-      IF(IFLG(2).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 202
-            N = N+1
-            IF(IMTX(M, 2).EQ.0) GOTO 202
-C
-              GDIR(NA1+IBAS,NB1+JBAS) = GDIR(NA1+IBAS,NB1+JBAS)
-     &                     +      PCD2*RR(N, 2)*DENT(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N, 3)*DENT(ND2+LBAS,NC1+KBAS)
-C
-              GDIR(NA1+IBAS,NB2+JBAS) = GDIR(NA1+IBAS,NB2+JBAS)
-     &                     +      PCD1*RR(N, 8)*DENT(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD2*RR(N, 6)*DENT(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N, 7)*DENT(ND2+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 5)*DENT(ND2+LBAS,NC2+KBAS)
-C
-              GDIR(NA2+IBAS,NB1+JBAS) = GDIR(NA2+IBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N,12)*DENT(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD2*RR(N,10)*DENT(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N,11)*DENT(ND2+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 9)*DENT(ND2+LBAS,NC2+KBAS)
-C
-              GDIR(NA2+IBAS,NB2+JBAS) = GDIR(NA2+IBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N,14)*DENT(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N,15)*DENT(ND2+LBAS,NC1+KBAS)
-C
-202         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 03:
-C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
-C     CALCULATES G^{T2 T2,T1 T1}
-      IF(IFLG(3).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 203
-            N = N+1
-            IF(IMTX(M, 3).EQ.0) GOTO 203
-C
-            GDIR(NC1+KBAS,ND1+LBAS) = GDIR(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N, 5)*DENT(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N, 9)*DENT(NA2+IBAS,NB1+JBAS)
-C
-            GDIR(NC1+KBAS,ND2+LBAS) = GDIR(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N, 2)*DENT(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N, 6)*DENT(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N,10)*DENT(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(N,14)*DENT(NA2+IBAS,NB2+JBAS)
-C
-            GDIR(NC2+KBAS,ND1+LBAS) = GDIR(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(N, 3)*DENT(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N, 7)*DENT(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N,11)*DENT(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(N,15)*DENT(NA2+IBAS,NB2+JBAS)
-C
-            GDIR(NC2+KBAS,ND2+LBAS) = GDIR(NC2+KBAS,ND2+LBAS)
-     &                     +           RR(N, 8)*DENT(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N,12)*DENT(NA2+IBAS,NB1+JBAS)
-C
-203         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 04:
-C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
-C     CALCULATES G^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(4).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 204
-            N = N+1
-            IF(IMTX(M, 4).EQ.0) GOTO 204
-C
-            GDIR(NC1+KBAS,ND1+LBAS) = GDIR(NC1+KBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N, 5)*DENT(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N, 9)*DENT(NB2+JBAS,NA1+IBAS)
-C
-            GDIR(NC1+KBAS,ND2+LBAS) = GDIR(NC1+KBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N,14)*DENT(NB1+JBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 6)*DENT(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,10)*DENT(NB2+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 2)*DENT(NB2+JBAS,NA2+IBAS)
-C
-            GDIR(NC2+KBAS,ND1+LBAS) = GDIR(NC2+KBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N,15)*DENT(NB1+JBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 7)*DENT(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,11)*DENT(NB2+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 3)*DENT(NB2+JBAS,NA2+IBAS)
-C
-            GDIR(NC2+KBAS,ND2+LBAS) = GDIR(NC2+KBAS,ND2+LBAS)
-     &                     + PAB2*     RR(N, 8)*DENT(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,12)*DENT(NB2+JBAS,NA1+IBAS)
-C
-204         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     SKIP POINT FOR INTEGRAL SYMMETRY
-260   CONTINUE
-C
-C     BATCH TYPE 05:             ~       ~
-C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
-C     CALCULATES G^{T1 T2,T2 T1}
-      IF(IFLG(5).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 205
-            N = N+1
-            IF(IMTX(M, 5).EQ.0) GOTO 205
-C
-            GXCH(NA1+IBAS,ND1+LBAS) = GXCH(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N, 5)*DENT(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N, 3)*DENT(NC2+KBAS,NB1+JBAS)
-C
-            GXCH(NA1+IBAS,ND2+LBAS) = GXCH(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N, 2)*DENT(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N, 6)*DENT(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N, 4)*DENT(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(N, 8)*DENT(NC2+KBAS,NB2+JBAS)
-C
-            GXCH(NA2+IBAS,ND1+LBAS) = GXCH(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(N, 9)*DENT(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N,13)*DENT(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N,11)*DENT(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(N,15)*DENT(NC2+KBAS,NB2+JBAS)
-C
-            GXCH(NA2+IBAS,ND2+LBAS) = GXCH(NA2+IBAS,ND2+LBAS)
-     &                     +           RR(N,14)*DENT(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N,12)*DENT(NC2+KBAS,NB1+JBAS)
-C
-205         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     SKIP REMAINING EXCHANGE BATCHES IF INTEGRAL SYMMETRY IS DISABLED
-      IF(.NOT.INTSYM) GOTO 270
-C
-C     BATCH TYPE 06:             ~       ~
-C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
-C     CALCULATES G^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(6).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 206
-            N = N+1
-            IF(IMTX(M, 6).EQ.0) GOTO 206
-C
-            GXCH(NA1+IBAS,NC1+KBAS) = GXCH(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 8)*DENT(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N, 3)*DENT(ND2+LBAS,NB1+JBAS)
-C
-            GXCH(NA1+IBAS,NC2+KBAS) = GXCH(NA1+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N, 2)*DENT(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(N, 6)*DENT(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD1*RR(N, 1)*DENT(ND2+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N, 5)*DENT(ND2+LBAS,NB2+JBAS)
-C
-            GXCH(NA2+IBAS,NC1+KBAS) = GXCH(NA2+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N,12)*DENT(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N,16)*DENT(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N,11)*DENT(ND2+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(N,15)*DENT(ND2+LBAS,NB2+JBAS)
-C
-            GXCH(NA2+IBAS,NC2+KBAS) = GXCH(NA2+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N,14)*DENT(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD1*RR(N, 9)*DENT(ND2+LBAS,NB1+JBAS)
-C
-206         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 07:             ~       ~
-C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
-C     CALCULATES G^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(7).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 207
-            N = N+1
-            IF(IMTX(M, 7).EQ.0) GOTO 207
-C
-            GXCH(NB1+JBAS,ND1+LBAS) = GXCH(NB1+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N, 5)*DENT(NC1+KBAS,NA2+IBAS)
-     &                     + PAB1*     RR(N,15)*DENT(NC2+KBAS,NA1+IBAS)
-C
-            GXCH(NB1+JBAS,ND2+LBAS) = GXCH(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N,14)*DENT(NC1+KBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 6)*DENT(NC1+KBAS,NA2+IBAS)
-     &                     + PAB1*     RR(N,16)*DENT(NC2+KBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 8)*DENT(NC2+KBAS,NA2+IBAS)
-C
-            GXCH(NB2+JBAS,ND1+LBAS) = GXCH(NB2+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N, 9)*DENT(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 1)*DENT(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,11)*DENT(NC2+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 3)*DENT(NC2+KBAS,NA2+IBAS)
-C
-            GXCH(NB2+JBAS,ND2+LBAS) = GXCH(NB2+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N, 2)*DENT(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,12)*DENT(NC2+KBAS,NA1+IBAS)
-C
-207         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 08:             ~       ~
-C     EXCHANGE INTEGRALS  ( MB, MC| MD, MA) =         ( MB, MA| MD, MC)
-C     CALCULATES G^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
-      IF(IFLG(8).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 208
-            N = N+1
-            IF(IMTX(M, 8).EQ.0) GOTO 208
-C
-            GXCH(NB1+JBAS,NC1+KBAS) = GXCH(NB1+JBAS,NC1+KBAS)
-     &                     + PAB2*PCD1*RR(N, 8)*DENT(ND1+LBAS,NA2+IBAS)
-     &                     + PAB1*PCD2*RR(N,15)*DENT(ND2+LBAS,NA1+IBAS)
-C
-            GXCH(NB1+JBAS,NC2+KBAS) = GXCH(NB1+JBAS,NC2+KBAS)
-     &                     + PAB1*PCD2*RR(N,14)*DENT(ND1+LBAS,NA1+IBAS)
-     &                     + PAB2*PCD2*RR(N, 6)*DENT(ND1+LBAS,NA2+IBAS)
-     &                     + PAB1*PCD1*RR(N,13)*DENT(ND2+LBAS,NA1+IBAS)
-     &                     + PAB2*PCD1*RR(N, 5)*DENT(ND2+LBAS,NA2+IBAS)
-C
-            GXCH(NB2+JBAS,NC1+KBAS) = GXCH(NB2+JBAS,NC1+KBAS)
-     &                     + PAB2*PCD1*RR(N,12)*DENT(ND1+LBAS,NA1+IBAS)
-     &                     + PAB1*PCD1*RR(N, 4)*DENT(ND1+LBAS,NA2+IBAS)
-     &                     + PAB2*PCD2*RR(N,11)*DENT(ND2+LBAS,NA1+IBAS)
-     &                     + PAB1*PCD2*RR(N, 3)*DENT(ND2+LBAS,NA2+IBAS)
-C
-            GXCH(NB2+JBAS,NC2+KBAS) = GXCH(NB2+JBAS,NC2+KBAS)
-     &                     + PAB1*PCD2*RR(N, 2)*DENT(ND1+LBAS,NA2+IBAS)
-     &                     + PAB2*PCD1*RR(N, 9)*DENT(ND2+LBAS,NA1+IBAS)
-C
-208         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 09:         ~       ~    
-C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
-C     CALCULATES G^{T2 T1,T1 T2}
-      IF(IFLG(9).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 209
-            N = N+1
-            IF(IMTX(M, 9).EQ.0) GOTO 209
-C
-            GXCH(NC1+KBAS,NB1+JBAS) = GXCH(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N, 2)*DENT(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N, 9)*DENT(NA2+IBAS,ND1+LBAS)
-C
-            GXCH(NC1+KBAS,NB2+JBAS) = GXCH(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N, 5)*DENT(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N, 6)*DENT(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N,13)*DENT(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(N,14)*DENT(NA2+IBAS,ND2+LBAS)
-C
-            GXCH(NC2+KBAS,NB1+JBAS) = GXCH(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(N, 3)*DENT(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N, 4)*DENT(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N,11)*DENT(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(N,12)*DENT(NA2+IBAS,ND2+LBAS)
-C
-            GXCH(NC2+KBAS,NB2+JBAS) = GXCH(NC2+KBAS,NB2+JBAS)
-     &                     +           RR(N, 8)*DENT(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N,15)*DENT(NA2+IBAS,ND1+LBAS)
-C
-209         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 10:         ~       ~    
-C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
-C     CALCULATES G^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(10).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 210
-            N = N+1
-            IF(IMTX(M,10).EQ.0) GOTO 210
-C
-            GXCH(NC1+KBAS,NA1+IBAS) = GXCH(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N,14)*DENT(NB1+JBAS,ND2+LBAS)
-     &                     + PAB2*     RR(N, 9)*DENT(NB2+JBAS,ND1+LBAS)
-C
-            GXCH(NC1+KBAS,NA2+IBAS) = GXCH(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N, 5)*DENT(NB1+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N, 6)*DENT(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N, 1)*DENT(NB2+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N, 2)*DENT(NB2+JBAS,ND2+LBAS)
-C
-            GXCH(NC2+KBAS,NA1+IBAS) = GXCH(NC2+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N,15)*DENT(NB1+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N,16)*DENT(NB1+JBAS,ND2+LBAS)
-     &                     + PAB2*     RR(N,11)*DENT(NB2+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N,12)*DENT(NB2+JBAS,ND2+LBAS)
-C
-            GXCH(NC2+KBAS,NA2+IBAS) = GXCH(NC2+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N, 8)*DENT(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N, 3)*DENT(NB2+JBAS,ND1+LBAS)
-C
-210         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 11:         ~       ~
-C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
-C     CALCULATES G^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(11).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 211
-            N = N+1
-            IF(IMTX(M,11).EQ.0) GOTO 211
-C
-            GXCH(ND1+LBAS,NB1+JBAS) = GXCH(ND1+LBAS,NB1+JBAS)
      &                     +      PCD2*RR(N, 2)*DENT(NA1+IBAS,NC2+KBAS)
      &                     +      PCD1*RR(N,12)*DENT(NA2+IBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N,10)*DENT(NA2+IBAS,NC2+KBAS)
 C
             GXCH(ND1+LBAS,NB2+JBAS) = GXCH(ND1+LBAS,NB2+JBAS)
      &                     +      PCD1*RR(N, 8)*DENT(NA1+IBAS,NC1+KBAS)
@@ -14626,18 +14367,17 @@ C
      &                     +      PCD1*RR(N, 9)*DENT(NA2+IBAS,NC2+KBAS)
 C
             GXCH(ND2+LBAS,NB2+JBAS) = GXCH(ND2+LBAS,NB2+JBAS)
+     &                     +      PCD2*RR(N, 7)*DENT(NA1+IBAS,NC1+KBAS)
      &                     +      PCD1*RR(N, 5)*DENT(NA1+IBAS,NC2+KBAS)
      &                     +      PCD2*RR(N,15)*DENT(NA2+IBAS,NC1+KBAS)
-C
-211         CONTINUE
+     &                     +      PCD1*RR(N,13)*DENT(NA2+IBAS,NC2+KBAS)
+111         CONTINUE
           ENDDO
         ENDDO
       ENDIF
 C
 C     SKIP POINT FOR INTEGRAL SYMMETRY
-270   CONTINUE
-C
-200   CONTINUE
+170   CONTINUE
 C
 C**********************************************************************C
 C     OPEN-SHELL CONTRIBUTIONS...                                      C
@@ -14660,10 +14400,26 @@ C     CALCULATES Q^{T1 T1,T2 T2}
 C
             QDIR(NA1+IBAS,NB1+JBAS) = QDIR(NA1+IBAS,NB1+JBAS)
      &                     +           RR(N, 1)*DENO(NC1+KBAS,ND1+LBAS)
+     &                     +           RR(N, 2)*DENO(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N, 3)*DENO(NC2+KBAS,ND1+LBAS)
      &                     +           RR(N, 4)*DENO(NC2+KBAS,ND2+LBAS)
+C
+            QDIR(NA1+IBAS,NB2+JBAS) = QDIR(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N, 5)*DENO(NC1+KBAS,ND1+LBAS)
+     &                     +           RR(N, 6)*DENO(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N, 7)*DENO(NC2+KBAS,ND1+LBAS)
+     &                     +           RR(N, 8)*DENO(NC2+KBAS,ND2+LBAS)
+C
+            QDIR(NA2+IBAS,NB1+JBAS) = QDIR(NA2+IBAS,NB1+JBAS)
+     &                     +           RR(N, 9)*DENO(NC1+KBAS,ND1+LBAS)
+     &                     +           RR(N,10)*DENO(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N,11)*DENO(NC2+KBAS,ND1+LBAS)
+     &                     +           RR(N,12)*DENO(NC2+KBAS,ND2+LBAS)
 C
             QDIR(NA2+IBAS,NB2+JBAS) = QDIR(NA2+IBAS,NB2+JBAS)
      &                     +           RR(N,13)*DENO(NC1+KBAS,ND1+LBAS)
+     &                     +           RR(N,14)*DENO(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N,15)*DENO(NC2+KBAS,ND1+LBAS)
      &                     +           RR(N,16)*DENO(NC2+KBAS,ND2+LBAS)
 C
 301         CONTINUE
@@ -14689,10 +14445,26 @@ C     CALCULATES Q^{T1 T1,T2 T2}
 C
             QDIR(NA1+IBAS,NB1+JBAS) = QDIR(NA1+IBAS,NB1+JBAS)
      &                     +      PCD1*RR(N, 4)*DENO(ND1+LBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N, 2)*DENO(ND1+LBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N, 3)*DENO(ND2+LBAS,NC1+KBAS)
      &                     +      PCD1*RR(N, 1)*DENO(ND2+LBAS,NC2+KBAS)
+C
+            QDIR(NA1+IBAS,NB2+JBAS) = QDIR(NA1+IBAS,NB2+JBAS)
+     &                     +      PCD1*RR(N, 8)*DENO(ND1+LBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N, 6)*DENO(ND1+LBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N, 7)*DENO(ND2+LBAS,NC1+KBAS)
+     &                     +      PCD1*RR(N, 5)*DENO(ND2+LBAS,NC2+KBAS)
+C
+            QDIR(NA2+IBAS,NB1+JBAS) = QDIR(NA2+IBAS,NB1+JBAS)
+     &                     +      PCD1*RR(N,12)*DENO(ND1+LBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N,10)*DENO(ND1+LBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N,11)*DENO(ND2+LBAS,NC1+KBAS)
+     &                     +      PCD1*RR(N, 9)*DENO(ND2+LBAS,NC2+KBAS)
 C
             QDIR(NA2+IBAS,NB2+JBAS) = QDIR(NA2+IBAS,NB2+JBAS)
      &                     +      PCD1*RR(N,16)*DENO(ND1+LBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N,14)*DENO(ND1+LBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N,15)*DENO(ND2+LBAS,NC1+KBAS)
      &                     +      PCD1*RR(N,13)*DENO(ND2+LBAS,NC2+KBAS)
 C
 302         CONTINUE
@@ -14715,10 +14487,26 @@ C     CALCULATES Q^{T2 T2,T1 T1}
 C
             QDIR(NC1+KBAS,ND1+LBAS) = QDIR(NC1+KBAS,ND1+LBAS)
      &                     +           RR(N, 1)*DENO(NA1+IBAS,NB1+JBAS)
+     &                     +           RR(N, 5)*DENO(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N, 9)*DENO(NA2+IBAS,NB1+JBAS)
      &                     +           RR(N,13)*DENO(NA2+IBAS,NB2+JBAS)
+C
+            QDIR(NC1+KBAS,ND2+LBAS) = QDIR(NC1+KBAS,ND2+LBAS)
+     &                     +           RR(N, 2)*DENO(NA1+IBAS,NB1+JBAS)
+     &                     +           RR(N, 6)*DENO(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N,10)*DENO(NA2+IBAS,NB1+JBAS)
+     &                     +           RR(N,14)*DENO(NA2+IBAS,NB2+JBAS)
+C
+            QDIR(NC2+KBAS,ND1+LBAS) = QDIR(NC2+KBAS,ND1+LBAS)
+     &                     +           RR(N, 3)*DENO(NA1+IBAS,NB1+JBAS)
+     &                     +           RR(N, 7)*DENO(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N,11)*DENO(NA2+IBAS,NB1+JBAS)
+     &                     +           RR(N,15)*DENO(NA2+IBAS,NB2+JBAS)
 C
             QDIR(NC2+KBAS,ND2+LBAS) = QDIR(NC2+KBAS,ND2+LBAS)
      &                     +           RR(N, 4)*DENO(NA1+IBAS,NB1+JBAS)
+     &                     +           RR(N, 8)*DENO(NA1+IBAS,NB2+JBAS)
+     &                     +           RR(N,12)*DENO(NA2+IBAS,NB1+JBAS)
      &                     +           RR(N,16)*DENO(NA2+IBAS,NB2+JBAS)
 C
 303         CONTINUE
@@ -14741,10 +14529,26 @@ C     CALCULATES Q^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
 C
             QDIR(NC1+KBAS,ND1+LBAS) = QDIR(NC1+KBAS,ND1+LBAS)
      &                     + PAB1*     RR(N,13)*DENO(NB1+JBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 5)*DENO(NB1+JBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N, 9)*DENO(NB2+JBAS,NA1+IBAS)
      &                     + PAB1*     RR(N, 1)*DENO(NB2+JBAS,NA2+IBAS)
+C
+            QDIR(NC1+KBAS,ND2+LBAS) = QDIR(NC1+KBAS,ND2+LBAS)
+     &                     + PAB1*     RR(N,14)*DENO(NB1+JBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 6)*DENO(NB1+JBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,10)*DENO(NB2+JBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 2)*DENO(NB2+JBAS,NA2+IBAS)
+C
+            QDIR(NC2+KBAS,ND1+LBAS) = QDIR(NC2+KBAS,ND1+LBAS)
+     &                     + PAB1*     RR(N,15)*DENO(NB1+JBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 7)*DENO(NB1+JBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,11)*DENO(NB2+JBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 3)*DENO(NB2+JBAS,NA2+IBAS)
 C
             QDIR(NC2+KBAS,ND2+LBAS) = QDIR(NC2+KBAS,ND2+LBAS)
      &                     + PAB1*     RR(N,16)*DENO(NB1+JBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 8)*DENO(NB1+JBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,12)*DENO(NB2+JBAS,NA1+IBAS)
      &                     + PAB1*     RR(N, 4)*DENO(NB2+JBAS,NA2+IBAS)
 C
 304         CONTINUE
@@ -14770,10 +14574,26 @@ C     CALCULATES Q^{T1 T2,T2 T1}
 C
             QXCH(NA1+IBAS,ND1+LBAS) = QXCH(NA1+IBAS,ND1+LBAS)
      &                     +           RR(N, 1)*DENO(NC1+KBAS,NB1+JBAS)
+     &                     +           RR(N, 5)*DENO(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N, 3)*DENO(NC2+KBAS,NB1+JBAS)
      &                     +           RR(N, 7)*DENO(NC2+KBAS,NB2+JBAS)
+C
+            QXCH(NA1+IBAS,ND2+LBAS) = QXCH(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N, 2)*DENO(NC1+KBAS,NB1+JBAS)
+     &                     +           RR(N, 6)*DENO(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N, 4)*DENO(NC2+KBAS,NB1+JBAS)
+     &                     +           RR(N, 8)*DENO(NC2+KBAS,NB2+JBAS)
+C
+            QXCH(NA2+IBAS,ND1+LBAS) = QXCH(NA2+IBAS,ND1+LBAS)
+     &                     +           RR(N, 9)*DENO(NC1+KBAS,NB1+JBAS)
+     &                     +           RR(N,13)*DENO(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N,11)*DENO(NC2+KBAS,NB1+JBAS)
+     &                     +           RR(N,15)*DENO(NC2+KBAS,NB2+JBAS)
 C
             QXCH(NA2+IBAS,ND2+LBAS) = QXCH(NA2+IBAS,ND2+LBAS)
      &                     +           RR(N,10)*DENO(NC1+KBAS,NB1+JBAS)
+     &                     +           RR(N,14)*DENO(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N,12)*DENO(NC2+KBAS,NB1+JBAS)
      &                     +           RR(N,16)*DENO(NC2+KBAS,NB2+JBAS)
 C
 305         CONTINUE
@@ -14799,10 +14619,26 @@ C     CALCULATES Q^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
 C
             QXCH(NA1+IBAS,NC1+KBAS) = QXCH(NA1+IBAS,NC1+KBAS)
      &                     +      PCD1*RR(N, 4)*DENO(ND1+LBAS,NB1+JBAS)
+     &                     +      PCD1*RR(N, 8)*DENO(ND1+LBAS,NB2+JBAS)
+     &                     +      PCD2*RR(N, 3)*DENO(ND2+LBAS,NB1+JBAS)
      &                     +      PCD2*RR(N, 7)*DENO(ND2+LBAS,NB2+JBAS)
+C
+            QXCH(NA1+IBAS,NC2+KBAS) = QXCH(NA1+IBAS,NC2+KBAS)
+     &                     +      PCD2*RR(N, 2)*DENO(ND1+LBAS,NB1+JBAS)
+     &                     +      PCD2*RR(N, 6)*DENO(ND1+LBAS,NB2+JBAS)
+     &                     +      PCD1*RR(N, 1)*DENO(ND2+LBAS,NB1+JBAS)
+     &                     +      PCD1*RR(N, 5)*DENO(ND2+LBAS,NB2+JBAS)
+C
+            QXCH(NA2+IBAS,NC1+KBAS) = QXCH(NA2+IBAS,NC1+KBAS)
+     &                     +      PCD1*RR(N,12)*DENO(ND1+LBAS,NB1+JBAS)
+     &                     +      PCD1*RR(N,16)*DENO(ND1+LBAS,NB2+JBAS)
+     &                     +      PCD2*RR(N,11)*DENO(ND2+LBAS,NB1+JBAS)
+     &                     +      PCD2*RR(N,15)*DENO(ND2+LBAS,NB2+JBAS)
 C
             QXCH(NA2+IBAS,NC2+KBAS) = QXCH(NA2+IBAS,NC2+KBAS)
      &                     +      PCD2*RR(N,10)*DENO(ND1+LBAS,NB1+JBAS)
+     &                     +      PCD2*RR(N,14)*DENO(ND1+LBAS,NB2+JBAS)
+     &                     +      PCD1*RR(N, 9)*DENO(ND2+LBAS,NB1+JBAS)
      &                     +      PCD1*RR(N,13)*DENO(ND2+LBAS,NB2+JBAS)
 C
 306         CONTINUE
@@ -14825,10 +14661,26 @@ C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
 C
             QXCH(NB1+JBAS,ND1+LBAS) = QXCH(NB1+JBAS,ND1+LBAS)
      &                     + PAB1*     RR(N,13)*DENO(NC1+KBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 5)*DENO(NC1+KBAS,NA2+IBAS)
+     &                     + PAB1*     RR(N,15)*DENO(NC2+KBAS,NA1+IBAS)
      &                     + PAB2*     RR(N, 7)*DENO(NC2+KBAS,NA2+IBAS)
+C
+            QXCH(NB1+JBAS,ND2+LBAS) = QXCH(NB1+JBAS,ND2+LBAS)
+     &                     + PAB1*     RR(N,14)*DENO(NC1+KBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 6)*DENO(NC1+KBAS,NA2+IBAS)
+     &                     + PAB1*     RR(N,16)*DENO(NC2+KBAS,NA1+IBAS)
+     &                     + PAB2*     RR(N, 8)*DENO(NC2+KBAS,NA2+IBAS)
+C
+            QXCH(NB2+JBAS,ND1+LBAS) = QXCH(NB2+JBAS,ND1+LBAS)
+     &                     + PAB2*     RR(N, 9)*DENO(NC1+KBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 1)*DENO(NC1+KBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,11)*DENO(NC2+KBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 3)*DENO(NC2+KBAS,NA2+IBAS)
 C
             QXCH(NB2+JBAS,ND2+LBAS) = QXCH(NB2+JBAS,ND2+LBAS)
      &                     + PAB2*     RR(N,10)*DENO(NC1+KBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N, 2)*DENO(NC1+KBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N,12)*DENO(NC2+KBAS,NA1+IBAS)
      &                     + PAB1*     RR(N, 4)*DENO(NC2+KBAS,NA2+IBAS)
 C
 307         CONTINUE
@@ -14851,10 +14703,26 @@ C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
 C
             QXCH(NB1+JBAS,NC1+KBAS) = QXCH(NB1+JBAS,NC1+KBAS)
      &                     + PAB1*PCD1*RR(N,16)*DENO(ND1+LBAS,NA1+IBAS)
+     &                     + PAB2*PCD1*RR(N, 8)*DENO(ND1+LBAS,NA2+IBAS)
+     &                     + PAB1*PCD2*RR(N,15)*DENO(ND2+LBAS,NA1+IBAS)
      &                     + PAB2*PCD2*RR(N, 7)*DENO(ND2+LBAS,NA2+IBAS)
+C
+            QXCH(NB1+JBAS,NC2+KBAS) = QXCH(NB1+JBAS,NC2+KBAS)
+     &                     + PAB1*PCD2*RR(N,14)*DENO(ND1+LBAS,NA1+IBAS)
+     &                     + PAB2*PCD2*RR(N, 6)*DENO(ND1+LBAS,NA2+IBAS)
+     &                     + PAB1*PCD1*RR(N,13)*DENO(ND2+LBAS,NA1+IBAS)
+     &                     + PAB2*PCD1*RR(N, 5)*DENO(ND2+LBAS,NA2+IBAS)
+C
+            QXCH(NB2+JBAS,NC1+KBAS) = QXCH(NB2+JBAS,NC1+KBAS)
+     &                     + PAB2*PCD1*RR(N,12)*DENO(ND1+LBAS,NA1+IBAS)
+     &                     + PAB1*PCD1*RR(N, 4)*DENO(ND1+LBAS,NA2+IBAS)
+     &                     + PAB2*PCD2*RR(N,11)*DENO(ND2+LBAS,NA1+IBAS)
+     &                     + PAB1*PCD2*RR(N, 3)*DENO(ND2+LBAS,NA2+IBAS)
 C
             QXCH(NB2+JBAS,NC2+KBAS) = QXCH(NB2+JBAS,NC2+KBAS)
      &                     + PAB2*PCD2*RR(N,10)*DENO(ND1+LBAS,NA1+IBAS)
+     &                     + PAB1*PCD2*RR(N, 2)*DENO(ND1+LBAS,NA2+IBAS)
+     &                     + PAB2*PCD1*RR(N, 9)*DENO(ND2+LBAS,NA1+IBAS)
      &                     + PAB1*PCD1*RR(N, 1)*DENO(ND2+LBAS,NA2+IBAS)
 C
 308         CONTINUE
@@ -14877,10 +14745,26 @@ C     CALCULATES Q^{T2 T1,T1 T2}
 C
             QXCH(NC1+KBAS,NB1+JBAS) = QXCH(NC1+KBAS,NB1+JBAS)
      &                     +           RR(N, 1)*DENO(NA1+IBAS,ND1+LBAS)
+     &                     +           RR(N, 2)*DENO(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N, 9)*DENO(NA2+IBAS,ND1+LBAS)
      &                     +           RR(N,10)*DENO(NA2+IBAS,ND2+LBAS)
+C
+            QXCH(NC1+KBAS,NB2+JBAS) = QXCH(NC1+KBAS,NB2+JBAS)
+     &                     +           RR(N, 5)*DENO(NA1+IBAS,ND1+LBAS)
+     &                     +           RR(N, 6)*DENO(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N,13)*DENO(NA2+IBAS,ND1+LBAS)
+     &                     +           RR(N,14)*DENO(NA2+IBAS,ND2+LBAS)
+C
+            QXCH(NC2+KBAS,NB1+JBAS) = QXCH(NC2+KBAS,NB1+JBAS)
+     &                     +           RR(N, 3)*DENO(NA1+IBAS,ND1+LBAS)
+     &                     +           RR(N, 4)*DENO(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N,11)*DENO(NA2+IBAS,ND1+LBAS)
+     &                     +           RR(N,12)*DENO(NA2+IBAS,ND2+LBAS)
 C
             QXCH(NC2+KBAS,NB2+JBAS) = QXCH(NC2+KBAS,NB2+JBAS)
      &                     +           RR(N, 7)*DENO(NA1+IBAS,ND1+LBAS)
+     &                     +           RR(N, 8)*DENO(NA1+IBAS,ND2+LBAS)
+     &                     +           RR(N,15)*DENO(NA2+IBAS,ND1+LBAS)
      &                     +           RR(N,16)*DENO(NA2+IBAS,ND2+LBAS)
 C
 309         CONTINUE
@@ -14903,10 +14787,26 @@ C     CALCULATES Q^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
 C
             QXCH(NC1+KBAS,NA1+IBAS) = QXCH(NC1+KBAS,NA1+IBAS)
      &                     + PAB1*     RR(N,13)*DENO(NB1+JBAS,ND1+LBAS)
+     &                     + PAB1*     RR(N,14)*DENO(NB1+JBAS,ND2+LBAS)
+     &                     + PAB2*     RR(N, 9)*DENO(NB2+JBAS,ND1+LBAS)
      &                     + PAB2*     RR(N,10)*DENO(NB2+JBAS,ND2+LBAS)
+C
+            QXCH(NC1+KBAS,NA2+IBAS) = QXCH(NC1+KBAS,NA2+IBAS)
+     &                     + PAB2*     RR(N, 5)*DENO(NB1+JBAS,ND1+LBAS)
+     &                     + PAB2*     RR(N, 6)*DENO(NB1+JBAS,ND2+LBAS)
+     &                     + PAB1*     RR(N, 1)*DENO(NB2+JBAS,ND1+LBAS)
+     &                     + PAB1*     RR(N, 2)*DENO(NB2+JBAS,ND2+LBAS)
+C
+            QXCH(NC2+KBAS,NA1+IBAS) = QXCH(NC2+KBAS,NA1+IBAS)
+     &                     + PAB1*     RR(N,15)*DENO(NB1+JBAS,ND1+LBAS)
+     &                     + PAB1*     RR(N,16)*DENO(NB1+JBAS,ND2+LBAS)
+     &                     + PAB2*     RR(N,11)*DENO(NB2+JBAS,ND1+LBAS)
+     &                     + PAB2*     RR(N,12)*DENO(NB2+JBAS,ND2+LBAS)
 C
             QXCH(NC2+KBAS,NA2+IBAS) = QXCH(NC2+KBAS,NA2+IBAS)
      &                     + PAB2*     RR(N, 7)*DENO(NB1+JBAS,ND1+LBAS)
+     &                     + PAB2*     RR(N, 8)*DENO(NB1+JBAS,ND2+LBAS)
+     &                     + PAB1*     RR(N, 3)*DENO(NB2+JBAS,ND1+LBAS)
      &                     + PAB1*     RR(N, 4)*DENO(NB2+JBAS,ND2+LBAS)
 C
 310         CONTINUE
@@ -14929,429 +14829,9 @@ C     CALCULATES Q^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
 C
             QXCH(ND1+LBAS,NB1+JBAS) = QXCH(ND1+LBAS,NB1+JBAS)
      &                     +      PCD1*RR(N, 4)*DENO(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD2*RR(N,10)*DENO(NA2+IBAS,NC2+KBAS)
-C
-            QXCH(ND2+LBAS,NB2+JBAS) = QXCH(ND2+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N, 7)*DENO(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N,13)*DENO(NA2+IBAS,NC2+KBAS)
-C
-311         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     SKIP POINT FOR INTEGRAL SYMMETRY
-370   CONTINUE
-C
-C     ADD MORE CONTRIBUTIONS FOR GENERAL MOLECULAR BATCH
-      IF(ISYM.EQ.1) GOTO 400
-      IF(ISYM.EQ.2) GOTO 400
-C
-C     BATCH TYPE 01: 
-C     DIRECT INTEGRALS   ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
-C     CALCULATES Q^{T1 T1,T2 T2}
-      IF(IFLG(1).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 401
-            N = N+1
-            IF(IMTX(M, 1).EQ.0) GOTO 401
-C
-            QDIR(NA1+IBAS,NB1+JBAS) = QDIR(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N, 2)*DENO(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N, 3)*DENO(NC2+KBAS,ND1+LBAS)
-C
-            QDIR(NA1+IBAS,NB2+JBAS) = QDIR(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N, 5)*DENO(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N, 6)*DENO(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N, 7)*DENO(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(N, 8)*DENO(NC2+KBAS,ND2+LBAS)
-C
-            QDIR(NA2+IBAS,NB1+JBAS) = QDIR(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(N, 9)*DENO(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N,10)*DENO(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N,11)*DENO(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(N,12)*DENO(NC2+KBAS,ND2+LBAS)
-C
-            QDIR(NA2+IBAS,NB2+JBAS) = QDIR(NA2+IBAS,NB2+JBAS)
-     &                     +           RR(N,14)*DENO(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N,15)*DENO(NC2+KBAS,ND1+LBAS)
-C
-401        CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     SKIP REMAINING DIRECT BATCHES IF INTEGRAL SYMMETRY IS DISABLED
-      IF(.NOT.INTSYM) GOTO 460
-C
-C     BATCH TYPE 02:
-C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
-C     CALCULATES Q^{T1 T1,T2 T2}
-      IF(IFLG(2).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 402
-            N = N+1
-            IF(IMTX(M, 2).EQ.0) GOTO 402
-C
-            QDIR(NA1+IBAS,NB1+JBAS) = QDIR(NA1+IBAS,NB1+JBAS)
-     &                     +      PCD2*RR(N, 2)*DENO(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N, 3)*DENO(ND2+LBAS,NC1+KBAS)
-C
-            QDIR(NA1+IBAS,NB2+JBAS) = QDIR(NA1+IBAS,NB2+JBAS)
-     &                     +      PCD1*RR(N, 8)*DENO(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD2*RR(N, 6)*DENO(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N, 7)*DENO(ND2+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 5)*DENO(ND2+LBAS,NC2+KBAS)
-C
-            QDIR(NA2+IBAS,NB1+JBAS) = QDIR(NA2+IBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N,12)*DENO(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD2*RR(N,10)*DENO(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N,11)*DENO(ND2+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 9)*DENO(ND2+LBAS,NC2+KBAS)
-C
-            QDIR(NA2+IBAS,NB2+JBAS) = QDIR(NA2+IBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N,14)*DENO(ND1+LBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N,15)*DENO(ND2+LBAS,NC1+KBAS)
-C
-402         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 03:
-C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
-C     CALCULATES Q^{T2 T2,T1 T1}
-      IF(IFLG(3).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 403
-            N = N+1
-            IF(IMTX(M, 3).EQ.0) GOTO 403
-C
-            QDIR(NC1+KBAS,ND1+LBAS) = QDIR(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N, 5)*DENO(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N, 9)*DENO(NA2+IBAS,NB1+JBAS)
-C
-            QDIR(NC1+KBAS,ND2+LBAS) = QDIR(NC1+KBAS,ND2+LBAS)
-     &                     +           RR(N, 2)*DENO(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N, 6)*DENO(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N,10)*DENO(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(N,14)*DENO(NA2+IBAS,NB2+JBAS)
-C
-            QDIR(NC2+KBAS,ND1+LBAS) = QDIR(NC2+KBAS,ND1+LBAS)
-     &                     +           RR(N, 3)*DENO(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N, 7)*DENO(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N,11)*DENO(NA2+IBAS,NB1+JBAS)
-     &                     +           RR(N,15)*DENO(NA2+IBAS,NB2+JBAS)
-C
-            QDIR(NC2+KBAS,ND2+LBAS) = QDIR(NC2+KBAS,ND2+LBAS)
-     &                     +           RR(N, 8)*DENO(NA1+IBAS,NB2+JBAS)
-     &                     +           RR(N,12)*DENO(NA2+IBAS,NB1+JBAS)
-C
-403         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 04:
-C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
-C     CALCULATES Q^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(4).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 404
-            N = N+1
-            IF(IMTX(M, 4).EQ.0) GOTO 404
-C
-            QDIR(NC1+KBAS,ND1+LBAS) = QDIR(NC1+KBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N, 5)*DENO(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N, 9)*DENO(NB2+JBAS,NA1+IBAS)
-C
-            QDIR(NC1+KBAS,ND2+LBAS) = QDIR(NC1+KBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N,14)*DENO(NB1+JBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 6)*DENO(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,10)*DENO(NB2+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 2)*DENO(NB2+JBAS,NA2+IBAS)
-C
-            QDIR(NC2+KBAS,ND1+LBAS) = QDIR(NC2+KBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N,15)*DENO(NB1+JBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 7)*DENO(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,11)*DENO(NB2+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 3)*DENO(NB2+JBAS,NA2+IBAS)
-C
-            QDIR(NC2+KBAS,ND2+LBAS) = QDIR(NC2+KBAS,ND2+LBAS)
-     &                     + PAB2*     RR(N, 8)*DENO(NB1+JBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,12)*DENO(NB2+JBAS,NA1+IBAS)
-C
-404         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     SKIP POINT FOR INTEGRAL SYMMETRY
-460   CONTINUE
-C
-C     BATCH TYPE 05:             ~       ~
-C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
-C     CALCULATES Q^{T1 T2,T2 T1}
-      IF(IFLG(5).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 405
-            N = N+1
-            IF(IMTX(M, 5).EQ.0) GOTO 405
-C
-            QXCH(NA1+IBAS,ND1+LBAS) = QXCH(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N, 5)*DENO(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N, 3)*DENO(NC2+KBAS,NB1+JBAS)
-C
-            QXCH(NA1+IBAS,ND2+LBAS) = QXCH(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N, 2)*DENO(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N, 6)*DENO(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N, 4)*DENO(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(N, 8)*DENO(NC2+KBAS,NB2+JBAS)
-C
-            QXCH(NA2+IBAS,ND1+LBAS) = QXCH(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(N, 9)*DENO(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N,13)*DENO(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N,11)*DENO(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(N,15)*DENO(NC2+KBAS,NB2+JBAS)
-C
-            QXCH(NA2+IBAS,ND2+LBAS) = QXCH(NA2+IBAS,ND2+LBAS)
-     &                     +           RR(N,14)*DENO(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N,12)*DENO(NC2+KBAS,NB1+JBAS)
-C
-405         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     SKIP REMAINING EXCHANGE BATCHES IF INTEGRAL SYMMETRY IS DISABLED
-      IF(.NOT.INTSYM) GOTO 470
-C
-C     BATCH TYPE 06:             ~       ~
-C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
-C     CALCULATES Q^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(6).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 406
-            N = N+1
-            IF(IMTX(M, 6).EQ.0) GOTO 406
-C
-            QXCH(NA1+IBAS,NC1+KBAS) = QXCH(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 8)*DENO(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N, 3)*DENO(ND2+LBAS,NB1+JBAS)
-C
-            QXCH(NA1+IBAS,NC2+KBAS) = QXCH(NA1+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N, 2)*DENO(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(N, 6)*DENO(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD1*RR(N, 1)*DENO(ND2+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N, 5)*DENO(ND2+LBAS,NB2+JBAS)
-C
-            QXCH(NA2+IBAS,NC1+KBAS) = QXCH(NA2+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N,12)*DENO(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N,16)*DENO(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N,11)*DENO(ND2+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(N,15)*DENO(ND2+LBAS,NB2+JBAS)
-C
-            QXCH(NA2+IBAS,NC2+KBAS) = QXCH(NA2+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N,14)*DENO(ND1+LBAS,NB2+JBAS)
-     &                     +      PCD1*RR(N, 9)*DENO(ND2+LBAS,NB1+JBAS)
-C
-406         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 07:             ~       ~
-C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
-C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(7).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 407
-            N = N+1
-            IF(IMTX(M, 7).EQ.0) GOTO 407
-C
-            QXCH(NB1+JBAS,ND1+LBAS) = QXCH(NB1+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N, 5)*DENO(NC1+KBAS,NA2+IBAS)
-     &                     + PAB1*     RR(N,15)*DENO(NC2+KBAS,NA1+IBAS)
-C
-            QXCH(NB1+JBAS,ND2+LBAS) = QXCH(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N,14)*DENO(NC1+KBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 6)*DENO(NC1+KBAS,NA2+IBAS)
-     &                     + PAB1*     RR(N,16)*DENO(NC2+KBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 8)*DENO(NC2+KBAS,NA2+IBAS)
-C
-            QXCH(NB2+JBAS,ND1+LBAS) = QXCH(NB2+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N, 9)*DENO(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 1)*DENO(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,11)*DENO(NC2+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 3)*DENO(NC2+KBAS,NA2+IBAS)
-C
-            QXCH(NB2+JBAS,ND2+LBAS) = QXCH(NB2+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N, 2)*DENO(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N,12)*DENO(NC2+KBAS,NA1+IBAS)
-C
-407         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 08:             ~       ~
-C     EXCHANGE INTEGRALS  ( MB, MC| MD, MA) =         ( MB, MA| MD, MC)
-C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
-      IF(IFLG(8).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 408
-            N = N+1
-            IF(IMTX(M, 8).EQ.0) GOTO 408
-C
-            QXCH(NB1+JBAS,NC1+KBAS) = QXCH(NB1+JBAS,NC1+KBAS)
-     &                     + PAB2*PCD1*RR(N, 8)*DENO(ND1+LBAS,NA2+IBAS)
-     &                     + PAB1*PCD2*RR(N,15)*DENO(ND2+LBAS,NA1+IBAS)
-C
-            QXCH(NB1+JBAS,NC2+KBAS) = QXCH(NB1+JBAS,NC2+KBAS)
-     &                     + PAB1*PCD2*RR(N,14)*DENO(ND1+LBAS,NA1+IBAS)
-     &                     + PAB2*PCD2*RR(N, 6)*DENO(ND1+LBAS,NA2+IBAS)
-     &                     + PAB1*PCD1*RR(N,13)*DENO(ND2+LBAS,NA1+IBAS)
-     &                     + PAB2*PCD1*RR(N, 5)*DENO(ND2+LBAS,NA2+IBAS)
-C
-            QXCH(NB2+JBAS,NC1+KBAS) = QXCH(NB2+JBAS,NC1+KBAS)
-     &                     + PAB2*PCD1*RR(N,12)*DENO(ND1+LBAS,NA1+IBAS)
-     &                     + PAB1*PCD1*RR(N, 4)*DENO(ND1+LBAS,NA2+IBAS)
-     &                     + PAB2*PCD2*RR(N,11)*DENO(ND2+LBAS,NA1+IBAS)
-     &                     + PAB1*PCD2*RR(N, 3)*DENO(ND2+LBAS,NA2+IBAS)
-C
-            QXCH(NB2+JBAS,NC2+KBAS) = QXCH(NB2+JBAS,NC2+KBAS)
-     &                     + PAB1*PCD2*RR(N, 2)*DENO(ND1+LBAS,NA2+IBAS)
-     &                     + PAB2*PCD1*RR(N, 9)*DENO(ND2+LBAS,NA1+IBAS)
-C
-408         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 09:         ~       ~    
-C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
-C     CALCULATES Q^{T2 T1,T1 T2}
-      IF(IFLG(9).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 409
-            N = N+1
-            IF(IMTX(M,9).EQ.0) GOTO 409
-C
-            QXCH(NC1+KBAS,NB1+JBAS) = QXCH(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N, 2)*DENO(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N, 9)*DENO(NA2+IBAS,ND1+LBAS)
-C
-            QXCH(NC1+KBAS,NB2+JBAS) = QXCH(NC1+KBAS,NB2+JBAS)
-     &                     +           RR(N, 5)*DENO(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N, 6)*DENO(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N,13)*DENO(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(N,14)*DENO(NA2+IBAS,ND2+LBAS)
-C
-            QXCH(NC2+KBAS,NB1+JBAS) = QXCH(NC2+KBAS,NB1+JBAS)
-     &                     +           RR(N, 3)*DENO(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N, 4)*DENO(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N,11)*DENO(NA2+IBAS,ND1+LBAS)
-     &                     +           RR(N,12)*DENO(NA2+IBAS,ND2+LBAS)
-C
-            QXCH(NC2+KBAS,NB2+JBAS) = QXCH(NC2+KBAS,NB2+JBAS)
-     &                     +           RR(N, 8)*DENO(NA1+IBAS,ND2+LBAS)
-     &                     +           RR(N,15)*DENO(NA2+IBAS,ND1+LBAS)
-C
-409         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 10:         ~       ~    
-C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
-C     CALCULATES Q^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(10).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 410
-            N = N+1
-            IF(IMTX(M,10).EQ.0) GOTO 410
-C
-            QXCH(NC1+KBAS,NA1+IBAS) = QXCH(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N,14)*DENO(NB1+JBAS,ND2+LBAS)
-     &                     + PAB2*     RR(N, 9)*DENO(NB2+JBAS,ND1+LBAS)
-C
-            QXCH(NC1+KBAS,NA2+IBAS) = QXCH(NC1+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N, 5)*DENO(NB1+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N, 6)*DENO(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N, 1)*DENO(NB2+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N, 2)*DENO(NB2+JBAS,ND2+LBAS)
-C
-            QXCH(NC2+KBAS,NA1+IBAS) = QXCH(NC2+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N,15)*DENO(NB1+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N,16)*DENO(NB1+JBAS,ND2+LBAS)
-     &                     + PAB2*     RR(N,11)*DENO(NB2+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N,12)*DENO(NB2+JBAS,ND2+LBAS)
-C
-            QXCH(NC2+KBAS,NA2+IBAS) = QXCH(NC2+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N, 8)*DENO(NB1+JBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N, 3)*DENO(NB2+JBAS,ND1+LBAS)
-C
-410         CONTINUE
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     BATCH TYPE 11:         ~       ~
-C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
-C     CALCULATES G^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(11).EQ.1) THEN
-        M = 0
-        N = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            IF(ISCR(M).EQ.0) GOTO 411
-            N = N+1
-            IF(IMTX(M,11).EQ.0) GOTO 411
-C
-            QXCH(ND1+LBAS,NB1+JBAS) = QXCH(ND1+LBAS,NB1+JBAS)
      &                     +      PCD2*RR(N, 2)*DENO(NA1+IBAS,NC2+KBAS)
      &                     +      PCD1*RR(N,12)*DENO(NA2+IBAS,NC1+KBAS)
+     &                     +      PCD2*RR(N,10)*DENO(NA2+IBAS,NC2+KBAS)
 C
             QXCH(ND1+LBAS,NB2+JBAS) = QXCH(ND1+LBAS,NB2+JBAS)
      &                     +      PCD1*RR(N, 8)*DENO(NA1+IBAS,NC1+KBAS)
@@ -15366,19 +14846,18 @@ C
      &                     +      PCD1*RR(N, 9)*DENO(NA2+IBAS,NC2+KBAS)
 C
             QXCH(ND2+LBAS,NB2+JBAS) = QXCH(ND2+LBAS,NB2+JBAS)
+     &                     +      PCD2*RR(N, 7)*DENO(NA1+IBAS,NC1+KBAS)
      &                     +      PCD1*RR(N, 5)*DENO(NA1+IBAS,NC2+KBAS)
      &                     +      PCD2*RR(N,15)*DENO(NA2+IBAS,NC1+KBAS)
+     &                     +      PCD1*RR(N,13)*DENO(NA2+IBAS,NC2+KBAS)
 C
-411         CONTINUE
+311         CONTINUE
           ENDDO
         ENDDO
       ENDIF
 C
 C     SKIP POINT FOR INTEGRAL SYMMETRY
-470   CONTINUE
-C
-C     SKIP POINT FOR LINEAR BATCH
-400   CONTINUE
+370   CONTINUE
 C
 C     SKIP POINT FOR CLOSED SYSTEMS
 5000  CONTINUE
