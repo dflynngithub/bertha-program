@@ -13236,12 +13236,12 @@ C     CALCULATES G^{T1 T1,T2 T2}
             IF(IMTX(M, 1).EQ.0) GOTO 101
 C
             GDIR(NA1+IBAS,NB1+JBAS) = GDIR(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N, 1)*DENT(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N, 4)*DENT(NC2+KBAS,ND2+LBAS)
+     &       +           DREAL(RR(N, 1))*DREAL(DENT(NC1+KBAS,ND1+LBAS))
+     &       +           DREAL(RR(N, 4))*DREAL(DENT(NC2+KBAS,ND2+LBAS))
 C
             GDIR(NA2+IBAS,NB2+JBAS) = GDIR(NA2+IBAS,NB2+JBAS)
-     &                     +           RR(N,13)*DENT(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N,16)*DENT(NC2+KBAS,ND2+LBAS)
+     &       +           DREAL(RR(N,13))*DREAL(DENT(NC1+KBAS,ND1+LBAS))
+     &       +           DREAL(RR(N,16))*DREAL(DENT(NC2+KBAS,ND2+LBAS))
 C
 101         CONTINUE
           ENDDO
@@ -13265,12 +13265,12 @@ C     CALCULATES G^{T1 T1,T2 T2}
             IF(IMTX(M, 2).EQ.0) GOTO 102
 C
               GDIR(NA1+IBAS,NB1+JBAS) = GDIR(NA1+IBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N, 4)*DENT(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 1)*DENT(ND2+LBAS,NC2+KBAS)
+     &       +      PCD1*DREAL(RR(N, 4))*DREAL(DENT(ND1+LBAS,NC1+KBAS))
+     &       +      PCD1*DREAL(RR(N, 1))*DREAL(DENT(ND2+LBAS,NC2+KBAS))
 C
               GDIR(NA2+IBAS,NB2+JBAS) = GDIR(NA2+IBAS,NB2+JBAS)
-     &                     +      PCD1*RR(N,16)*DENT(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N,13)*DENT(ND2+LBAS,NC2+KBAS)
+     &       +      PCD1*DREAL(RR(N,16))*DREAL(DENT(ND1+LBAS,NC1+KBAS))
+     &       +      PCD1*DREAL(RR(N,13))*DREAL(DENT(ND2+LBAS,NC2+KBAS))
 C
 102         CONTINUE
           ENDDO
@@ -13291,12 +13291,12 @@ C     CALCULATES G^{T2 T2,T1 T1}
             IF(IMTX(M, 3).EQ.0) GOTO 103
 C
             GDIR(NC1+KBAS,ND1+LBAS) = GDIR(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N, 1)*DENT(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N,13)*DENT(NA2+IBAS,NB2+JBAS)
+     &       +           DREAL(RR(N, 1))*DREAL(DENT(NA1+IBAS,NB1+JBAS))
+     &       +           DREAL(RR(N,13))*DREAL(DENT(NA2+IBAS,NB2+JBAS))
 C
             GDIR(NC2+KBAS,ND2+LBAS) = GDIR(NC2+KBAS,ND2+LBAS)
-     &                     +           RR(N, 4)*DENT(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N,16)*DENT(NA2+IBAS,NB2+JBAS)
+     &       +           DREAL(RR(N, 4))*DREAL(DENT(NA1+IBAS,NB1+JBAS))
+     &       +           DREAL(RR(N,16))*DREAL(DENT(NA2+IBAS,NB2+JBAS))
 C
 103         CONTINUE
           ENDDO
@@ -13317,12 +13317,12 @@ C     CALCULATES G^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
             IF(IMTX(M, 4).EQ.0) GOTO 104
 C
             GDIR(NC1+KBAS,ND1+LBAS) = GDIR(NC1+KBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N,13)*DENT(NB1+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 1)*DENT(NB2+JBAS,NA2+IBAS)
+     &       + PAB1*     DREAL(RR(N,13))*DREAL(DENT(NB1+JBAS,NA1+IBAS))
+     &       + PAB1*     DREAL(RR(N, 1))*DREAL(DENT(NB2+JBAS,NA2+IBAS))
 C
             GDIR(NC2+KBAS,ND2+LBAS) = GDIR(NC2+KBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N,16)*DENT(NB1+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 4)*DENT(NB2+JBAS,NA2+IBAS)
+     &       + PAB1*     DREAL(RR(N,16))*DREAL(DENT(NB1+JBAS,NA1+IBAS))
+     &       + PAB1*     DREAL(RR(N, 4))*DREAL(DENT(NB2+JBAS,NA2+IBAS))
 C
 104         CONTINUE
           ENDDO
@@ -13346,12 +13346,12 @@ C     CALCULATES G^{T1 T2,T2 T1}
             IF(IMTX(M, 5).EQ.0) GOTO 105
 C
             GXCH(NA1+IBAS,ND1+LBAS) = GXCH(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N, 1)*DENT(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N, 7)*DENT(NC2+KBAS,NB2+JBAS)
+     &       +           DREAL(RR(N, 1))*DREAL(DENT(NC1+KBAS,NB1+JBAS))
+     &       +           DREAL(RR(N, 7))*DREAL(DENT(NC2+KBAS,NB2+JBAS))
 C
             GXCH(NA2+IBAS,ND2+LBAS) = GXCH(NA2+IBAS,ND2+LBAS)
-     &                     +           RR(N,10)*DENT(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N,16)*DENT(NC2+KBAS,NB2+JBAS)
+     &       +           DREAL(RR(N,10))*DREAL(DENT(NC1+KBAS,NB1+JBAS))
+     &       +           DREAL(RR(N,16))*DREAL(DENT(NC2+KBAS,NB2+JBAS))
 C
 105         CONTINUE
           ENDDO
@@ -13375,12 +13375,12 @@ C     CALCULATES G^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
             IF(IMTX(M, 6).EQ.0) GOTO 106
 C
             GXCH(NA1+IBAS,NC1+KBAS) = GXCH(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 4)*DENT(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(N, 7)*DENT(ND2+LBAS,NB2+JBAS)
+     &       +      PCD1*DREAL(RR(N, 4))*DREAL(DENT(ND1+LBAS,NB1+JBAS))
+     &       +      PCD2*DREAL(RR(N, 7))*DREAL(DENT(ND2+LBAS,NB2+JBAS))
 C
             GXCH(NA2+IBAS,NC2+KBAS) = GXCH(NA2+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N,10)*DENT(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N,13)*DENT(ND2+LBAS,NB2+JBAS)
+     &       +      PCD2*DREAL(RR(N,10))*DREAL(DENT(ND1+LBAS,NB1+JBAS))
+     &       +      PCD1*DREAL(RR(N,13))*DREAL(DENT(ND2+LBAS,NB2+JBAS))
 C
 106         CONTINUE
           ENDDO
@@ -13401,12 +13401,12 @@ C     CALCULATES G^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
             IF(IMTX(M, 7).EQ.0) GOTO 107
 C
             GXCH(NB1+JBAS,ND1+LBAS) = GXCH(NB1+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N,13)*DENT(NC1+KBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 7)*DENT(NC2+KBAS,NA2+IBAS)
+     &       + PAB1*     DREAL(RR(N,13))*DREAL(DENT(NC1+KBAS,NA1+IBAS))
+     &       + PAB2*     DREAL(RR(N, 7))*DREAL(DENT(NC2+KBAS,NA2+IBAS))
 C
             GXCH(NB2+JBAS,ND2+LBAS) = GXCH(NB2+JBAS,ND2+LBAS)
-     &                     + PAB2*     RR(N,10)*DENT(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 4)*DENT(NC2+KBAS,NA2+IBAS)
+     &       + PAB2*     DREAL(RR(N,10))*DREAL(DENT(NC1+KBAS,NA1+IBAS))
+     &       + PAB1*     DREAL(RR(N, 4))*DREAL(DENT(NC2+KBAS,NA2+IBAS))
 C
 107         CONTINUE
           ENDDO
@@ -13427,12 +13427,12 @@ C     CALCULATES G^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
             IF(IMTX(M, 8).EQ.0) GOTO 108
 C
             GXCH(NB1+JBAS,NC1+KBAS) = GXCH(NB1+JBAS,NC1+KBAS)
-     &                     + PAB1*PCD1*RR(N,16)*DENT(ND1+LBAS,NA1+IBAS)
-     &                     + PAB2*PCD2*RR(N, 7)*DENT(ND2+LBAS,NA2+IBAS)
+     &       + PAB1*PCD1*DREAL(RR(N,16))*DREAL(DENT(ND1+LBAS,NA1+IBAS))
+     &       + PAB2*PCD2*DREAL(RR(N, 7))*DREAL(DENT(ND2+LBAS,NA2+IBAS))
 C
             GXCH(NB2+JBAS,NC2+KBAS) = GXCH(NB2+JBAS,NC2+KBAS)
-     &                     + PAB1*PCD1*RR(N, 1)*DENT(ND2+LBAS,NA2+IBAS)
-     &                     + PAB2*PCD2*RR(N,10)*DENT(ND1+LBAS,NA1+IBAS)
+     &       + PAB1*PCD1*DREAL(RR(N, 1))*DREAL(DENT(ND2+LBAS,NA2+IBAS))
+     &       + PAB2*PCD2*DREAL(RR(N,10))*DREAL(DENT(ND1+LBAS,NA1+IBAS))
 C
 108         CONTINUE
           ENDDO
@@ -13453,12 +13453,12 @@ C     CALCULATES G^{T2 T1,T1 T2}
             IF(IMTX(M, 9).EQ.0) GOTO 109
 C
             GXCH(NC1+KBAS,NB1+JBAS) = GXCH(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N, 1)*DENT(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N,10)*DENT(NA2+IBAS,ND2+LBAS)
+     &       +           DREAL(RR(N, 1))*DREAL(DENT(NA1+IBAS,ND1+LBAS))
+     &       +           DREAL(RR(N,10))*DREAL(DENT(NA2+IBAS,ND2+LBAS))
 C
             GXCH(NC2+KBAS,NB2+JBAS) = GXCH(NC2+KBAS,NB2+JBAS)
-     &                     +           RR(N, 7)*DENT(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N,16)*DENT(NA2+IBAS,ND2+LBAS)
+     &       +           DREAL(RR(N, 7))*DREAL(DENT(NA1+IBAS,ND1+LBAS))
+     &       +           DREAL(RR(N,16))*DREAL(DENT(NA2+IBAS,ND2+LBAS))
 C
 109         CONTINUE
           ENDDO
@@ -13479,12 +13479,12 @@ C     CALCULATES G^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
             IF(IMTX(M,10).EQ.0) GOTO 110
 C
             GXCH(NC1+KBAS,NA1+IBAS) = GXCH(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N,13)*DENT(NB1+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N,10)*DENT(NB2+JBAS,ND2+LBAS)
+     &       + PAB1*     DREAL(RR(N,13))*DREAL(DENT(NB1+JBAS,ND1+LBAS))
+     &       + PAB2*     DREAL(RR(N,10))*DREAL(DENT(NB2+JBAS,ND2+LBAS))
 C
             GXCH(NC2+KBAS,NA2+IBAS) = GXCH(NC2+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N, 7)*DENT(NB1+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N, 4)*DENT(NB2+JBAS,ND2+LBAS)
+     &       + PAB2*     DREAL(RR(N, 7))*DREAL(DENT(NB1+JBAS,ND1+LBAS))
+     &       + PAB1*     DREAL(RR(N, 4))*DREAL(DENT(NB2+JBAS,ND2+LBAS))
 C
 110         CONTINUE
           ENDDO
@@ -13505,12 +13505,12 @@ C     CALCULATES G^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
             IF(IMTX(M,11).EQ.0) GOTO 111
 C
             GXCH(ND1+LBAS,NB1+JBAS) = GXCH(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N, 4)*DENT(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD2*RR(N,10)*DENT(NA2+IBAS,NC2+KBAS)
+     &       +      PCD1*DREAL(RR(N, 4))*DREAL(DENT(NA1+IBAS,NC1+KBAS))
+     &       +      PCD2*DREAL(RR(N,10))*DREAL(DENT(NA2+IBAS,NC2+KBAS))
 C
             GXCH(ND2+LBAS,NB2+JBAS) = GXCH(ND2+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N, 7)*DENT(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N,13)*DENT(NA2+IBAS,NC2+KBAS)
+     &       +      PCD2*DREAL(RR(N, 7))*DREAL(DENT(NA1+IBAS,NC1+KBAS))
+     &       +      PCD1*DREAL(RR(N,13))*DREAL(DENT(NA2+IBAS,NC2+KBAS))
 111         CONTINUE
           ENDDO
         ENDDO
@@ -13539,12 +13539,12 @@ C     CALCULATES Q^{T1 T1,T2 T2}
             IF(IMTX(M, 1).EQ.0) GOTO 301
 C
             QDIR(NA1+IBAS,NB1+JBAS) = QDIR(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N, 1)*DENO(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N, 4)*DENO(NC2+KBAS,ND2+LBAS)
+     &       +           DREAL(RR(N, 1))*DREAL(DENO(NC1+KBAS,ND1+LBAS))
+     &       +           DREAL(RR(N, 4))*DREAL(DENO(NC2+KBAS,ND2+LBAS))
 C
             QDIR(NA2+IBAS,NB2+JBAS) = QDIR(NA2+IBAS,NB2+JBAS)
-     &                     +           RR(N,13)*DENO(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N,16)*DENO(NC2+KBAS,ND2+LBAS)
+     &       +           DREAL(RR(N,13))*DREAL(DENO(NC1+KBAS,ND1+LBAS))
+     &       +           DREAL(RR(N,16))*DREAL(DENO(NC2+KBAS,ND2+LBAS))
 C
 301         CONTINUE
           ENDDO
@@ -13568,12 +13568,12 @@ C     CALCULATES Q^{T1 T1,T2 T2}
             IF(IMTX(M, 2).EQ.0) GOTO 302
 C
             QDIR(NA1+IBAS,NB1+JBAS) = QDIR(NA1+IBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N, 4)*DENO(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 1)*DENO(ND2+LBAS,NC2+KBAS)
+     &       +      PCD1*DREAL(RR(N, 4))*DREAL(DENO(ND1+LBAS,NC1+KBAS))
+     &       +      PCD1*DREAL(RR(N, 1))*DREAL(DENO(ND2+LBAS,NC2+KBAS))
 C
             QDIR(NA2+IBAS,NB2+JBAS) = QDIR(NA2+IBAS,NB2+JBAS)
-     &                     +      PCD1*RR(N,16)*DENO(ND1+LBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N,13)*DENO(ND2+LBAS,NC2+KBAS)
+     &       +      PCD1*DREAL(RR(N,16))*DREAL(DENO(ND1+LBAS,NC1+KBAS))
+     &       +      PCD1*DREAL(RR(N,13))*DREAL(DENO(ND2+LBAS,NC2+KBAS))
 C
 302         CONTINUE
           ENDDO
@@ -13594,12 +13594,12 @@ C     CALCULATES Q^{T2 T2,T1 T1}
             IF(IMTX(M, 3).EQ.0) GOTO 303
 C
             QDIR(NC1+KBAS,ND1+LBAS) = QDIR(NC1+KBAS,ND1+LBAS)
-     &                     +           RR(N, 1)*DENO(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N,13)*DENO(NA2+IBAS,NB2+JBAS)
+     &       +           DREAL(RR(N, 1))*DREAL(DENO(NA1+IBAS,NB1+JBAS))
+     &       +           DREAL(RR(N,13))*DREAL(DENO(NA2+IBAS,NB2+JBAS))
 C
             QDIR(NC2+KBAS,ND2+LBAS) = QDIR(NC2+KBAS,ND2+LBAS)
-     &                     +           RR(N, 4)*DENO(NA1+IBAS,NB1+JBAS)
-     &                     +           RR(N,16)*DENO(NA2+IBAS,NB2+JBAS)
+     &       +           DREAL(RR(N, 4))*DREAL(DENO(NA1+IBAS,NB1+JBAS))
+     &       +           DREAL(RR(N,16))*DREAL(DENO(NA2+IBAS,NB2+JBAS))
 C
 303         CONTINUE
           ENDDO
@@ -13620,12 +13620,12 @@ C     CALCULATES Q^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
             IF(IMTX(M, 4).EQ.0) GOTO 304
 C
             QDIR(NC1+KBAS,ND1+LBAS) = QDIR(NC1+KBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N,13)*DENO(NB1+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 1)*DENO(NB2+JBAS,NA2+IBAS)
+     &       + PAB1*     DREAL(RR(N,13))*DREAL(DENO(NB1+JBAS,NA1+IBAS))
+     &       + PAB1*     DREAL(RR(N, 1))*DREAL(DENO(NB2+JBAS,NA2+IBAS))
 C
             QDIR(NC2+KBAS,ND2+LBAS) = QDIR(NC2+KBAS,ND2+LBAS)
-     &                     + PAB1*     RR(N,16)*DENO(NB1+JBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 4)*DENO(NB2+JBAS,NA2+IBAS)
+     &       + PAB1*     DREAL(RR(N,16))*DREAL(DENO(NB1+JBAS,NA1+IBAS))
+     &       + PAB1*     DREAL(RR(N, 4))*DREAL(DENO(NB2+JBAS,NA2+IBAS))
 C
 304         CONTINUE
           ENDDO
@@ -13649,12 +13649,12 @@ C     CALCULATES Q^{T1 T2,T2 T1}
             IF(IMTX(M, 5).EQ.0) GOTO 305
 C
             QXCH(NA1+IBAS,ND1+LBAS) = QXCH(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N, 1)*DENO(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N, 7)*DENO(NC2+KBAS,NB2+JBAS)
+     &       +           DREAL(RR(N, 1))*DREAL(DENO(NC1+KBAS,NB1+JBAS))
+     &       +           DREAL(RR(N, 7))*DREAL(DENO(NC2+KBAS,NB2+JBAS))
 C
             QXCH(NA2+IBAS,ND2+LBAS) = QXCH(NA2+IBAS,ND2+LBAS)
-     &                     +           RR(N,10)*DENO(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N,16)*DENO(NC2+KBAS,NB2+JBAS)
+     &       +           DREAL(RR(N,10))*DREAL(DENO(NC1+KBAS,NB1+JBAS))
+     &       +           DREAL(RR(N,16))*DREAL(DENO(NC2+KBAS,NB2+JBAS))
 C
 305         CONTINUE
           ENDDO
@@ -13678,12 +13678,12 @@ C     CALCULATES Q^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
             IF(IMTX(M, 6).EQ.0) GOTO 306
 C
             QXCH(NA1+IBAS,NC1+KBAS) = QXCH(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N, 4)*DENO(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD2*RR(N, 7)*DENO(ND2+LBAS,NB2+JBAS)
+     &       +      PCD1*DREAL(RR(N, 4))*DREAL(DENO(ND1+LBAS,NB1+JBAS))
+     &       +      PCD2*DREAL(RR(N, 7))*DREAL(DENO(ND2+LBAS,NB2+JBAS))
 C
             QXCH(NA2+IBAS,NC2+KBAS) = QXCH(NA2+IBAS,NC2+KBAS)
-     &                     +      PCD2*RR(N,10)*DENO(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N,13)*DENO(ND2+LBAS,NB2+JBAS)
+     &       +      PCD2*DREAL(RR(N,10))*DREAL(DENO(ND1+LBAS,NB1+JBAS))
+     &       +      PCD1*DREAL(RR(N,13))*DREAL(DENO(ND2+LBAS,NB2+JBAS))
 C
 306         CONTINUE
           ENDDO
@@ -13704,12 +13704,12 @@ C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
             IF(IMTX(M, 7).EQ.0) GOTO 307
 C
             QXCH(NB1+JBAS,ND1+LBAS) = QXCH(NB1+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N,13)*DENO(NC1+KBAS,NA1+IBAS)
-     &                     + PAB2*     RR(N, 7)*DENO(NC2+KBAS,NA2+IBAS)
+     &       + PAB1*     DREAL(RR(N,13))*DREAL(DENO(NC1+KBAS,NA1+IBAS))
+     &       + PAB2*     DREAL(RR(N, 7))*DREAL(DENO(NC2+KBAS,NA2+IBAS))
 C
             QXCH(NB2+JBAS,ND2+LBAS) = QXCH(NB2+JBAS,ND2+LBAS)
-     &                     + PAB2*     RR(N,10)*DENO(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N, 4)*DENO(NC2+KBAS,NA2+IBAS)
+     &       + PAB2*     DREAL(RR(N,10))*DREAL(DENO(NC1+KBAS,NA1+IBAS))
+     &       + PAB1*     DREAL(RR(N, 4))*DREAL(DENO(NC2+KBAS,NA2+IBAS))
 C
 307         CONTINUE
           ENDDO
@@ -13730,12 +13730,12 @@ C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
             IF(IMTX(M, 8).EQ.0) GOTO 308
 C
             QXCH(NB1+JBAS,NC1+KBAS) = QXCH(NB1+JBAS,NC1+KBAS)
-     &                     + PAB1*PCD1*RR(N,16)*DENO(ND1+LBAS,NA1+IBAS)
-     &                     + PAB2*PCD2*RR(N, 7)*DENO(ND2+LBAS,NA2+IBAS)
+     &       + PAB1*PCD1*DREAL(RR(N,16))*DREAL(DENO(ND1+LBAS,NA1+IBAS))
+     &       + PAB2*PCD2*DREAL(RR(N, 7))*DREAL(DENO(ND2+LBAS,NA2+IBAS))
 C
             QXCH(NB2+JBAS,NC2+KBAS) = QXCH(NB2+JBAS,NC2+KBAS)
-     &                     + PAB2*PCD2*RR(N,10)*DENO(ND1+LBAS,NA1+IBAS)
-     &                     + PAB1*PCD1*RR(N, 1)*DENO(ND2+LBAS,NA2+IBAS)
+     &       + PAB2*PCD2*DREAL(RR(N,10))*DREAL(DENO(ND1+LBAS,NA1+IBAS))
+     &       + PAB1*PCD1*DREAL(RR(N, 1))*DREAL(DENO(ND2+LBAS,NA2+IBAS))
 C
 308         CONTINUE
           ENDDO
@@ -13756,12 +13756,12 @@ C     CALCULATES Q^{T2 T1,T1 T2}
             IF(IMTX(M, 9).EQ.0) GOTO 309
 C
             QXCH(NC1+KBAS,NB1+JBAS) = QXCH(NC1+KBAS,NB1+JBAS)
-     &                     +           RR(N, 1)*DENO(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N,10)*DENO(NA2+IBAS,ND2+LBAS)
+     &       +           DREAL(RR(N, 1))*DREAL(DENO(NA1+IBAS,ND1+LBAS))
+     &       +           DREAL(RR(N,10))*DREAL(DENO(NA2+IBAS,ND2+LBAS))
 C
             QXCH(NC2+KBAS,NB2+JBAS) = QXCH(NC2+KBAS,NB2+JBAS)
-     &                     +           RR(N, 7)*DENO(NA1+IBAS,ND1+LBAS)
-     &                     +           RR(N,16)*DENO(NA2+IBAS,ND2+LBAS)
+     &       +           DREAL(RR(N, 7))*DREAL(DENO(NA1+IBAS,ND1+LBAS))
+     &       +           DREAL(RR(N,16))*DREAL(DENO(NA2+IBAS,ND2+LBAS))
 C
 309         CONTINUE
           ENDDO
@@ -13782,12 +13782,12 @@ C     CALCULATES Q^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
             IF(IMTX(M,10).EQ.0) GOTO 310
 C
             QXCH(NC1+KBAS,NA1+IBAS) = QXCH(NC1+KBAS,NA1+IBAS)
-     &                     + PAB1*     RR(N,13)*DENO(NB1+JBAS,ND1+LBAS)
-     &                     + PAB2*     RR(N,10)*DENO(NB2+JBAS,ND2+LBAS)
+     &       + PAB1*     DREAL(RR(N,13))*DREAL(DENO(NB1+JBAS,ND1+LBAS))
+     &       + PAB2*     DREAL(RR(N,10))*DREAL(DENO(NB2+JBAS,ND2+LBAS))
 C
             QXCH(NC2+KBAS,NA2+IBAS) = QXCH(NC2+KBAS,NA2+IBAS)
-     &                     + PAB2*     RR(N, 7)*DENO(NB1+JBAS,ND1+LBAS)
-     &                     + PAB1*     RR(N, 4)*DENO(NB2+JBAS,ND2+LBAS)
+     &       + PAB2*     DREAL(RR(N, 7))*DREAL(DENO(NB1+JBAS,ND1+LBAS))
+     &       + PAB1*     DREAL(RR(N, 4))*DREAL(DENO(NB2+JBAS,ND2+LBAS))
 C
 310         CONTINUE
           ENDDO
@@ -13808,12 +13808,12 @@ C     CALCULATES Q^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
             IF(IMTX(M,11).EQ.0) GOTO 311
 C
             QXCH(ND1+LBAS,NB1+JBAS) = QXCH(ND1+LBAS,NB1+JBAS)
-     &                     +      PCD1*RR(N, 4)*DENO(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD2*RR(N,10)*DENO(NA2+IBAS,NC2+KBAS)
+     &       +      PCD1*DREAL(RR(N, 4))*DREAL(DENO(NA1+IBAS,NC1+KBAS))
+     &       +      PCD2*DREAL(RR(N,10))*DREAL(DENO(NA2+IBAS,NC2+KBAS))
 C
             QXCH(ND2+LBAS,NB2+JBAS) = QXCH(ND2+LBAS,NB2+JBAS)
-     &                     +      PCD2*RR(N, 7)*DENO(NA1+IBAS,NC1+KBAS)
-     &                     +      PCD1*RR(N,13)*DENO(NA2+IBAS,NC2+KBAS)
+     &       +      PCD2*DREAL(RR(N, 7))*DREAL(DENO(NA1+IBAS,NC1+KBAS))
+     &       +      PCD1*DREAL(RR(N,13))*DREAL(DENO(NA2+IBAS,NC2+KBAS))
 C
 311         CONTINUE
           ENDDO
