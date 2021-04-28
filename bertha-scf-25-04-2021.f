@@ -13897,10 +13897,10 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       ENDIF
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
-c      IF(ISYM.NE.0) THEN
-c        WRITE(6,*) 'In CLMMAT: you probably should be using CLMMATZ.'
-c        WRITE(7,*) 'In CLMMAT: you probably should be using CLMMATZ.'
-c      ENDIF
+      IF(ISYM.NE.0) THEN
+        WRITE(6,*) 'In CLMMAT: you probably should be using CLMMATZ.'
+        WRITE(7,*) 'In CLMMAT: you probably should be using CLMMATZ.'
+      ENDIF
 C
 C**********************************************************************C
 C     CLOSED-SHELL CONTRIBUTIONS...                                    C
@@ -17564,11 +17564,7 @@ C     CONDITIONAL TO SKIP THIS BATCH
       IF(IBCH.EQ.1) THEN
 C
 C       GENERATE A BATCH OF BREIT INTERACTION INTEGRALS
-C        IF(RCFILE) THEN
-          CALL BIIFAST(RR,XYZ,ICNT,KQN,MQN,NBAS,EXL,IBAS,JBAS,ITN)
-C        ELSE
-C          CALL BIIF(RR,XYZ,ICNT,KQN,MQN,NBAS,EXL,IBAS,JBAS,ITN)
-C        ENDIF
+        CALL BIIFAST(RR,XYZ,ICNT,KQN,MQN,NBAS,EXL,IBAS,JBAS,ITN)
 C
 C       MULTIPLY BY DENSITY ELEMENTS AND ADD TO WDIR/WMAT
         IF(ISYM.EQ.0) THEN
@@ -19205,7 +19201,7 @@ C     DIRECT INTEGRALS    ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MA.EQ.MB.AND.MC.EQ.MD) THEN
+      IF(MQN(1).EQ.MQN(2).AND.MQN(3).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19234,7 +19230,7 @@ C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
 C     CALCULATES B^{LS,SL}
       M = 0
       N = 0
-      IF(MA.EQ.MB.AND.MD.EQ.MC) THEN
+      IF(MQN(1).EQ.MQN(2).AND.MQN(4).EQ.MQN(3)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19262,7 +19258,7 @@ C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MC.EQ.MD.AND.MA.EQ.MB) THEN
+      IF(MQN(3).EQ.MQN(4).AND.MQN(1).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19288,7 +19284,7 @@ C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{LS,SL}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MC.EQ.MD.AND.MB.EQ.MA) THEN
+      IF(MQN(3).EQ.MQN(4).AND.MQN(2).EQ.MQN(1)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19320,7 +19316,7 @@ C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MA.EQ.MD.AND.MC.EQ.MB) THEN
+      IF(MQN(1).EQ.MQN(4).AND.MQN(3).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19349,7 +19345,7 @@ C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
 C     CALCULATES B^{LL,SS}                  =     PCD*( MA, MB|-MC,-MD)
       M = 0
       N = 0
-      IF(MA.EQ.MC.AND.MD.EQ.MB) THEN
+      IF(MQN(1).EQ.MQN(3).AND.MQN(4).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19375,7 +19371,7 @@ C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{SS,LL}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MB.EQ.MD.AND.MC.EQ.MA) THEN
+      IF(MQN(2).EQ.MQN(4).AND.MQN(3).EQ.MQN(1)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19404,7 +19400,7 @@ C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MC.EQ.MB.AND.MA.EQ.MD) THEN
+      IF(MQN(3).EQ.MQN(2).AND.MQN(1).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19430,7 +19426,7 @@ C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{LL,SS}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MC.EQ.MA.AND.MB.EQ.MD) THEN
+      IF(MQN(3).EQ.MQN(1).AND.MQN(2).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19456,7 +19452,7 @@ C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
 C     CALCULATES B^{SS,LL}                  =     PCD*( MA, MB|-MC,-MD)
       M = 0
       N = 0
-      IF(MD.EQ.MB.AND.MA.EQ.MC) THEN
+      IF(MQN(4).EQ.MQN(2).AND.MQN(1).EQ.MQN(3)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19491,7 +19487,7 @@ C     DIRECT INTEGRALS    ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MA.EQ.MB.AND.MC.EQ.MD) THEN
+      IF(MQN(1).EQ.MQN(2).AND.MQN(3).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19520,7 +19516,7 @@ C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
 C     CALCULATES B^{LS,SL}
       M = 0
       N = 0
-      IF(MA.EQ.MB.AND.MD.EQ.MC) THEN
+      IF(MQN(1).EQ.MQN(2).AND.MQN(4).EQ.MQN(3)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19548,7 +19544,7 @@ C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MC.EQ.MD.AND.MA.EQ.MB) THEN
+      IF(MQN(3).EQ.MQN(4).AND.MQN(1).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19574,7 +19570,7 @@ C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{LS,SL}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MC.EQ.MD.AND.MB.EQ.MA) THEN
+      IF(MQN(3).EQ.MQN(4).AND.MQN(2).EQ.MQN(1)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19603,7 +19599,7 @@ C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MA.EQ.MD.AND.MC.EQ.MB) THEN
+      IF(MQN(1).EQ.MQN(4).AND.MQN(3).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19632,7 +19628,7 @@ C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
 C     CALCULATES B^{LL,SS}                  =     PCD*( MA, MB|-MC,-MD)
       M = 0
       N = 0
-      IF(MA.EQ.MC.AND.MD.EQ.MB) THEN
+      IF(MQN(1).EQ.MQN(3).AND.MQN(4).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19658,7 +19654,7 @@ C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{SS,LL}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MB.EQ.MD.AND.MC.EQ.MA) THEN
+      IF(MQN(2).EQ.MQN(4).AND.MQN(3).EQ.MQN(1)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19687,7 +19683,7 @@ C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MC.EQ.MB.AND.MA.EQ.MD) THEN
+      IF(MQN(3).EQ.MQN(2).AND.MQN(1).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19713,7 +19709,7 @@ C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{LL,SS}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MC.EQ.MA.AND.MB.EQ.MD) THEN
+      IF(MQN(3).EQ.MQN(1).AND.MQN(2).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19739,7 +19735,7 @@ C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
 C     CALCULATES B^{SS,LL}                  =     PCD*( MA, MB|-MC,-MD)
       M = 0
       N = 0
-      IF(MD.EQ.MB.AND.MA.EQ.MC) THEN
+      IF(MQN(4).EQ.MQN(2).AND.MQN(1).EQ.MQN(3)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
