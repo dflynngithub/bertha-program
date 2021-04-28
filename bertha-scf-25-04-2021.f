@@ -5310,7 +5310,7 @@ C       GENERATE MEAN-FIELD CLOSED- AND OPEN-SHELL COULOMB MATRIX
 C
 C         CALCULATE MANY-CENTRE COULOMB INTEGRALS (MCMURCHIE-DAVIDSON)
           CALL SYSTEM_CLOCK(ICL5)
-C         CALL COULOMB
+c         CALL COULOMB
           CALL CLMFAST
           CALL SYSTEM_CLOCK(ICL6)
           TCL2 =        DFLOAT(ICL6-ICL5)/RATE
@@ -9797,7 +9797,7 @@ C
       COMMON/E0LL/E0LLFL(MFL,4),IAD0LL(MCT,MCT,MKP,MKP,MKP,MKP)
       COMMON/E0SS/E0SSFL(MFL,4),IAD0SS(MCT,MCT,MKP,MKP,MKP,MKP)
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/IQTT/IABLL,ICDLL,IABSS,ICDSS,IABLS,ICDLS,IABSL,ICDSL
       COMMON/IRCM/IEAB,IECD,NCD,IGAB,IRIJ(MBS,MBS)
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
@@ -11435,7 +11435,7 @@ C
       COMMON/E0LL/E0LLFL(MFL,4),IAD0LL(MCT,MCT,MKP,MKP,MKP,MKP)
       COMMON/E0SS/E0SSFL(MFL,4),IAD0SS(MCT,MCT,MKP,MKP,MKP,MKP)
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/IQTT/IABLL,ICDLL,IABSS,ICDSS,IABLS,ICDLS,IABSL,ICDSL
       COMMON/IRCM/IEAB,IECD,NCD,IGAB,IRIJ(MBS,MBS)
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
@@ -13181,7 +13181,7 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      DIMENSION IFLG(11),NBAS(4)
+      DIMENSION IFLG(11),NBAS(4),MQN(4)
 C
       COMPLEX*16 RR(MB2,16)
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -13194,7 +13194,7 @@ C
 C
       COMMON/DENS/DENC,DENO,DENT
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -13225,7 +13225,7 @@ C
 C     BATCH TYPE 01: 
 C     DIRECT INTEGRALS   ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES G^{T1 T1,T2 T2}
-      IF(IFLG (1).EQ.1.AND.MA.EQ.MB.AND.MC.EQ.MD) THEN
+      IF(IFLG(1).EQ.1.AND.MQN(1).EQ.MQN(2).AND.MQN(3).EQ.MQN(4)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13254,7 +13254,7 @@ C
 C     BATCH TYPE 02:
 C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
 C     CALCULATES G^{T1 T1,T2 T2}
-      IF(IFLG(2).EQ.1.AND.MA.EQ.MB.AND.MD.EQ.MC) THEN
+      IF(IFLG(2).EQ.1.AND.MQN(1).EQ.MQN(2).AND.MQN(4).EQ.MQN(3)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13264,11 +13264,11 @@ C     CALCULATES G^{T1 T1,T2 T2}
             N = N+1
             IF(IMTX(M, 2).EQ.0) GOTO 102
 C
-            GDIR(NA1+IBAS,NB1+JBAS) = GDIR(NA1+IBAS,NB1+JBAS)
+              GDIR(NA1+IBAS,NB1+JBAS) = GDIR(NA1+IBAS,NB1+JBAS)
      &       +      PCD1*DREAL(RR(N, 4))*DREAL(DENT(ND1+LBAS,NC1+KBAS))
      &       +      PCD1*DREAL(RR(N, 1))*DREAL(DENT(ND2+LBAS,NC2+KBAS))
 C
-            GDIR(NA2+IBAS,NB2+JBAS) = GDIR(NA2+IBAS,NB2+JBAS)
+              GDIR(NA2+IBAS,NB2+JBAS) = GDIR(NA2+IBAS,NB2+JBAS)
      &       +      PCD1*DREAL(RR(N,16))*DREAL(DENT(ND1+LBAS,NC1+KBAS))
      &       +      PCD1*DREAL(RR(N,13))*DREAL(DENT(ND2+LBAS,NC2+KBAS))
 C
@@ -13280,7 +13280,7 @@ C
 C     BATCH TYPE 03:
 C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES G^{T2 T2,T1 T1}
-      IF(IFLG(3).EQ.1.AND.MC.EQ.MD.AND.MA.EQ.MB) THEN
+      IF(IFLG(3).EQ.1.AND.MQN(3).EQ.MQN(4).AND.MQN(1).EQ.MQN(2)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13306,7 +13306,7 @@ C
 C     BATCH TYPE 04:
 C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES G^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(4).EQ.1.AND.MC.EQ.MD.AND.MB.EQ.MA) THEN
+      IF(IFLG(4).EQ.1.AND.MQN(3).EQ.MQN(4).AND.MQN(2).EQ.MQN(1)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13335,7 +13335,7 @@ C
 C     BATCH TYPE 05:             ~       ~
 C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES G^{T1 T2,T2 T1}
-      IF(IFLG(5).EQ.1.AND.MA.EQ.MD.AND.MC.EQ.MB) THEN
+      IF(IFLG(5).EQ.1.AND.MQN(1).EQ.MQN(4).AND.MQN(3).EQ.MQN(2)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13364,7 +13364,7 @@ C
 C     BATCH TYPE 06:             ~       ~
 C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
 C     CALCULATES G^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(6).EQ.1.AND.MA.EQ.MC.AND.MD.EQ.MB) THEN
+      IF(IFLG(6).EQ.1.AND.MQN(1).EQ.MQN(3).AND.MQN(4).EQ.MQN(2)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13390,7 +13390,7 @@ C
 C     BATCH TYPE 07:             ~       ~
 C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES G^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(7).EQ.1.AND.MB.EQ.MD.AND.MC.EQ.MA) THEN
+      IF(IFLG(7).EQ.1.AND.MQN(2).EQ.MQN(4).AND.MQN(3).EQ.MQN(1)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13416,7 +13416,7 @@ C
 C     BATCH TYPE 08:             ~       ~
 C     EXCHANGE INTEGRALS  ( MB, MC| MD, MA) =         ( MB, MA| MD, MC)
 C     CALCULATES G^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
-      IF(IFLG(8).EQ.1.AND.MB.EQ.MC.AND.MD.EQ.MA) THEN
+      IF(IFLG(8).EQ.1.AND.MQN(2).EQ.MQN(3).AND.MQN(4).EQ.MQN(1)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13442,7 +13442,7 @@ C
 C     BATCH TYPE 09:         ~       ~    
 C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES G^{T2 T1,T1 T2}
-      IF(IFLG(9).EQ.1.AND.MC.EQ.MB.AND.MA.EQ.MD) THEN
+      IF(IFLG(9).EQ.1.AND.MQN(3).EQ.MQN(2).AND.MQN(1).EQ.MQN(4)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13468,7 +13468,7 @@ C
 C     BATCH TYPE 10:         ~       ~    
 C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
 C     CALCULATES G^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(10).EQ.1.AND.MC.EQ.MA.AND.MB.EQ.MD) THEN
+      IF(IFLG(10).EQ.1.AND.MQN(3).EQ.MQN(1).AND.MQN(2).EQ.MQN(4)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13489,13 +13489,12 @@ C
 110         CONTINUE
           ENDDO
         ENDDO
-210     CONTINUE
       ENDIF
 C
 C     BATCH TYPE 11:         ~       ~
 C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
 C     CALCULATES G^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(11).EQ.1.AND.MD.EQ.MB.AND.MA.EQ.MC) THEN
+      IF(IFLG(11).EQ.1.AND.MQN(4).EQ.MQN(2).AND.MQN(1).EQ.MQN(3)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13512,11 +13511,9 @@ C
             GXCH(ND2+LBAS,NB2+JBAS) = GXCH(ND2+LBAS,NB2+JBAS)
      &       +      PCD2*DREAL(RR(N, 7))*DREAL(DENT(NA1+IBAS,NC1+KBAS))
      &       +      PCD1*DREAL(RR(N,13))*DREAL(DENT(NA2+IBAS,NC2+KBAS))
-C
 111         CONTINUE
           ENDDO
         ENDDO
-211     CONTINUE
       ENDIF
 C
 C     SKIP POINT FOR INTEGRAL SYMMETRY
@@ -13531,7 +13528,7 @@ C
 C     BATCH TYPE 01: 
 C     DIRECT INTEGRALS   ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES Q^{T1 T1,T2 T2}
-      IF(IFLG(1).EQ.1.AND.MA.EQ.MB.AND.MC.EQ.MD) THEN
+      IF(IFLG(1).EQ.1.AND.MQN(1).EQ.MQN(2).AND.MQN(3).EQ.MQN(4)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13560,7 +13557,7 @@ C
 C     BATCH TYPE 02:
 C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
 C     CALCULATES Q^{T1 T1,T2 T2}
-      IF(IFLG(2).EQ.1.AND.MA.EQ.MB.AND.MD.EQ.MC) THEN
+      IF(IFLG(2).EQ.1.AND.MQN(1).EQ.MQN(2).AND.MQN(4).EQ.MQN(3)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13586,7 +13583,7 @@ C
 C     BATCH TYPE 03:
 C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES Q^{T2 T2,T1 T1}
-      IF(IFLG(3).EQ.1.AND.MC.EQ.MD.AND.MA.EQ.MB) THEN
+      IF(IFLG(3).EQ.1.AND.MQN(3).EQ.MQN(4).AND.MQN(1).EQ.MQN(2)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13612,7 +13609,7 @@ C
 C     BATCH TYPE 04:
 C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES Q^{T2 T2,T1 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(4).EQ.1.AND.MC.EQ.MD.AND.MB.EQ.MA) THEN
+      IF(IFLG(4).EQ.1.AND.MQN(3).EQ.MQN(4).AND.MQN(2).EQ.MQN(1)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13641,7 +13638,7 @@ C
 C     BATCH TYPE 05:             ~       ~
 C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES Q^{T1 T2,T2 T1}
-      IF(IFLG(5).EQ.1.AND.MA.EQ.MD.AND.MC.EQ.MB) THEN
+      IF(IFLG(5).EQ.1.AND.MQN(1).EQ.MQN(4).AND.MQN(3).EQ.MQN(2)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13670,7 +13667,7 @@ C
 C     BATCH TYPE 06:             ~       ~
 C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
 C     CALCULATES Q^{T1 T2,T2 T1}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(6).EQ.1.AND.MA.EQ.MC.AND.MD.EQ.MB) THEN
+      IF(IFLG(6).EQ.1.AND.MQN(1).EQ.MQN(3).AND.MQN(4).EQ.MQN(2)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13696,7 +13693,7 @@ C
 C     BATCH TYPE 07:             ~       ~
 C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(7).EQ.1.AND.MB.EQ.MD.AND.MC.EQ.MA) THEN
+      IF(IFLG(7).EQ.1.AND.MQN(2).EQ.MQN(4).AND.MQN(3).EQ.MQN(1)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13722,7 +13719,7 @@ C
 C     BATCH TYPE 08:             ~       ~
 C     EXCHANGE INTEGRALS  ( MB, MC| MD, MA) =         ( MB, MA| MD, MC)
 C     CALCULATES Q^{T1 T2,T2 T1}            = PAB*PCD*(-MA,-MB|-MC,-MD)
-      IF(IFLG(8).EQ.1.AND.MB.EQ.MC.AND.MD.EQ.MA) THEN
+      IF(IFLG(8).EQ.1.AND.MQN(2).EQ.MQN(3).AND.MQN(4).EQ.MQN(1)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13748,7 +13745,7 @@ C
 C     BATCH TYPE 09:         ~       ~    
 C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES Q^{T2 T1,T1 T2}
-      IF(IFLG(9).EQ.1.AND.MC.EQ.MB.AND.MA.EQ.MD) THEN
+      IF(IFLG(9).EQ.1.AND.MQN(3).EQ.MQN(2).AND.MQN(1).EQ.MQN(4)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13774,7 +13771,7 @@ C
 C     BATCH TYPE 10:         ~       ~    
 C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
 C     CALCULATES Q^{T2 T1,T1 T2}            = PAB*    (-MA,-MB| MC, MD)
-      IF(IFLG(10).EQ.1.AND.MC.EQ.MA.AND.MB.EQ.MD) THEN
+      IF(IFLG(10).EQ.1.AND.MQN(3).EQ.MQN(1).AND.MQN(2).EQ.MQN(4)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13800,7 +13797,7 @@ C
 C     BATCH TYPE 11:         ~       ~
 C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
 C     CALCULATES Q^{T2 T1,T1 T2}            =     PCD*( MA, MB|-MC,-MD)
-      IF(IFLG(11).EQ.1.AND.MD.EQ.MB.AND.MA.EQ.MC) THEN
+      IF(IFLG(11).EQ.1.AND.MQN(4).EQ.MQN(2).AND.MQN(1).EQ.MQN(3)) THEN
         M = 0
         N = 0
         DO KBAS=1,NBAS(3)
@@ -13831,6 +13828,8 @@ C     SKIP POINT FOR CLOSED SYSTEMS
 C
 C     TIME AT END OF ROUTINE
       CALL SYSTEM_CLOCK(ICL2)
+C
+C     ADD TO THE LINKED TIME INDEX
       TADD = TADD + DFLOAT(ICL2-ICL1)/RATE
 C
       RETURN
@@ -13866,7 +13865,7 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      DIMENSION IFLG(11),NBAS(4)
+      DIMENSION IFLG(11),NBAS(4),MQN(4)
 C
       COMPLEX*16 RR(MB2,16)
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -13879,7 +13878,7 @@ C
 C
       COMMON/DENS/DENC,DENO,DENT
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -14372,7 +14371,6 @@ C
      &                     +      PCD1*RR(N, 5)*DENT(NA1+IBAS,NC2+KBAS)
      &                     +      PCD2*RR(N,15)*DENT(NA2+IBAS,NC1+KBAS)
      &                     +      PCD1*RR(N,13)*DENT(NA2+IBAS,NC2+KBAS)
-C
 111         CONTINUE
           ENDDO
         ENDDO
@@ -14866,6 +14864,8 @@ C     SKIP POINT FOR CLOSED SYSTEMS
 C
 C     TIME AT END OF ROUTINE
       CALL SYSTEM_CLOCK(ICL2)
+C
+C     ADD TO THE LINKED TIME INDEX
       TADD = TADD + DFLOAT(ICL2-ICL1)/RATE
 C
       RETURN
@@ -15452,7 +15452,7 @@ C
       COMMON/EILS/EILSFL(MFL,12),IADILS(MCT,MCT,MKP,MKP,MKP,MKP)
       COMMON/EISL/EISLFL(MFL,12),IADISL(MCT,MCT,MKP,MKP,MKP,MKP)
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/IQTT/IABLL,ICDLL,IABSS,ICDSS,IABLS,ICDLS,IABSL,ICDSL
       COMMON/IRCM/IEAB,IECD,NCD,IGAB,IRIJ(MBS,MBS)
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
@@ -17080,7 +17080,7 @@ C
       COMMON/EILS/EILSFL(MFL,12),IADILS(MCT,MCT,MKP,MKP,MKP,MKP)
       COMMON/EISL/EISLFL(MFL,12),IADISL(MCT,MCT,MKP,MKP,MKP,MKP)
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/IQTT/IABLL,ICDLL,IABSS,ICDSS,IABLS,ICDLS,IABSL,ICDSL
       COMMON/IRCM/IEAB,IECD,NCD,IGAB,IRIJ(MBS,MBS)
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
@@ -17564,11 +17564,7 @@ C     CONDITIONAL TO SKIP THIS BATCH
       IF(IBCH.EQ.1) THEN
 C
 C       GENERATE A BATCH OF BREIT INTERACTION INTEGRALS
-C        IF(RCFILE) THEN
-          CALL BIIFAST(RR,XYZ,ICNT,KQN,MQN,NBAS,EXL,IBAS,JBAS,ITN)
-C        ELSE
-C          CALL BIIF(RR,XYZ,ICNT,KQN,MQN,NBAS,EXL,IBAS,JBAS,ITN)
-C        ENDIF
+        CALL BIIFAST(RR,XYZ,ICNT,KQN,MQN,NBAS,EXL,IBAS,JBAS,ITN)
 C
 C       MULTIPLY BY DENSITY ELEMENTS AND ADD TO WDIR/WMAT
         IF(ISYM.EQ.0) THEN
@@ -19156,7 +19152,7 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      DIMENSION NBAS(4)
+      DIMENSION NBAS(4),MQN(4)
 C
       COMPLEX*16 RR(MB2,16)
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -19169,7 +19165,7 @@ C
 C
       COMMON/DENS/DENC,DENO,DENT
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -19205,7 +19201,7 @@ C     DIRECT INTEGRALS    ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MA.EQ.MB.AND.MC.EQ.MD) THEN
+      IF(MQN(1).EQ.MQN(2).AND.MQN(3).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19234,7 +19230,7 @@ C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
 C     CALCULATES B^{LS,SL}
       M = 0
       N = 0
-      IF(MA.EQ.MB.AND.MD.EQ.MC) THEN
+      IF(MQN(1).EQ.MQN(2).AND.MQN(4).EQ.MQN(3)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19262,7 +19258,7 @@ C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MC.EQ.MD.AND.MA.EQ.MB) THEN
+      IF(MQN(3).EQ.MQN(4).AND.MQN(1).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19288,7 +19284,7 @@ C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{LS,SL}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MC.EQ.MD.AND.MB.EQ.MA) THEN
+      IF(MQN(3).EQ.MQN(4).AND.MQN(2).EQ.MQN(1)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19320,7 +19316,7 @@ C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MA.EQ.MD.AND.MC.EQ.MB) THEN
+      IF(MQN(1).EQ.MQN(4).AND.MQN(3).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19349,7 +19345,7 @@ C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
 C     CALCULATES B^{LL,SS}                  =     PCD*( MA, MB|-MC,-MD)
       M = 0
       N = 0
-      IF(MA.EQ.MC.AND.MD.EQ.MB) THEN
+      IF(MQN(1).EQ.MQN(3).AND.MQN(4).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19375,7 +19371,7 @@ C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{SS,LL}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MB.EQ.MD.AND.MC.EQ.MA) THEN
+      IF(MQN(2).EQ.MQN(4).AND.MQN(3).EQ.MQN(1)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19404,7 +19400,7 @@ C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MC.EQ.MB.AND.MA.EQ.MD) THEN
+      IF(MQN(3).EQ.MQN(2).AND.MQN(1).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19430,7 +19426,7 @@ C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{LL,SS}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MC.EQ.MA.AND.MB.EQ.MD) THEN
+      IF(MQN(3).EQ.MQN(1).AND.MQN(2).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19456,7 +19452,7 @@ C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
 C     CALCULATES B^{SS,LL}                  =     PCD*( MA, MB|-MC,-MD)
       M = 0
       N = 0
-      IF(MD.EQ.MB.AND.MA.EQ.MC) THEN
+      IF(MQN(4).EQ.MQN(2).AND.MQN(1).EQ.MQN(3)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19491,7 +19487,7 @@ C     DIRECT INTEGRALS    ( MA, MB| MC, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MA.EQ.MB.AND.MC.EQ.MD) THEN
+      IF(MQN(1).EQ.MQN(2).AND.MQN(3).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19520,7 +19516,7 @@ C     DIRECT INTEGRALS    ( MA, MB| MD, MC) =     PCD*( MA, MB|-MC,-MD)
 C     CALCULATES B^{LS,SL}
       M = 0
       N = 0
-      IF(MA.EQ.MB.AND.MD.EQ.MC) THEN
+      IF(MQN(1).EQ.MQN(2).AND.MQN(4).EQ.MQN(3)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19548,7 +19544,7 @@ C     DIRECT INTEGRALS    ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MC.EQ.MD.AND.MA.EQ.MB) THEN
+      IF(MQN(3).EQ.MQN(4).AND.MQN(1).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19574,7 +19570,7 @@ C     DIRECT INTEGRALS    ( MC, MD| MB, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{LS,SL}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MC.EQ.MD.AND.MB.EQ.MA) THEN
+      IF(MQN(3).EQ.MQN(4).AND.MQN(2).EQ.MQN(1)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19603,7 +19599,7 @@ C     EXCHANGE INTEGRALS  ( MA, MD| MC, MB) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MA.EQ.MD.AND.MC.EQ.MB) THEN
+      IF(MQN(1).EQ.MQN(4).AND.MQN(3).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19632,7 +19628,7 @@ C     EXCHANGE INTEGRALS  ( MA, MC| MD, MB) =         ( MA, MB| MD, MC)
 C     CALCULATES B^{LL,SS}                  =     PCD*( MA, MB|-MC,-MD)
       M = 0
       N = 0
-      IF(MA.EQ.MC.AND.MD.EQ.MB) THEN
+      IF(MQN(1).EQ.MQN(3).AND.MQN(4).EQ.MQN(2)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19658,7 +19654,7 @@ C     EXCHANGE INTEGRALS  ( MB, MD| MC, MA) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{SS,LL}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MB.EQ.MD.AND.MC.EQ.MA) THEN
+      IF(MQN(2).EQ.MQN(4).AND.MQN(3).EQ.MQN(1)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19687,7 +19683,7 @@ C     EXCHANGE INTEGRALS  ( MC, MB| MA, MD) =         ( MA, MB| MC, MD)
 C     CALCULATES B^{LS,LS}
       M = 0
       N = 0
-      IF(MC.EQ.MB.AND.MA.EQ.MD) THEN
+      IF(MQN(3).EQ.MQN(2).AND.MQN(1).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19713,7 +19709,7 @@ C     EXCHANGE INTEGRALS  ( MC, MA| MB, MD) =         ( MB, MA| MC, MD)
 C     CALCULATES B^{LL,SS}                  = PAB*    (-MA,-MB| MC, MD)
       M = 0
       N = 0
-      IF(MC.EQ.MA.AND.MB.EQ.MD) THEN
+      IF(MQN(3).EQ.MQN(1).AND.MQN(2).EQ.MQN(4)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19739,7 +19735,7 @@ C     EXCHANGE INTEGRALS  ( MD, MB| MA, MC) =         ( MA, MB| MD, MC)
 C     CALCULATES B^{SS,LL}                  =     PCD*( MA, MB|-MC,-MD)
       M = 0
       N = 0
-      IF(MD.EQ.MB.AND.MA.EQ.MC) THEN
+      IF(MQN(4).EQ.MQN(2).AND.MQN(1).EQ.MQN(3)) THEN
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
@@ -19802,7 +19798,7 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      DIMENSION NBAS(4)
+      DIMENSION NBAS(4),MQN(4)
 C
       COMPLEX*16 RR(MB2,16)
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -19815,7 +19811,7 @@ C
 C
       COMMON/DENS/DENC,DENO,DENT
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
@@ -34243,13 +34239,13 @@ C**********************************************************************C
 C
       DIMENSION GDIR(MDM,MDM)
       DIMENSION R(8),D(4)
-      DIMENSION NBAS(4)
+      DIMENSION NBAS(4),MQN(4)
 C
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
 C
       COMMON/DENS/DENC,DENO,DENT
       COMMON/I2EL/PAB1,PAB2,PCD1,PCD2,NA1,NB1,NC1,ND1,NA2,NB2,NC2,ND2,
-     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,IQL,IQR,MA,MB,MC,MD
+     &            IBAS,JBAS,MCNT,NADDAB,NADDCD,NBAS,MQN,IQL,IQR
       COMMON/ISCR/IMTX(MB2,11),ISCR(MB2),IMAP(MB2),IBCH,ITOG,MAXN
 C
 C     TIME AT START OF ROUTINE
