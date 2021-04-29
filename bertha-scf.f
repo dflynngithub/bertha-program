@@ -12317,11 +12317,11 @@ C
         DO IAB=1,NTUVAB
 C
 C         RELATIVE EQ(AB) LIST STARTING ADDRESS
-          MABt = IABTT + (IAB-1)*MAXAB
+          MAB = IABTT + (IAB-1)*MAXAB
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MABt+M,1)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MAB+M,1)).GT.SENS) THEN
               IABR11(M,IAB,ITN(1)) = 1
             ELSE
               IABR11(M,IAB,ITN(1)) = 0
@@ -12330,7 +12330,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MABt+M,2)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MAB+M,2)).GT.SENS) THEN
               IABI11(M,IAB,ITN(1)) = 1
             ELSE
               IABI11(M,IAB,ITN(1)) = 0
@@ -12339,7 +12339,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MABt+M,3)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MAB+M,3)).GT.SENS) THEN
               IABR21(M,IAB,ITN(1)) = 1
             ELSE
               IABR21(M,IAB,ITN(1)) = 0
@@ -12348,7 +12348,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MABt+M,4)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MAB+M,4)).GT.SENS) THEN
               IABI21(M,IAB,ITN(1)) = 1
             ELSE
               IABI21(M,IAB,ITN(1)) = 0
@@ -12362,11 +12362,11 @@ C
         DO IAB=1,NTUVAB
 C
 C         RELATIVE EQ(AB) LIST STARTING ADDRESS
-          MABt = IABTT + (IAB-1)*MAXAB
+          MAB = IABTT + (IAB-1)*MAXAB
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MABt+M,1)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MAB+M,1)).GT.SENS) THEN
               IABR11(M,IAB,ITN(1)) = 1
             ELSE
               IABR11(M,IAB,ITN(1)) = 0
@@ -12375,7 +12375,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MABt+M,2)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MAB+M,2)).GT.SENS) THEN
               IABI11(M,IAB,ITN(1)) = 1
             ELSE
               IABI11(M,IAB,ITN(1)) = 0
@@ -12384,7 +12384,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MABt+M,3)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MAB+M,3)).GT.SENS) THEN
               IABR21(M,IAB,ITN(1)) = 1
             ELSE
               IABR21(M,IAB,ITN(1)) = 0
@@ -12393,7 +12393,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MABt+M,4)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MAB+M,4)).GT.SENS) THEN
               IABI21(M,IAB,ITN(1)) = 1
             ELSE
               IABI21(M,IAB,ITN(1)) = 0
@@ -12681,7 +12681,7 @@ C       LOOP OVER ALL FINITE EXPANSION ADDRESSES FOR E(CD| -)
         DO IAB=1,NTUVAB
 C
 C         RELATIVE EQ(AB) LIST STARTING ADDRESS
-          MABt = IABTT + (IAB-1)*MAXAB
+          MAB = IABTT + (IAB-1)*MAXAB
 C
 C         SKIP THIS STEP IF THE E(CD) FAILS SCREENING CONDITION
           IABALL = IABR11(IJ,IAB,ITN(1)) + IABI11(IJ,IAB,ITN(1))
@@ -12704,12 +12704,12 @@ C         CONTRIBUTIONS TO Re{G(CD|--)} FROM EACH Re{E(AB|--)} ADDRESS
           IF(ITN(1).EQ.1) THEN
             DO N=1,MAXN
               GCDR11(N,ICD) = GCDR11(N,ICD)
-     &                         + E0LLFL(MABt+IJ,1)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0LLFL(MAB+IJ,1)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ELSEIF(ITN(1).EQ.4) THEN
             DO N=1,MAXN
               GCDR11(N,ICD) = GCDR11(N,ICD)
-     &                         + E0SSFL(MABt+IJ,1)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0SSFL(MAB+IJ,1)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ENDIF
 421       CONTINUE
@@ -12720,12 +12720,12 @@ C         CONTRIBUTIONS TO Im{G(CD|--)} FROM EACH Im{E(AB|--)} ADDRESS
           IF(ITN(1).EQ.1) THEN
             DO N=1,MAXN
               GCDI11(N,ICD) = GCDI11(N,ICD)
-     &                         + E0LLFL(MABt+IJ,2)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0LLFL(MAB+IJ,2)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ELSEIF(ITN(1).EQ.4) THEN
             DO N=1,MAXN
               GCDI11(N,ICD) = GCDI11(N,ICD)
-     &                         + E0SSFL(MABt+IJ,2)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0SSFL(MAB+IJ,2)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ENDIF
 422       CONTINUE
@@ -12736,12 +12736,12 @@ C         CONTRIBUTIONS TO Re{G(CD|+-)} FROM EACH Re{E(AB|+-)} ADDRESS
           IF(ITN(1).EQ.1) THEN
             DO N=1,MAXN
               GCDR21(N,ICD) = GCDR21(N,ICD)
-     &                         + E0LLFL(MABt+IJ,3)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0LLFL(MAB+IJ,3)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ELSEIF(ITN(1).EQ.4) THEN
             DO N=1,MAXN
               GCDR21(N,ICD) = GCDR21(N,ICD)
-     &                         + E0SSFL(MABt+IJ,3)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0SSFL(MAB+IJ,3)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ENDIF
 423       CONTINUE
@@ -12752,12 +12752,12 @@ C         CONTRIBUTIONS TO Im{G(CD|+-)} FROM EACH Im{E(AB|+-)} ADDRESS
           IF(ITN(1).EQ.1) THEN
             DO N=1,MAXN
               GCDI21(N,ICD) = GCDI21(N,ICD)
-     &                         + E0LLFL(MABt+IJ,4)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0LLFL(MAB+IJ,4)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ELSEIF(ITN(1).EQ.4) THEN
             DO N=1,MAXN
               GCDI21(N,ICD) = GCDI21(N,ICD)
-     &                         + E0SSFL(MABt+IJ,4)*RCTTFL(MABCD+IMAP(N))
+     &                         + E0SSFL(MAB+IJ,4)*RCTTFL(MABCD+IMAP(N))
             ENDDO
           ENDIF
 424       CONTINUE
@@ -18424,11 +18424,11 @@ C
 C     SCREENING PROCEDURE: NORM SUM OF EQ-COEFFICIENT LIST FOR EACH IAB
       DO IX=1,3
         DO IAB=1,NTUVAB
-          MABt = IABLS + (IAB-1)*MAXAB
+          MAB = IABLS + (IAB-1)*MAXAB
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MABt+M,4*(IX-1)+1)).GT.SENS) THEN
+            IF(DABS(EILSFL(MAB+M,4*(IX-1)+1)).GT.SENS) THEN
               IABR11(M,IAB,IX) = 1
             ELSE
               IABR11(M,IAB,IX) = 0
@@ -18437,7 +18437,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MABt+M,4*(IX-1)+2)).GT.SENS) THEN
+            IF(DABS(EILSFL(MAB+M,4*(IX-1)+2)).GT.SENS) THEN
               IABI11(M,IAB,IX) = 1
             ELSE
               IABI11(M,IAB,IX) = 0
@@ -18446,7 +18446,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MABt+M,4*(IX-1)+3)).GT.SENS) THEN
+            IF(DABS(EILSFL(MAB+M,4*(IX-1)+3)).GT.SENS) THEN
               IABR21(M,IAB,IX) = 1
             ELSE
               IABR21(M,IAB,IX) = 0
@@ -18455,7 +18455,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MABt+M,4*(IX-1)+4)).GT.SENS) THEN
+            IF(DABS(EILSFL(MAB+M,4*(IX-1)+4)).GT.SENS) THEN
               IABI21(M,IAB,IX) = 1
             ELSE
               IABI21(M,IAB,IX) = 0
@@ -18613,7 +18613,7 @@ C         LOOP OVER ALL FINITE EXPANSION ADDRESSES FOR E(AB| -)
           DO IAB=1,NTUVAB
 C
 C           RELATIVE EQ(AB) LIST STARTING ADDRESS
-            MABt = IABLS + (IAB-1)*MAXAB
+            MAB = IABLS + (IAB-1)*MAXAB
 C
 C           CALCULATE RC ADDRESS FOR THIS PARTICULAR AB/CD OVERLAP
             IRABCD = IABC(IA(IAB)+IA(ICD),IB(IAB)+IB(ICD),
@@ -18637,7 +18637,7 @@ C           CONTRIBUTIONS TO Re{G(CD|--)} FROM EACH Re{E(AB|--)}
             IF(IABR11(IJ,IAB,IX).EQ.0) GOTO 451
             DO N=1,MAXN
               GCDR11(N,ICD,IX) = GCDR11(N,ICD,IX)
-     &                + EILSFL(MABt+IJ,4*(IX-1)+1)*RCTTFL(MABCD+IMAP(N))
+     &                + EILSFL(MAB+IJ,4*(IX-1)+1)*RCTTFL(MABCD+IMAP(N))
             ENDDO
 451         CONTINUE
 C
@@ -18646,7 +18646,7 @@ C           CONTRIBUTIONS TO Im{G(CD|--)} FROM EACH Im{E(AB|--)}
             IF(IABI11(IJ,IAB,IX).EQ.0) GOTO 452
             DO N=1,MAXN
               GCDI11(N,ICD,IX) = GCDI11(N,ICD,IX)
-     &                + EILSFL(MABt+IJ,4*(IX-1)+2)*RCTTFL(MABCD+IMAP(N))
+     &                + EILSFL(MAB+IJ,4*(IX-1)+2)*RCTTFL(MABCD+IMAP(N))
             ENDDO
 452         CONTINUE
 C
@@ -18655,7 +18655,7 @@ C           CONTRIBUTIONS TO Re{G(CD|+-)} FROM EACH Re{E(AB|+-)}
             IF(IABR21(IJ,IAB,IX).EQ.0) GOTO 453
             DO N=1,MAXN
               GCDR21(N,ICD,IX) = GCDR21(N,ICD,IX)
-     &                + EILSFL(MABt+IJ,4*(IX-1)+3)*RCTTFL(MABCD+IMAP(N))
+     &                + EILSFL(MAB+IJ,4*(IX-1)+3)*RCTTFL(MABCD+IMAP(N))
             ENDDO
 453         CONTINUE
 C
@@ -18664,7 +18664,7 @@ C           CONTRIBUTIONS TO Im{G(CD|+-)} FROM EACH Im{E(AB|+-)}
             IF(IABI21(IJ,IAB,IX).EQ.0) GOTO 454
             DO N=1,MAXN
               GCDI21(N,ICD,IX) = GCDI21(N,ICD,IX)
-     &                + EILSFL(MABt+IJ,4*(IX-1)+4)*RCTTFL(MABCD+IMAP(N))
+     &                + EILSFL(MAB+IJ,4*(IX-1)+4)*RCTTFL(MABCD+IMAP(N))
             ENDDO
 454         CONTINUE
 C
@@ -18750,7 +18750,7 @@ C             CONTRIBUTIONS TO Re{G(CD|--)} FROM EACH Re{E(AB|--)}
               IF(IABR11(IJ,IAB,JX).EQ.0) GOTO 415
               DO N=1,MAXN
                 GCDR11(N,ICD,IX) = GCDR11(N,ICD,IX)
-     &                                 - EILSFL(MABt+IJ,4*(JX-1)+1)*T(N)
+     &                                 - EILSFL(MAB+IJ,4*(JX-1)+1)*T(N)
               ENDDO
 415           CONTINUE
 C
@@ -18759,7 +18759,7 @@ C             CONTRIBUTIONS TO Im{G(CD|--)} FROM EACH Im{E(AB|--)}
               IF(IABI11(IJ,IAB,JX).EQ.0) GOTO 416
               DO N=1,MAXN
                 GCDI11(N,ICD,IX) = GCDI11(N,ICD,IX)
-     &                                 - EILSFL(MABt+IJ,4*(JX-1)+2)*T(N)
+     &                                 - EILSFL(MAB+IJ,4*(JX-1)+2)*T(N)
               ENDDO
 416           CONTINUE
 C
@@ -18768,7 +18768,7 @@ C             CONTRIBUTIONS TO Re{G(CD|--)} FROM EACH Re{E(AB|--)}
               IF(IABR21(IJ,IAB,JX).EQ.0) GOTO 417
               DO N=1,MAXN
                 GCDR21(N,ICD,IX) = GCDR21(N,ICD,IX)
-     &                                 - EILSFL(MABt+IJ,4*(JX-1)+3)*T(N)
+     &                                 - EILSFL(MAB+IJ,4*(JX-1)+3)*T(N)
               ENDDO
 417           CONTINUE
 C
@@ -18777,7 +18777,7 @@ C             CONTRIBUTIONS TO Im{G(CD|--)} FROM EACH Im{E(AB|--)}
               IF(IABI21(IJ,IAB,JX).EQ.0) GOTO 418
               DO N=1,MAXN
                 GCDI21(N,ICD,IX) = GCDI21(N,ICD,IX)
-     &                                 - EILSFL(MABt+IJ,4*(JX-1)+4)*T(N)
+     &                                 - EILSFL(MAB+IJ,4*(JX-1)+4)*T(N)
               ENDDO
 418           CONTINUE
 C
