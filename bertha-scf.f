@@ -21697,7 +21697,7 @@ C       NUMBER OF BASIS FUNCTIONS IN (AB) BLOCK
 C
 C      TRIANGLE RULE FOR LA <-> LB
         IF(PRM1IJ) THEN
-          IF(LA.LT.LB) GOTO 1001
+          IF(LA.GT.LB) GOTO 1001
         ENDIF
 C
 C     LOOP OVER LQN(C) VALUES
@@ -21767,7 +21767,7 @@ C       QUANTUM NUMBERS FOR BLOCK B
 C
 C       TRIANGLE RULE FOR KA <-> KB
         IF(PRM1IJ) THEN
-          IF(KA.LT.KB) GOTO 2001
+          IF(KA.GT.KB) GOTO 2001
         ENDIF
 C
 C     LOOP OVER KQN(C) VALUES
@@ -21902,7 +21902,7 @@ C
 C
 C       TRIANGLE RULE FOR MA <-> MB
         IF(PRM1IJ) THEN
-          IF(MA.LT.MB) GOTO 4001
+          IF(MA.GT.MB) GOTO 4001
 C         if(ma.ne.1.or.mb.ne.1) goto 4001
         ENDIF
 C
@@ -21931,7 +21931,7 @@ C
 C
 C       TRIANGLE RULE FOR |MA| <-> |MB|
         IF(PRM1IJ) THEN
-          IF(MMA.LT.MMB) GOTO 5001
+          IF(MMA.GT.MMB) GOTO 5001
         ENDIF
 C
       DO 5100 MMC=1,2
@@ -21970,7 +21970,7 @@ C
 C
 C     ONLY WANT THE UPPER TRIANGULAR MATRIX
 c      IF(PRM1IJ) THEN
-c        IF(NAL.LT.NBL) GOTO 5101
+c        IF(NAL.GT.NBL) GOTO 5101
 c      ENDIF
 C
 CC     ONLY WANT THE UPPER TRIANGULAR MATRIX
@@ -22339,7 +22339,7 @@ C
         IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 102
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
-        IF(NAL.LE.NBL) THEN
+C        IF(NAL.LE.NBL) THEN
 
           IF(IJ.EQ.1) THEN
             I = INDEX(KA,MA,MMA)
@@ -22357,10 +22357,10 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
             ENDDO
           ENDDO
 C
-        ENDIF
+C        ENDIF
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
-        IF(NAS.LE.NBS) THEN
+C        IF(NAS.LE.NBS) THEN
 
           IF(IJ.EQ.1) THEN
             I = INDEX(KA,MA,MMA)
@@ -22378,7 +22378,7 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
             ENDDO
           ENDDO
 C
-        ENDIF
+C        ENDIF
 C
 102     CONTINUE
 C
@@ -22388,17 +22388,21 @@ C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1IJ) GOTO 103
+C       GOTO 103
 C
 C       PERMUTATION BLOCK  I⇄J
 C       IF(IQ1.LE.IQ2) GOTO 103
-        IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.GE.MMB) GOTO 103
+        IF(MA.LE.MB) GOTO 103
+        IF(MMA.NE.MMB) GOTO 103
+C       IF(KA.GE.KB) GOTO 103
+c       IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.GE.MMB) GOTO 103
 C
 C       MQN SIGN SELECTION RULE
         IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 103
         IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 103
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|CD)
-        IF(NBL.LE.NAL) THEN
+C        IF(NBL.LE.NAL) THEN
 C
           IF(IJ.EQ.1) THEN
             I = INDEX(KA,MA,MMA)
@@ -22416,10 +22420,10 @@ C
             ENDDO
           ENDDO
 C
-        ENDIF
+C        ENDIF
 
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|CD)
-        IF(NBS.LE.NAS) THEN
+C        IF(NBS.LE.NAS) THEN
 C
           IF(IJ.EQ.1) THEN
             I = INDEX(KA,MA,MMA)
@@ -22436,7 +22440,7 @@ C
      &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
           ENDDO
-        ENDIF
+C        ENDIF
 C
 103     CONTINUE
 C
@@ -22596,14 +22600,19 @@ C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1IJ) GOTO 203
 C
 C       IF(IQ1.GE.IQ2) GOTO 203
-        IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.LE.MMB) GOTO 203
+C       IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.LE.MMB) GOTO 203
+C
+        IF(MA.NE.MB) GOTO 203
+        IF(MMA.NE.MMB) GOTO 203
 C
 C       MQN SIGN SELECTION RULE
+C        IF(MMJB-MMJD.NE.MMJA-MMJC) GOTO 203
+C        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 203
         IF(MMJB-MMJD.NE.MMJA-MMJC) GOTO 203
         IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 203
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-        IF(NBL.LE.NDL) THEN
+C        IF(NBL.LE.NDL) THEN
 C
 C         IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
           IF(IJ.EQ.1) THEN
@@ -22620,10 +22629,10 @@ C         IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
      &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NAL+IBAS))
             ENDDO
           ENDDO
-        ENDIF
+C        ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-        IF(NBL.LE.NDS) THEN
+C        IF(NBL.LE.NDS) THEN
 C
           IF(IJ.EQ.1) THEN
             J = INDEX(KB,MB,MMB)
@@ -22640,7 +22649,7 @@ C
             ENDDO
           ENDDO
 C
-        ENDIF
+C        ENDIF
 C
 CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
 C        IF(NBS.LT.NDL) THEN
@@ -22655,7 +22664,7 @@ C          ENDDO
 C        ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-        IF(NBS.LE.NDS) THEN
+C        IF(NBS.LE.NDS) THEN
 C
           IF(IJ.EQ.1) THEN
             J = INDEX(KB,MB,MMB)
@@ -22672,7 +22681,7 @@ C
             ENDDO
           ENDDO
 C
-        ENDIF
+C        ENDIF
 C
 203     CONTINUE
 C
