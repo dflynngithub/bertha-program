@@ -22300,6 +22300,7 @@ C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       ENDIF
 C
 C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
+c     (these may not be helpful)
       MMJA = MA*((-1)**MMA)
       MMJB = MB*((-1)**MMB)
       MMJC = MC*((-1)**MMC)
