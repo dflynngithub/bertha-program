@@ -4993,7 +4993,7 @@ C   [F] WKRNUC: CONSTRUCTS MULTI-CENTRE WICHMANN-KROLL ELEMENTS.       C
 C   [G] KSBNUC: CONSTRUCTS MULTI-CENTRE KÄLLÉN-SABRY ELEMENTS.         C
 C   [H] COULOMB: CONSTRUCTS ALL MULTI-CENTRE COULOMB SCF ELEMENTS.     C
 C   [I] ERI: GENERATES A BLOCK OF ELECTRON REPULSION INTEGRALS.        C
-C   [J] CLMMAT: MULTIPLIES BATCH FROM RR BY DENSITIES, ADDS TO GMAT.   C
+C   [J] CLMMTG: MULTIPLIES BATCH FROM RR BY DENSITIES, ADDS TO GMAT.   C
 C   [K] BREIT: MATRIX REP OF MEAN-FIELD BREIT INTERACTION.             C
 C   [L] BII: GENERATES A BLOCK OF BREIT INTERACTION INTEGRALS.         C
 C   [M] BRTMAT: MULTIPLIES BATCH FROM RR BY DENSITIES, ADDS TO BDSC.   C
@@ -10336,9 +10336,9 @@ C           GENERATE BATCH OF ELECTRON REPULSION INTEGRALS
 C
 C           MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
             IF(ISYM.EQ.0) THEN
-              CALL CLMMAT(RR,IFLG,TCMC)
+              CALL CLMMTG(RR,IFLG,TCMC)
             ELSE
-              CALL CLMMATZ(RR,IFLG,TCMC)
+              CALL CLMMTZ(RR,IFLG,TCMC)
             ENDIF
 C
           ENDIF
@@ -12010,9 +12010,9 @@ C       GENERATE BATCH OF ELECTRON REPULSION INTEGRALS
 C
 C       MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
         IF(ISYM.EQ.0) THEN
-          CALL CLMMAT(RR,IFLG,TCMC)
+          CALL CLMMTG(RR,IFLG,TCMC)
         ELSE
-          CALL CLMMATZ(RR,IFLG,TCMC)
+          CALL CLMMTZ(RR,IFLG,TCMC)
         ENDIF
 C
       ENDIF
@@ -13142,20 +13142,20 @@ C
       END
 C
 C
-      SUBROUTINE CLMMATZ(RR,IFLG,TADD)
+      SUBROUTINE CLMMTZ(RR,IFLG,TADD)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C  CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT ZZZZZZZZ  C
-C CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT         ZZ   C
-C CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT        ZZ    C
-C CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT       ZZ     C
-C CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT      ZZ      C
-C CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT     ZZ       C
-C  CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT    ZZZZZZZZ  C
+C      CCCCCC  LL       MM       MM MM       MM TTTTTTTT ZZZZZZZZ      C
+C     CC    CC LL       MMM     MMM MMM     MMM    TT         ZZ       C
+C     CC       LL       MMMM   MMMM MMMM   MMMM    TT        ZZ        C
+C     CC       LL       MM MM MM MM MM MM MM MM    TT       ZZ         C
+C     CC       LL       MM  MMM  MM MM  MMM  MM    TT      ZZ          C
+C     CC    CC LL       MM   M   MM MM   M   MM    TT     ZZ           C
+C      CCCCCC  LLLLLLLL MM       MM MM       MM    TT    ZZZZZZZZ      C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  CLMMATZ MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND    C
+C  CLMMTZ MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
 C  ADDS THE CONTRIBUTIONS TO THE OPEN/CLOSED SCF COULOMB MATRICES.     C
 C  DEPENDING ON THE COMBINATION OF MQN VALUES, CAN TAKE ADVANTAGE OF   C
 C  INTEGRAL PERMUTATION SYMMETRIES (MINIMISING CALLS TO ERI):          C
@@ -13163,7 +13163,7 @@ C              ( MA, MB|-MD,-MC) =     PCD*( MA, MB| MC, MD)           C
 C              (-MB,-MA| MC, MD) = PAB*    ( MA, MB| MC, MD)           C
 C              ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)           C
 C -------------------------------------------------------------------- C
-C  THIS IS A SPECIAL CASE OF COULOMB MATRIX ASSEMBLER CLMMAT, WHICH    C
+C  THIS IS A SPECIAL CASE OF COULOMB MATRIX ASSEMBLER CLMMTG, WHICH    C
 C  MAY ONLY BE USED WHEN THE FOCK MATRIX IS REAL-VALUED -- EXAMPLES    C
 C  ARE ATOMS, DIATOMICS, LINEAR OR PLANAR MOLECULES.                   C
 C -------------------------------------------------------------------- C
@@ -13213,8 +13213,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.EQ.0) THEN
-        WRITE(6,*) 'In CLMMATZ: you probably should be using CLMMAT.'
-        WRITE(7,*) 'In CLMMATZ: you probably should be using CLMMAT.'
+        WRITE(6,*) 'In CLMMTZ: you probably should be using CLMMTG.'
+        WRITE(7,*) 'In CLMMTZ: you probably should be using CLMMTG.'
       ENDIF
 C
 C**********************************************************************C
@@ -13836,20 +13836,20 @@ C
       END
 C
 C
-      SUBROUTINE CLMMAT(RR,IFLG,TADD)
+      SUBROUTINE CLMMTG(RR,IFLG,TADD)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C       CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT      C
-C      CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT         C
-C      CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT         C
-C      CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT         C
-C      CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT         C
-C      CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT         C
-C       CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT         C
+C       CCCCCC  LL       MM       MM MM       MM TTTTTTTT GGGGGG       C
+C      CC    CC LL       MMM     MMM MMM     MMM    TT   GG    GG      C
+C      CC       LL       MMMM   MMMM MMMM   MMMM    TT   GG            C
+C      CC       LL       MM MM MM MM MM MM MM MM    TT   GG            C
+C      CC       LL       MM  MMM  MM MM  MMM  MM    TT   GG   GGG      C
+C      CC    CC LL       MM   M   MM MM   M   MM    TT   GG    GG      C
+C       CCCCCC  LLLLLLLL MM       MM MM       MM    TT    GGGGGG       C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  CLMMAT MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
+C  CLMMTG MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
 C  ADDS THE CONTRIBUTIONS TO THE OPEN/CLOSED SCF COULOMB MATRICES.     C
 C  DEPENDING ON THE COMBINATION OF MQN VALUES, CAN TAKE ADVANTAGE OF   C
 C  INTEGRAL PERMUTATION SYMMETRIES (MINIMISING CALLS TO ERI):          C
@@ -13898,8 +13898,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.NE.0) THEN
-        WRITE(6,*) 'In CLMMAT: you probably should be using CLMMATZ.'
-        WRITE(7,*) 'In CLMMAT: you probably should be using CLMMATZ.'
+        WRITE(6,*) 'In CLMMTG: you probably should be using CLMMTZ.'
+        WRITE(7,*) 'In CLMMTG: you probably should be using CLMMTZ.'
       ENDIF
 C
 C**********************************************************************C
@@ -22060,9 +22060,9 @@ C
 C
 C     MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
       IF(ISYM.EQ.0) THEN
-        CALL CLMMAT1(XLLLL,XSSLL,XLLSS,XSSSS)
+        CALL CLMMT1G(XLLLL,XSSLL,XLLSS,XSSSS)
       ELSE
-        CALL CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX,IKM)
+        CALL CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX,IKM)
       ENDIF
 C
 C     MATRIX MULTIPLICATION STEP COMPLETE
@@ -22235,20 +22235,20 @@ C
       END
 C
 C
-      SUBROUTINE CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX,IKM)
+      SUBROUTINE CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX,IKM)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C  CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT 11  ZZZZZZZZ C
-C CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT   111       ZZ  C
-C CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT    11      ZZ   C
-C CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT    11     ZZ    C
-C CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT    11    ZZ     C
-C CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT    11   ZZ      C
-C  CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT   1111 ZZZZZZZZ C
+C    CCCCCC  LL       MM       MM MM       MM TTTTTTTT 11  ZZZZZZZZ    C
+C   CC    CC LL       MMM     MMM MMM     MMM    TT   111       ZZ     C
+C   CC       LL       MMMM   MMMM MMMM   MMMM    TT    11      ZZ      C
+C   CC       LL       MM MM MM MM MM MM MM MM    TT    11     ZZ       C
+C   CC       LL       MM  MMM  MM MM  MMM  MM    TT    11    ZZ        C
+C   CC    CC LL       MM   M   MM MM   M   MM    TT    11   ZZ         C
+C    CCCCCC  LLLLLLLL MM       MM MM       MM    TT   1111 ZZZZZZZZ    C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  CLMMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  CLMMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
 C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
 C**********************************************************************C
       INCLUDE 'parameters.h'
@@ -22295,8 +22295,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.EQ.0) THEN
-        WRITE(6,*) 'In CLMMAT1Z: you probably should be using CLMMAT1.'
-        WRITE(7,*) 'In CLMMAT1Z: you probably should be using CLMMAT1.'
+        WRITE(6,*) 'In CLMMT1Z: you probably should be using CLMMT1G.'
+        WRITE(7,*) 'In CLMMT1Z: you probably should be using CLMMT1G.'
       ENDIF
 C
 C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
@@ -22973,20 +22973,20 @@ C
       END
 C
 C
-      SUBROUTINE CLMMAT1(XLLLL,XSSLL,XLLSS,XSSSS)
+      SUBROUTINE CLMMT1G(XLLLL,XSSLL,XLLSS,XSSSS)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C     CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT 11     C
-C    CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT   111     C
-C    CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT    11     C
-C    CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT    11     C
-C    CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT    11     C
-C    CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT    11     C
-C     CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT   1111    C
+C     CCCCCC  LL       MM       MM MM       MM TTTTTTTT 11  GGGGGG     C
+C    CC    CC LL       MMM     MMM MMM     MMM    TT   111 GG    GG    C
+C    CC       LL       MMMM   MMMM MMMM   MMMM    TT    11 GG          C
+C    CC       LL       MM MM MM MM MM MM MM MM    TT    11 GG          C
+C    CC       LL       MM  MMM  MM MM  MMM  MM    TT    11 GG   GGG    C
+C    CC    CC LL       MM   M   MM MM   M   MM    TT    11 GG    GG    C
+C     CCCCCC  LLLLLLLL MM       MM MM       MM    TT   1111 GGGGGG     C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  CLMMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  CLMMT1G ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
 C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
 C**********************************************************************C
       INCLUDE 'parameters.h'
@@ -23030,8 +23030,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.NE.0) THEN
-        WRITE(6,*) 'In CLMMAT1: you probably should be using CLMMAT1Z.'
-        WRITE(7,*) 'In CLMMAT1: you probably should be using CLMMAT1Z.'
+        WRITE(6,*) 'In CLMMT1G: you probably should be using CLMMT1Z.'
+        WRITE(7,*) 'In CLMMT1G: you probably should be using CLMMT1Z.'
       ENDIF
 C
 C     NON-RELATIVISTIC HAMILTONIAN
