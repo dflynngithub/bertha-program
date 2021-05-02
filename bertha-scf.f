@@ -21543,10 +21543,11 @@ C
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
       COMPLEX*16 GPLT(MDM,MDM)
-      DIMENSION GTRU(MDM,MDM)
-      DIMENSION XDIR(64,64),XXCH(64,64)
-      DIMENSION YDIR(64,64),YXCH(64,64)
-      DIMENSION ZDIR(64,64),ZXCH(64,64)
+      DIMENSION DTRU(MDM,MDM),XTRU(MDM,MDM)
+      DIMENSION DTST(MDM,MDM),XTST(MDM,MDM)
+      DIMENSION XDIR(32,32),XXCH(32,32)
+      DIMENSION YDIR(32,32),YXCH(32,32)
+      DIMENSION ZDIR(32,32),ZXCH(32,32)
 C
       COMMON/B0IJ/EIJ(MB2,-MTN:MTN),RNIJ(MB2,4),EI(MB2),EJ(MB2),MAXAB
       COMMON/B0KL/EKL(MB2,-MTN:MTN),RNKL(MB2,4),EK(MB2),EL(MB2),MAXCD
@@ -21569,6 +21570,7 @@ C
      &            TBRM,TBRW,TBC1,TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,
      &            TC2T,TCVT,TB2T,TACC,TEIG,TSCR,TTOT,TC2S,TB2S
       COMMON/XNUS/INU(MNU,16),NUS(MNU),NUI,NUF,NUNUM,K4AD
+      COMMON/ZZZZ/YDIRTOT,ZDIRTOT,YXCHTOT,ZXCHTOT
 C
 C     ANGULAR FACTOR SENSITIVITY PARAMETER
       DATA SENS/1.0D-10/
@@ -21591,8 +21593,8 @@ C**********************************************************************C
 C     ORDERED INDEX OF (MQN,KQN) BLOCKS WITHIN FOCK                    C
 C**********************************************************************C
 C
-      DO M=1,64
-        DO N=1,64
+      DO M=1,32
+        DO N=1,32
           ZDIR(M,N) = 0.0D0
           ZXCH(M,N) = 0.0D0
         ENDDO
@@ -22014,7 +22016,8 @@ C     MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
       IF(ISYM.EQ.0) THEN
         CALL CLMMT1G(XLLLL,XSSLL,XLLSS,XSSSS)
       ELSE
-        CALL CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX)
+C       CALL CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH)
+        CALL CLMMT1ZTEST(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX)
       ENDIF
 C
 C     MATRIX MULTIPLICATION STEP COMPLETE
@@ -22094,117 +22097,136 @@ C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
         T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
       ENDIF
 C
+C      GOTO 123
+C
 C     READ IN 'SOURCE OF TRUTH'
-      OPEN(UNIT=8,FILE="plots/ZDIR-TRUTH.dat",STATUS='UNKNOWN')
-      REWIND(UNIT=8)
-      DO I=1,64
-        READ(8, *) (YDIR(I,J),J=1,64)
-      ENDDO
-      CLOSE(UNIT=8)
+C      OPEN(UNIT=8,FILE="plots/ZDIR-TRUTH.dat",STATUS='UNKNOWN')
+C      REWIND(UNIT=8)
+C      DO I=1,64
+C        READ(8, *) (YDIR(I,J),J=1,32)
+C      ENDDO
+C      CLOSE(UNIT=8)
       OPEN(UNIT=8,FILE="plots/ZXCH-TRUTH.dat",STATUS='UNKNOWN')
       REWIND(UNIT=8)
-      DO I=1,64
-        READ(8, *) (YXCH(I,J),J=1,64)
+      DO I=1,32
+        READ(8, *) (YXCH(I,J),J=1,32)
       ENDDO
       CLOSE(UNIT=8)
 C
 CC     HEAT MAP OF ZDIR BLOCKS
 C      TITLE = 'ZDIR-TRUTH'
-C      CALL DGNUMAP(ZDIR,TITLE,64)
-CC
-CC     HEAT MAP OF ZXCH BLOCKS
-C      TITLE = 'ZXCH-TRUTH'
-C      CALL DGNUMAP(ZXCH,TITLE,64)
+C      CALL DGNUMAP(ZDIR,TITLE,32)
+C
+C     HEAT MAP OF ZXCH BLOCKS
+      TITLE = 'ZXCH-TRUTH'
+      CALL DGNUMAP(YXCH,TITLE,32)
 C
 C     SUM UP EXCHANGE BLOCKS
-      YDIRTOT = 0.0D0
-      ZDIRTOT = 0.0D0
+C      YDIRTOT = 0.0D0
+C      ZDIRTOT = 0.0D0
       YXCHTOT = 0.0D0
       ZXCHTOT = 0.0D0
-      DO I=1,64
-        DO J=1,64
-          YDIRTOT = YDIRTOT + YDIR(I,J)
-          ZDIRTOT = ZDIRTOT + ZDIR(I,J)
+      DO I=1,32
+        DO J=1,32
+C          YDIRTOT = YDIRTOT + YDIR(I,J)
+C          ZDIRTOT = ZDIRTOT + ZDIR(I,J)
           YXCHTOT = YXCHTOT + YXCH(I,J)
           ZXCHTOT = ZXCHTOT + ZXCH(I,J)
         ENDDO
       ENDDO
 C
 C     CALCULATE DIFFERENCE BETWEEN TRUTH AND WHAT WE HAVE
-      DO I=1,64
-        DO J=I,64
-          XDIR(I,J) = YDIR(I,J)-ZDIR(I,J)
+      DO I=1,32
+        DO J=1,32
+C          XDIR(I,J) = YDIR(I,J)-ZDIR(I,J)
           XXCH(I,J) = YXCH(I,J)-ZXCH(I,J)
         ENDDO
       ENDDO
-      ZXCH(64,1) = 90.0D0
-C
-C     HEAT MAP OF ZDIR BLOCKS
-      TITLE = 'ZDIR-GUESS'
-      CALL DGNUMAP(ZDIR,TITLE,64)
+CC
+CC     HEAT MAP OF ZDIR BLOCKS
+C      TITLE = 'ZDIR-GUESS'
+C      CALL DGNUMAP(ZDIR,TITLE,32)
 C
 C     HEAT MAP OF ZXCH BLOCKS
       TITLE = 'ZXCH-GUESS'
-      CALL DGNUMAP(ZXCH,TITLE,64)
+      CALL DGNUMAP(ZXCH,TITLE,32)
 C
-C     HEAT MAP OF XDIR BLOCKS
-      TITLE = 'ZDIR-DIFF'
-      CALL DGNUMAP(XDIR,TITLE,64)
-C
+CC     HEAT MAP OF XDIR BLOCKS
+C      TITLE = 'ZDIR-DIFF'
+C      CALL DGNUMAP(XDIR,TITLE,32)
+CC
 C     HEAT MAP OF XXCH BLOCKS
       TITLE = 'ZXCH-DIFF'
-      CALL DGNUMAP(XXCH,TITLE,64)
+      CALL DGNUMAP(XXCH,TITLE,32)
 
       WRITE(*,*) YXCHTOT,ZXCHTOT,YXCHTOT/ZXCHTOT
       
       return
+C
+123   CONTINUE
 CC
 CC     READ IN 'SOURCE OF TRUTH'
-C      OPEN(UNIT=8,FILE="plots/GXCH-LL-TRUTH_r.dat",STATUS='UNKNOWN')
+C      OPEN(UNIT=8,FILE="plots/GDIR-LL-TRUTH_r.dat",STATUS='UNKNOWN')
 C      REWIND(UNIT=8)
 C      DO I=1,470
-C        READ(8, *) (GTRU(I,J),J=1,470)
+C        READ(8, *) (DTRU(I,J),J=1,470)
 C      ENDDO
 C      CLOSE(UNIT=8)
 CC
-C      TITLE = 'GXCH'
-C      CALL ZGNUMAP(GXCH,TITLE,470)
-CC
-CC     CALCULATE DIFFERENCE BETWEEN TRUTH AND WHAT WE HAVE
-C      DO I=203,232
-C        DO J=203,232
-C          GPLT(I-202,J-202) = GXCH(I,J)-DCMPLX(GTRU(I,J),0.0D0)
-Cc         GPLT(I,J) = GXCH(I,J)
-C        ENDDO
-C      ENDDO
-CC
-CC     LARGEST ELEMENT AND LOCATION
-C      GBIG = 0.0D0
-C      IBIG = 0
-C      JBIG = 0
-C      DO I=1,250
-C        DO J=1,250
-C          IF(ABS(GPLT(I,J)).GT.GBIG) THEN
-C            GBIG = ABS(GPLT(I,J))
-C            IBIG = I
-C            JBIG = J
-C          ENDIF
-C        ENDDO
-C      ENDDO
-C      WRITE(*,*) 'BIGGEST IS ',GBIG,' AT I,J=',IBIG,JBIG
-CC
-C      TITLE = 'GXCH-DIFF'
-C      CALL ZGNUMAP(GPLT,TITLE,30)
-C      
-C      do i=1,30
-C        write(*,*) i,dreal(gplt(i,i))
-C      enddo
+C      TITLE = 'GDIR-TRUTH'
+C      CALL ZGNUMAP(DTRU,TITLE,470)
+C
+C     READ IN 'SOURCE OF TRUTH'
+      OPEN(UNIT=8,FILE="plots/GXCH-LL-TRUTH_r.dat",STATUS='UNKNOWN')
+      REWIND(UNIT=8)
+      DO I=1,470
+        READ(8, *) (XTRU(I,J),J=1,470)
+      ENDDO
+      CLOSE(UNIT=8)
+C
+      TITLE = 'GXCH-TRUTH'
+      CALL ZGNUMAP(XTRU,TITLE,470)
+C
+      DO I=1,470
+        DO J=1,470
+          DTST(I,J) = DREAL(GXCH(I,J))
+        ENDDO
+      ENDDO
+C
+      TITLE = 'GXCH-TEST'
+      CALL ZGNUMAP(DTST,TITLE,470)
+C
+C     CALCULATE DIFFERENCE BETWEEN TRUTH AND WHAT WE HAVE
+      DO I=1,470
+        DO J=1,470
+          GPLT(I,J) = DTST(I,J)-DCMPLX(XTRU(I,J),0.0D0)
+c         GPLT(I,J) = GXCH(I,J)
+        ENDDO
+      ENDDO
+C
+C     LARGEST ELEMENT AND LOCATION
+      GBIG = 0.0D0
+      IBIG = 0
+      JBIG = 0
+      DO I=1,470
+        DO J=1,470
+          IF(ABS(GPLT(I,J)).GT.GBIG) THEN
+            GBIG = ABS(GPLT(I,J))
+            IBIG = I
+            JBIG = J
+          ENDIF
+        ENDDO
+      ENDDO
+      WRITE(*,*) 'BIGGEST IS ',GBIG,' AT I,J=',IBIG,JBIG
+C
+      TITLE = 'GXCH-DIFF'
+      CALL ZGNUMAP(GPLT,TITLE,470)
 C
       RETURN
       END
 C
 C
-      SUBROUTINE CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX)
+      SUBROUTINE CLMMT1Ztest(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,INDEX)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
@@ -22225,7 +22247,7 @@ C**********************************************************************C
 C
       DIMENSION INDEX(2*MEL+1,MEL+1,2)
       DIMENSION ISCF(11,6),IFLG(11)
-      DIMENSION ZDIR(64,64),ZXCH(64,64)
+      DIMENSION ZDIR(32,32),ZXCH(32,32)
       DIMENSION XLLLL(MB2),XSSLL(MB2),XLLSS(MB2),XSSSS(MB2)
 C
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -22330,11 +22352,11 @@ C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
         IF(NAS.LE.NBS) THEN
 
-          IF(IJ.EQ.1) THEN
-            I = INDEX(KA,MA,MMA)
-            J = INDEX(KB,MB,MMB)
-            ZDIR(I+32,J+32) = ZDIR(I+32,J+32) + 1.0D0
-          ENDIF
+C          IF(IJ.EQ.1) THEN
+C            I = INDEX(KA,MA,MMA)
+C            J = INDEX(KB,MB,MMB)
+C            ZDIR(I+32,J+32) = ZDIR(I+32,J+32) + 1.0D0
+C          ENDIF
 
           M = 0
           DO KBAS=1,NBAS(3)
@@ -22356,7 +22378,7 @@ C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1IJ) GOTO 103
-        GOTO 103
+c        GOTO 103
 C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
         IF(KA.EQ.KB) GOTO 103
@@ -22391,12 +22413,519 @@ C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|CD)
         IF(NBS.LE.NAS) THEN
 C
+C          IF(IJ.EQ.1) THEN
+C            I = INDEX(KA,MA,MMA)
+C            J = INDEX(KB,MB,MMB)
+C            ZDIR(J+32,I+32) = ZDIR(J+32,I+32) + 1.0D0
+C          ENDIF
+C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NBS+JBAS,NAS+IBAS) = GDIR(NBS+JBAS,NAS+IBAS)
+     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+103     CONTINUE
+C
+C     END CONDITIONAL OVER HMLT TYPES
+      ENDIF
+C
+C**********************************************************************C
+C     ASSEMBLE THE CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)         C
+C**********************************************************************C
+C
+C     NON-RELATIVISTIC HAMILTONIAN
+      IF(HMLT.EQ.'NORL') THEN
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GXCH(LL)
+        IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 201
+        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 201
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS) 
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+201     CONTINUE
+C
+C     RELATIVISTIC HAMILTONIAN
+      ELSE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: NO PERMUTATION SYMMETRY EMPLOYED                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C       CLOSED-SHELL EXCHANGE MATRIX GXCH
+        IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 202
+        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 202
+        GOTO 202
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+        IF(NAL.LE.NDL) THEN
+C
           IF(IJ.EQ.1) THEN
             I = INDEX(KA,MA,MMA)
-            J = INDEX(KB,MB,MMB)
-            ZDIR(J+32,I+32) = ZDIR(J+32,I+32) + 1.0D0
+            L = INDEX(KD,MD,MMD)
+            ZXCH(I   ,L   ) = ZXCH(I   ,L   ) + 1.0D0
           ENDIF
 C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+C
+        ENDIF
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+        IF(NAL.LE.NDS) THEN
+C
+C          IF(IJ.EQ.1) THEN
+C            I = INDEX(KA,MA,MMA)
+C            L = INDEX(KD,MD,MMD)
+C            ZXCH(I   ,L+32) = ZXCH(I   ,L+32) + 1.0D0
+C          ENDIF
+C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NDS+LBAS) = GXCH(NAL+IBAS,NDS+LBAS)
+     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+C
+        ENDIF
+C
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C        M = 0
+C        DO KBAS=1,NBAS(3)
+C          DO LBAS=1,NBAS(4)
+C            M = M+1
+C            GXCH(NAS+IBAS,NDL+LBAS) = GXCH(NAS+IBAS,NDL+LBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NBS+JBAS)
+C          ENDDO
+C        ENDDO
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+        IF(NAS.LE.NDS) THEN
+C
+C          IF(IJ.EQ.1) THEN
+C            I = INDEX(KA,MA,MMA)
+C            L = INDEX(KD,MD,MMD)
+C            ZXCH(I+32,L+32) = ZXCH(I+32,L+32) + 1.0D0
+C          ENDIF
+C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAS+IBAS,NDS+LBAS) = GXCH(NAS+IBAS,NDS+LBAS)
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
+            ENDDO
+          ENDDO
+C
+        ENDIF
+C
+202     CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: PERMUTATION SYMMETRY I⇄J                                 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1IJ) GOTO 203
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.EQ.MMB) GOTO 203
+C
+C       MQN SIGN SELECTION RULE
+        IF(MMJB-MMJD.NE.MMJA-MMJC) GOTO 203
+        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 203
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+        IF(NBL.LE.NDL) THEN
+C
+          IF(IJ.EQ.1) THEN
+            J = INDEX(KB,MB,MMB)
+            L = INDEX(KD,MD,MMD)
+            ZXCH(J   ,L   ) = ZXCH(J   ,L   ) + 1.0D0
+          ENDIF
+C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NAL+IBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+        IF(NBL.LE.NDS) THEN
+C
+C          IF(IJ.EQ.1) THEN
+C            J = INDEX(KB,MB,MMB)
+C            L = INDEX(KD,MD,MMD)
+C            ZXCH(J   ,L+32) = ZXCH(J   ,L+32) + 1.0D0
+C          ENDIF
+C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
+     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NAL+IBAS))
+            ENDDO
+          ENDDO
+C
+        ENDIF
+C
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C        IF(NBS.LT.NDL) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NAS+IBAS))
+C            ENDDO
+C          ENDDO
+C        ENDIF
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+        IF(NBS.LE.NDS) THEN
+C
+C          IF(IJ.EQ.1) THEN
+C            J = INDEX(KB,MB,MMB)
+C            L = INDEX(KD,MD,MMD)
+C            ZXCH(J+32,L+32) = ZXCH(J+32,L+32) + 1.0D0
+C          ENDIF
+C
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NAS+IBAS))
+            ENDDO
+          ENDDO
+C
+        ENDIF
+C
+203     CONTINUE
+CC
+C     END CONDITIONAL OVER HMLT TYPES
+      ENDIF
+C
+      IF(NOPN.EQ.0) GOTO 901
+C
+C**********************************************************************C
+C     ASSEMBLE THE OPEN-SHELL DIRECT COULOMB MATRIX (QDIR)             C
+C**********************************************************************C
+C
+C     NON-RELATIVISTIC HAMILTONIAN
+      IF(HMLT.EQ.'NORL') THEN
+C
+C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
+        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 301
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &                   + ACFF*XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+301     CONTINUE
+C
+C     RELATIVISTIC HAMILTONIAN
+      ELSE
+C
+C       OPEN-SHELL DIRECT MATRIX QDIR
+        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 302
+C
+C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &                   + ACFF*XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+     &                   + ACFF*XLLSS(M)*DREAL(DENO(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(SS)
+        IF(NAS.LE.NBS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QDIR(NAS+IBAS,NBS+JBAS) = QDIR(NAS+IBAS,NBS+JBAS)
+     &                   + ACFF*XSSLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+     &                   + ACFF*XSSSS(M)*DREAL(DENO(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+302     CONTINUE
+C
+C     END CONDITIONAL OVER HMLT TYPES
+      ENDIF
+C
+C**********************************************************************C
+C     ASSEMBLE THE OPEN-SHELL EXCHANGE COULOMB MATRIX (QXCH)           C
+C**********************************************************************C
+C
+C     NON-RELATIVISTIC HAMILTONIAN
+      IF(HMLT.EQ.'NORL') THEN
+C
+C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
+        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 401
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
+     &                   + BCFF*XLLLL(M)*DREAL(DENO(NCL+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+401     CONTINUE
+C
+C     RELATIVISTIC HAMILTONIAN
+      ELSE
+C
+C       OPEN-SHELL EXCHANGE MATRIX GXCH
+        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 402
+C
+C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
+        IF(NAL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
+     &                   + BCFF*XLLLL(M)*DREAL(DENO(NCL+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LS)
+        IF(NAL.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAL+IBAS,NDS+LBAS) = QXCH(NAL+IBAS,NDS+LBAS)
+     &                   + BCFF*XLLSS(M)*DREAL(DENO(NCS+KBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+CC
+CC       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SL)
+C        IF(NAS.LE.NDL) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              QXCH(NAS+IBAS,NDL+LBAS) = QXCH(NAS+IBAS,NDL+LBAS)
+C     &                   + BCFF*XSSLL(M)*DREAL(DENO(NCL+KBAS,NBS+JBAS))
+C            ENDDO
+C          ENDDO
+C        ENDIF
+CC
+C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SS)
+        IF(NAS.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              QXCH(NAS+IBAS,NDS+LBAS) = QXCH(NAS+IBAS,NDS+LBAS)
+     &                   + BCFF*XSSSS(M)*DREAL(DENO(NCS+KBAS,NBS+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+402     CONTINUE
+C
+C     END CONDITIONAL OVER HMLT TYPES
+      ENDIF
+C
+C     END CONDITIONAL FOR OPEN-SHELL SYSTEM
+901   CONTINUE
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C    CCCCCC  LL       MM       MM MM       MM TTTTTTTT 11  ZZZZZZZZ    C
+C   CC    CC LL       MMM     MMM MMM     MMM    TT   111       ZZ     C
+C   CC       LL       MMMM   MMMM MMMM   MMMM    TT    11      ZZ      C
+C   CC       LL       MM MM MM MM MM MM MM MM    TT    11     ZZ       C
+C   CC       LL       MM  MMM  MM MM  MMM  MM    TT    11    ZZ        C
+C   CC    CC LL       MM   M   MM MM   M   MM    TT    11   ZZ         C
+C    CCCCCC  LLLLLLLL MM       MM MM       MM    TT   1111 ZZZZZZZZ    C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  CLMMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
+C**********************************************************************C
+      INCLUDE 'parameters.h'
+      INCLUDE 'scfoptions.h'
+C
+      DIMENSION XLLLL(MB2),XSSLL(MB2),XLLSS(MB2),XSSSS(MB2)
+C
+      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
+      COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
+     &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
+     &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
+     &           VSLF(MDM,MDM),VUEH(MDM,MDM),VWKR(MDM,MDM),
+     &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
+     &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
+C
+      COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/DENS/DENC,DENO,DENT
+      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,IQ3,IQ4,
+     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
+     &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
+      COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
+C
+C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
+      IF(SHAPE.EQ.'ATOMIC') THEN
+        ISYM = 2
+      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
+        ISYM = 1
+      ELSE
+        ISYM = 0
+      ENDIF
+C
+C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
+      IF(ISYM.EQ.0) THEN
+        WRITE(6,*) 'In CLMMT1Z: you probably should be using CLMMT1G.'
+        WRITE(7,*) 'In CLMMT1Z: you probably should be using CLMMT1G.'
+      ENDIF
+C
+C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
+      MMJA = MA*((-1)**MMA)
+      MMJB = MB*((-1)**MMB)
+      MMJC = MC*((-1)**MMC)
+      MMJD = MD*((-1)**MMD)
+C
+C**********************************************************************C
+C     ASSEMBLE THE CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)           C
+C**********************************************************************C
+C
+C     NON-RELATIVISTIC HAMILTONIAN
+      IF(HMLT.EQ.'NORL') THEN
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
+        IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 101
+        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 101
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+101     CONTINUE
+C
+C     RELATIVISTIC HAMILTONIAN
+      ELSE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: NO PERMUTATION SYMMETRY EMPLOYED                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+        IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 102
+        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 102
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
+        IF(NAS.LE.NBS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+102     CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: PERMUTATION SYMMETRY I⇄J                                 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1IJ) GOTO 103
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KA.EQ.KB) GOTO 103
+C
+C       MQN SIGN SELECTION RULE
+        IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 103
+        IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 103
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|CD)
+        IF(NBL.LE.NAL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NBL+JBAS,NAL+IBAS) = GDIR(NBL+JBAS,NAL+IBAS)
+     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|CD)
+        IF(NBS.LE.NAS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22448,13 +22977,6 @@ C       CLOSED-SHELL EXCHANGE MATRIX GXCH
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
         IF(NAL.LE.NDL) THEN
-C
-          IF(IJ.EQ.1) THEN
-            I = INDEX(KA,MA,MMA)
-            L = INDEX(KD,MD,MMD)
-            ZXCH(I   ,L   ) = ZXCH(I   ,L   ) + 1.0D0
-          ENDIF
-C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22463,19 +22985,10 @@ C
      &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
             ENDDO
           ENDDO
-C
         ENDIF
-        GOTO 202
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
         IF(NAL.LE.NDS) THEN
-C
-          IF(IJ.EQ.1) THEN
-            I = INDEX(KA,MA,MMA)
-            L = INDEX(KD,MD,MMD)
-            ZXCH(I   ,L+32) = ZXCH(I   ,L+32) + 1.0D0
-          ENDIF
-C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22484,7 +22997,6 @@ C
      &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
             ENDDO
           ENDDO
-C
         ENDIF
 C
 CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
@@ -22499,13 +23011,6 @@ C        ENDDO
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
         IF(NAS.LE.NDS) THEN
-C
-          IF(IJ.EQ.1) THEN
-            I = INDEX(KA,MA,MMA)
-            L = INDEX(KD,MD,MMD)
-            ZXCH(I+32,L+32) = ZXCH(I+32,L+32) + 1.0D0
-          ENDIF
-C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22514,7 +23019,6 @@ C
      &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
             ENDDO
           ENDDO
-C
         ENDIF
 C
 202     CONTINUE
@@ -22525,6 +23029,7 @@ C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1IJ) GOTO 203
+        GOTO 203
 C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
         IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.EQ.MMB) GOTO 203
@@ -22535,13 +23040,6 @@ C       MQN SIGN SELECTION RULE
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
         IF(NBL.LE.NDL) THEN
-C
-          IF(IJ.EQ.1) THEN
-            J = INDEX(KB,MB,MMB)
-            L = INDEX(KD,MD,MMD)
-            ZXCH(J   ,L   ) = ZXCH(J   ,L   ) + 1.0D0
-          ENDIF
-C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22552,16 +23050,8 @@ C
           ENDDO
         ENDIF
 C
-        GOTO 203
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
         IF(NBL.LE.NDS) THEN
-C
-          IF(IJ.EQ.1) THEN
-            J = INDEX(KB,MB,MMB)
-            L = INDEX(KD,MD,MMD)
-            ZXCH(J   ,L+32) = ZXCH(J   ,L+32) + 1.0D0
-          ENDIF
-C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22587,13 +23077,6 @@ C        ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
         IF(NBS.LE.NDS) THEN
-C
-          IF(IJ.EQ.1) THEN
-            J = INDEX(KB,MB,MMB)
-            L = INDEX(KD,MD,MMD)
-            ZXCH(J+32,L+32) = ZXCH(J+32,L+32) + 1.0D0
-          ENDIF
-C
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
@@ -22602,7 +23085,6 @@ C
      &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NAS+IBAS))
             ENDDO
           ENDDO
-C
         ENDIF
 C
 203     CONTINUE
