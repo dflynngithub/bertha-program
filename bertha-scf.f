@@ -5074,7 +5074,6 @@ C
      &            TCC2,TCMC,TB1A,TB1I,TB1B,TB1R,TB1F,TB1M,TB1T,TBEC,
      &            TBRM,TBRW,TBC1,TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,
      &            TC2T,TCVT,TB2T,TACC,TEIG,TSCR,TTOT,TC2S,TB2S
-      COMMON/ZZZZ/YDIRTOT,ZDIRTOT,YXCHTOT,ZXCHTOT,aaa,bbb
 C
 C**********************************************************************C
 C     SCF CALCULATION CHOICES AND ARRAY INITIALISATION                 C
@@ -21545,8 +21544,6 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      CHARACTER*80 TITLE
-C
       DIMENSION DKAB(MNU,MKP+1,MKP+1),DKCD(MNU,MKP+1,MKP+1)
       DIMENSION RJLLLL(MB2,MNU),RJLLSS(MB2,MNU),
      &          RJSSLL(MB2,MNU),RJSSSS(MB2,MNU)
@@ -21559,14 +21556,6 @@ C
      &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
-      COMPLEX*16 GPLT(MDM,MDM)
-      DIMENSION DDIF(MDM,MDM),XDIF(MDM,MDM)
-      DIMENSION DTRU(MDM,MDM),XTRU(MDM,MDM)
-      DIMENSION DTST(MDM,MDM),XTST(MDM,MDM)
-      DIMENSION XDIR(32,32),XXCH(32,32)
-      DIMENSION YDIR(32,32),YXCH(32,32)
-      DIMENSION ZDIR(32,32),ZXCH(32,32)
-C
       COMMON/B0IJ/EIJ(MB2,-MTN:MTN),RNIJ(MB2,4),EI(MB2),EJ(MB2),MAXAB
       COMMON/B0KL/EKL(MB2,-MTN:MTN),RNKL(MB2,4),EK(MB2),EL(MB2),MAXCD
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
@@ -21574,8 +21563,9 @@ C
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
-      COMMON/MT1A/LA,LB,LC,LD,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,PAB,PCD
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/RCFF/T0000,T1000,T0100,T0010,T0001,T1100,T1010,T1001,
@@ -21588,7 +21578,6 @@ C
      &            TBRM,TBRW,TBC1,TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,
      &            TC2T,TCVT,TB2T,TACC,TEIG,TSCR,TTOT,TC2S,TB2S
       COMMON/XNUS/INU(MNU,16),NUS(MNU),NUI,NUF,NUNUM,K4AD
-      COMMON/ZZZZ/YDIRTOT,ZDIRTOT,YXCHTOT,ZXCHTOT,aaa,bbb
 C
 C     ANGULAR FACTOR SENSITIVITY PARAMETER
       DATA SENS/1.0D-10/
@@ -21603,16 +21592,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       ELSE
         ISYM = 0
       ENDIF
-      
-      DO I=1,MDM
-        DO J=1,MDM
-          XDIF(I,J) = 0.0D0
-          XTRU(I,J) = 0.0D0
-          XTST(I,J) = 0.0D0
-        ENDDO
-      ENDDO
 C
-      PRM1IJ = .FALSE.
+      PRM1IJ = .TRUE.
       PRM1KL = .TRUE.
 C
 C**********************************************************************C
@@ -21651,8 +21632,6 @@ C       TRIANGLE RULE FOR LA <-> LB
           IF(LA.GT.LB) GOTO 1001
         ENDIF
 C
-C        if(LA.ne.1.or.LB.ne.1) goto 1001
-C
 C     LOOP OVER LQN(C) VALUES
       DO 1100 LC=0,(NKAP(IZ)-1)/2
 C
@@ -21684,8 +21663,6 @@ C       TRIANGLE RULE FOR LC <-> LD
         IF(PRM1KL) THEN
           IF(LC.GT.LD) GOTO 1101
         ENDIF
-C
-C        IF(LC.ne.1.or.LD.ne.1) GOTO 1101
 C
 C       DETERMINE THE TENSOR ORDERS REQUIRED FOR THIS LQN BLOCK
         CALL SYSTEM_CLOCK(ICL3,RATE)
@@ -21854,26 +21831,22 @@ C
 C
       DO 4000 MB=1,IABS(KQN(2))
         MQN(2) = 2*MB-1
-C
+CC
 CC       TRIANGLE RULE FOR MA <-> MB
 C        IF(PRM1IJ) THEN
 C          IF(KA.EQ.KB.AND.MA.GT.MB) GOTO 4001
 C        ENDIF
-C
-C       if(MA.NE.1.OR.MB.NE.1) goto 4001
 C
       DO 4100 MC=1,IABS(KQN(3))
         MQN(3) = 2*MC-1
 C
       DO 4100 MD=1,IABS(KQN(4))
         MQN(4) = 2*MD-1
-C
+CC
 CC       TRIANGLE RULE FOR MC <-> MD
 C        IF(PRM1KL) THEN
 C          IF(MC.GT.MD) GOTO 4101
 C        ENDIF
-C
-C        if(MC.NE.1.OR.MD.NE.1) goto 4101
 C
 C**********************************************************************C
 C     LOOP OVER THE SIGNS OF |MQN| FOR A,B,C,D BLOCKS (USE INDEX 5000) C
@@ -21910,25 +21883,26 @@ C     PHASE FACTORS FOR PERMUTATION SWAPS
       PCD = ISIGN(1,KQN(3)*KQN(4))*DFLOAT((-1)**((MMJC-MMJD)/2))
 C
 C     STARTING FOCK ADDRESS FOR EACH BASIS LIST
-      NAL = LRGE(IZ,KA,IMJA)
-      NBL = LRGE(IZ,KB,IMJB)
-      NCL = LRGE(IZ,KC,IMJC)
-      NDL = LRGE(IZ,KD,IMJD)
+      NAL = LRGE(IZ,KA,2*MA-2+MMA)
+      NBL = LRGE(IZ,KB,2*MB-2+MMB)
+      NCL = LRGE(IZ,KC,2*MC-2+MMC)
+      NDL = LRGE(IZ,KD,2*MD-2+MMD)
 C
-      NAS = LRGE(IZ,KA,IMJA)+NSKP
-      NBS = LRGE(IZ,KB,IMJB)+NSKP
-      NCS = LRGE(IZ,KC,IMJC)+NSKP
-      NDS = LRGE(IZ,KD,IMJD)+NSKP
+      NAS = NAL+NSKP
+      NBS = NBL+NSKP
+      NCS = NCL+NSKP
+      NDS = NDL+NSKP
 C
-C     ONLY WANT THE UPPER TRIANGULAR MATRIX
-c      IF(PRM1IJ) THEN
-c        IF(NAL.GT.NBL) GOTO 5101
-c      ENDIF
+C     STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS
+      KAL = LRGE(IZ,KA,2*MA+1-MMA)
+      KBL = LRGE(IZ,KB,2*MB+1-MMB)
+      KCL = LRGE(IZ,KC,2*MC+1-MMC)
+      KDL = LRGE(IZ,KD,2*MD+1-MMD)
 C
-CC     ONLY WANT THE UPPER TRIANGULAR MATRIX
-C      IF(PRM1KL) THEN
-C        IF(NCL.GT.NDL) GOTO 5101
-C      ENDIF
+      KAS = KAL+NSKP
+      KBS = KBL+NSKP
+      KCS = KCL+NSKP
+      KDS = KDL+NSKP
 C
 C     APPLY ANGULAR MQN SELECTION RULES
       IF(MMJA-MMJB.EQ.MMJD-MMJC) THEN
@@ -21942,8 +21916,24 @@ C     THIS SELECTION RULE IS FOR THE IJ PERMUTATION
 C     IF(MMJB-MMJA.EQ.MMJD-MMJC) THEN
       IF(-MMJB+MMJA.EQ.MMJD-MMJC) THEN
         IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-          IF(MMB.EQ.MMA.AND.MMC.EQ.MMD) GOTO 5102
+C         IF(MMB.EQ.MMA.AND.MMC.EQ.MMD) GOTO 5102
           IF(MMB.EQ.MMD.AND.MMC.EQ.MMA) GOTO 5102
+        ENDIF
+      ENDIF
+C
+C     THIS SELECTION RULE IS FOR THE KL PERMUTATION
+      IF(MMJA-MMJB.EQ.MMJC-MMJD) THEN
+        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
+C         IF(MMA.EQ.MMB.AND.MMD.EQ.MMC) GOTO 5102
+          IF(MMA.EQ.MMC.AND.MMD.EQ.MMB) GOTO 5102
+        ENDIF
+      ENDIF
+C
+C     THIS SELECTION RULE IS FOR THE IJ AND KL PERMUTATIONS
+      IF(-MMJB+MMJA.EQ.MMJC-MMJD) THEN
+        IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
+C         IF(MMB.EQ.MMA.AND.MMD.EQ.MMC) GOTO 5102
+          IF(MMB.EQ.MMC.AND.MMD.EQ.MMA) GOTO 5102
         ENDIF
       ENDIF
 C
@@ -22074,82 +22064,6 @@ C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
         T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
       ENDIF
 C
-      aaa = 226.917016950d0
-      bbb =  51.088857361d0
-C      
-      OPEN(UNIT=8,FILE='plots/GXCH-TRUE.dat',STATUS='UNKNOWN')
-      REWIND(UNIT=8)
-      DO I=1,MDM
-        READ(8, *) (XTRU(I,J),J=1,MDM)
-      ENDDO
-      CLOSE(UNIT=8)
-C      DO I=1,MDM
-C        DO J=1,MDM
-C          XTRU(I,J) = DREAL(GXCH(I,J))
-C        ENDDO
-C      ENDDO
-      TITLE = 'GXCH-TRUE'
-      CALL DGNUMAP(XTRU,TITLE,MDM)
-C
-      DO I=1,MDM
-        DO J=1,MDM
-          XTST(I,J) = DREAL(GXCH(I,J))
-        ENDDO
-      ENDDO
-      TITLE = 'GXCH-TEST'
-      CALL DGNUMAP(XTST,TITLE,MDM)
-C
-      DO I=1,MDM
-        DO J=1,MDM
-          XDIF(I,J) = XTRU(I,J)-XTST(I,J)
-        ENDDO
-      ENDDO
-      TITLE = 'GXCH-DIFF'
-      CALL DGNUMAP(XDIF,TITLE,MDM)
-C
-5678  FORMAT(' KQN:',1X,I2,1X,I2,3X,'MQN:',1X,I2,1X,I2,3X,'ZERR:',F10.6)
-      WRITE(*,*) 'AFFLICTED BLOCKS:'
-      DO KA=1,NKAP(IZ)
-        KQN(1)  = KAPA(KA,IZ)
-        LA      = LVAL(KQN(1))
-        NBAS(1) = NFNC(LA,IZ)
-        DO KB=1,NKAP(IZ)
-          KQN(2)  = KAPA(KB,IZ)
-          LB      = LVAL(KQN(2))
-          NBAS(2) = NFNC(LB,IZ)
-          DO MA=1,IABS(KQN(1))
-            MQN(1) = 2*MA-1
-            DO MMA=1,2
-              MMJA = MQN(1)*((-1)**MMA)
-              IMJA = MQN(1)+MMA-1
-              DO MB=1,IABS(KQN(1))
-                MQN(2) = 2*MB-1
-                DO MMB=1,2
-                  MMJB = MQN(2)*((-1)**MMB)
-                  IMJB = MQN(2)+MMB-1
-C
-                  NAL = LRGE(IZ,KA,IMJA)
-                  NBL = LRGE(IZ,KB,IMJB)
-C
-                  ZERR = 0.0D0
-                  IF(NAL.LT.248.AND.NBL.LT.248) THEN
-                    DO IBAS=1,NBAS(1)
-                      DO JBAS=1,NBAS(2)
-                        ZERR = ZERR + DABS(XDIF(NAL+IBAS,NBL+JBAS))
-                      ENDDO
-                    ENDDO
-                    IF(ZERR.GT.1.0D-10) THEN
-                      WRITE(*,5678) KQN(1),KQN(2),MMJA,MMJB,ZERR
-                    ENDIF
-                  ENDIF
-C
-                ENDDO
-              ENDDO
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
-C
 C     MATRIX HERMITICITY (CLOSED-SHELL)
       CALL SYSTEM_CLOCK(ICL3,RATE)
       DO I=1,NDIM
@@ -22209,8 +22123,9 @@ C
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/LA,LB,LC,LD,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,PAB,PCD
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
@@ -22303,27 +22218,20 @@ C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1IJ) GOTO 103
 C
-C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
-        NAL = LRGE(IZ,KA,2*MA+1-MMA)
-        NBL = LRGE(IZ,KB,2*MB+1-MMB)
-C
-        NAS = LRGE(IZ,KA,2*MA+1-MMA)+NSKP
-        NBS = LRGE(IZ,KB,2*MB+1-MMB)+NSKP
-C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KA.EQ.KB) GOTO 103
+        IF(KQN(1).EQ.KQN(2)) GOTO 103
 C
 C       MQN SIGN SELECTION RULE
         IF(-MMJB-MMJA.NE.-MMJD-MMJC) GOTO 103
         IF(MMB.EQ.MMA.OR.MMC.EQ.MMD) GOTO 103
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|CD)
-        IF(NBL.LE.NAL) THEN
+        IF(KBL.LE.KAL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GDIR(NBL+JBAS,NAL+IBAS) = GDIR(NBL+JBAS,NAL+IBAS)
+              GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
      &                   +  PAB*XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
      &                   +  PAB*XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
@@ -22331,12 +22239,12 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|CD)
         ENDIF
 
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|CD)
-        IF(NBS.LE.NAS) THEN
+        IF(KBS.LE.KAS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GDIR(NBS+JBAS,NAS+IBAS) = GDIR(NBS+JBAS,NAS+IBAS)
+              GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
      &                   +  PAB*XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
      &                   +  PAB*XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
@@ -22352,15 +22260,8 @@ C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1KL) GOTO 104
 C
-C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
-        NCL = LRGE(IZ,KC,2*MC+1-MMC)
-        NDL = LRGE(IZ,KD,2*MD+1-MMD)
-C
-        NCS = LRGE(IZ,KC,2*MC+1-MMC)+NSKP
-        NDS = LRGE(IZ,KD,2*MD+1-MMD)+NSKP
-C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KC.EQ.KD) GOTO 104
+        IF(KQN(3).EQ.KQN(4)) GOTO 104
 C
 C       MQN SIGN SELECTION RULE
         IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 104
@@ -22373,8 +22274,8 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|DC)
             DO LBAS=1,NBAS(4)
               M = M+1
               GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
-     &                   +  PCD*XLLLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
-     &                   +  PCD*XLLSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+     &                   +  PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+     &                   +  PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22386,8 +22287,8 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|DC)
             DO LBAS=1,NBAS(4)
               M = M+1
               GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
-     &                   +  PCD*XSSLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
-     &                   +  PCD*XSSSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+     &                   +  PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+     &                   +  PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22397,6 +22298,45 @@ C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C       GDIR: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+        IF(.NOT.PRM1IJ) GOTO 105
+        IF(.NOT.PRM1KL) GOTO 105
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KQN(1).EQ.KQN(2)) GOTO 105
+        IF(KQN(3).EQ.KQN(4)) GOTO 105
+C
+C       MQN SIGN SELECTION RULE
+        IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 105
+        IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 105
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|DC)
+        IF(KBL.LE.KAL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &                + PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+     &                + PAB*PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|DC)
+        IF(KBS.LE.KAS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
+     &                + PAB*PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+     &                + PAB*PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+105     CONTINUE
 C
 C     END CONDITIONAL OVER HMLT TYPES
       ENDIF
@@ -22489,64 +22429,57 @@ C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1IJ) GOTO 203
 C
-C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
-        NAL = LRGE(IZ,KA,2*MA+1-MMA)
-        NBL = LRGE(IZ,KB,2*MB+1-MMB)
-C
-        NAS = LRGE(IZ,KA,2*MA+1-MMA)+NSKP
-        NBS = LRGE(IZ,KB,2*MB+1-MMB)+NSKP
-C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KA.EQ.KB) GOTO 203
+        IF(KQN(1).EQ.KQN(2)) GOTO 203
 C
 C       MQN SIGN SELECTION RULE
         IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
         IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 203
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-        IF(NBL.LE.NDL) THEN
+        IF(KBL.LE.NDL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
-     &                   +  PAB*XLLLL(M)*DREAL(DENT(NCL+KBAS,NAL+IBAS))
+              GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
+     &                   +  PAB*XLLLL(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-        IF(NBL.LE.NDS) THEN
+        IF(KBL.LE.NDS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
-     &                   +  PAB*XLLSS(M)*DREAL(DENT(NCS+KBAS,NAL+IBAS))
+              GXCH(KBL+JBAS,NDS+LBAS) = GXCH(KBL+JBAS,NDS+LBAS)
+     &                   +  PAB*XLLSS(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C        IF(NBS.LT.NDL) THEN
+C        IF(KBS.LT.NDL) THEN
 C          M = 0
 C          DO KBAS=1,NBAS(3)
 C            DO LBAS=1,NBAS(4)
 C              M = M+1
-C              GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
-C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NAS+IBAS))
+C              GXCH(KBS+JBAS,NDL+LBAS) = GXCH(KBS+JBAS,NDL+LBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
 C            ENDDO
 C          ENDDO
 C        ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-        IF(NBS.LE.NDS) THEN
+        IF(KBS.LE.NDS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
-     &                   +  PAB*XSSSS(M)*DREAL(DENT(NCS+KBAS,NAS+IBAS))
+              GXCH(KBS+JBAS,NDS+LBAS) = GXCH(KBS+JBAS,NDS+LBAS)
+     &                   +  PAB*XSSSS(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22559,42 +22492,34 @@ C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1KL) GOTO 204
-C        WRITE(*,*) 'SMALL PROBLEM'
-C
-C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
-        NCL = LRGE(IZ,KC,2*MC+1-MMC)
-        NDL = LRGE(IZ,KD,2*MD+1-MMD)
-C
-        NCS = LRGE(IZ,KC,2*MC+1-MMC)+NSKP
-        NDS = LRGE(IZ,KD,2*MD+1-MMD)+NSKP
 C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KC.EQ.KD) GOTO 204
+        IF(KQN(3).EQ.KQN(4)) GOTO 204
 C
 C       MQN SIGN SELECTION RULE
         IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 204
         IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 204
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AC|DB)
-        IF(NAL.LE.NCL) THEN
+        IF(NAL.LE.KCL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NAL+IBAS,NCL+KBAS) = GXCH(NAL+IBAS,NCL+KBAS)
-     &                   +  PCD*XLLLL(M)*DREAL(DENT(NDL+LBAS,NBL+JBAS))
+              GXCH(NAL+IBAS,KCL+KBAS) = GXCH(NAL+IBAS,KCL+KBAS)
+     &                   +  PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AC|DB)
-        IF(NAL.LE.NCS) THEN
+        IF(NAL.LE.KCS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NAL+IBAS,NCS+KBAS) = GXCH(NAL+IBAS,NCS+KBAS)
-     &                   +  PCD*XLLSS(M)*DREAL(DENT(NDS+LBAS,NBL+JBAS))
+              GXCH(NAL+IBAS,KCS+KBAS) = GXCH(NAL+IBAS,KCS+KBAS)
+     &                   +  PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22604,19 +22529,19 @@ C        M = 0
 C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
-C            GXCH(NAS+IBAS,NCL+KBAS) = GXCH(NAS+IBAS,NCL+KBAS)
-C     &                   +  PCD*XSSLL(M)*DREAL(DENT(NDL+LBAS,NBS+JBAS)
+C            GXCH(NAS+IBAS,KCL+KBAS) = GXCH(NAS+IBAS,KCL+KBAS)
+C     &                   +  PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS)
 C          ENDDO
 C        ENDDO
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AC|DB)
-        IF(NAS.LE.NCS) THEN
+        IF(NAS.LE.KCS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NAS+IBAS,NCS+KBAS) = GXCH(NAS+IBAS,NCS+KBAS)
-     &                   +  PCD*XSSSS(M)*DREAL(DENT(NDS+LBAS,NBS+JBAS))
+              GXCH(NAS+IBAS,KCS+KBAS) = GXCH(NAS+IBAS,KCS+KBAS)
+     &                   +  PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22628,50 +22553,37 @@ C       GXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-
         IF(.NOT.PRM1IJ) GOTO 205
         IF(.NOT.PRM1KL) GOTO 205
-        WRITE(*,*) 'BIG PROBLEM'
-C
-C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
-        NAL = LRGE(IZ,KA,2*MA+1-MMA)
-        NBL = LRGE(IZ,KB,2*MB+1-MMB)
-        NCL = LRGE(IZ,KC,2*MC+1-MMC)
-        NDL = LRGE(IZ,KD,2*MD+1-MMD)
-C
-        NAS = LRGE(IZ,KA,2*MA+1-MMA)+NSKP
-        NBS = LRGE(IZ,KB,2*MB+1-MMB)+NSKP
-        NCS = LRGE(IZ,KC,2*MC+1-MMC)+NSKP
-        NDS = LRGE(IZ,KD,2*MD+1-MMD)+NSKP
 C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-C       IF(KA.EQ.KB) GOTO 205
-C       IF(KC.EQ.KD) GOTO 205
+        IF(KQN(1).EQ.KQN(2)) GOTO 205
+        IF(KQN(3).EQ.KQN(4)) GOTO 205
 C
 C       MQN SIGN SELECTION RULE
         IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 205
-        IF(MMB.EQ.MMC.OR.MMD.EQ.MMA) GOTO 205
+        IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 205
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (BC|DA)
-        IF(NBL.LE.NCL) THEN
+        IF(KBL.LE.KCL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NBL+JBAS,NCL+KBAS) = GXCH(NBL+JBAS,NCL+KBAS)
-     &                + PAB*PCD*XLLLL(M)*DREAL(DENT(NDL+LBAS,NAL+IBAS))
+              GXCH(KBL+JBAS,KCL+KBAS) = GXCH(KBL+JBAS,KCL+KBAS)
+     &                + PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (BC|DA)
-        IF(NBL.LE.NCS) THEN
+        IF(KBL.LE.KCS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NBL+JBAS,NCS+KBAS) = GXCH(NBL+JBAS,NCS+KBAS)
-     &                + PAB*PCD*XLLSS(M)*DREAL(DENT(NDS+LBAS,NAL+IBAS))
+              GXCH(KBL+JBAS,KCS+KBAS) = GXCH(KBL+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KAL+IBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22681,19 +22593,19 @@ C        M = 0
 C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
-C            GXCH(NBS+JBAS,NCL+KBAS) = GXCH(NBS+JBAS,NCL+KBAS)
-C     &                 + PAB*PCD*XSSLL(M)*DREAL(DENT(NDL+LBAS,NAS+IBAS)
+C            GXCH(KBS+JBAS,KCL+KBAS) = GXCH(KBS+JBAS,KCL+KBAS)
+C     &                 + PAB*PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,KAS+IBAS)
 C          ENDDO
 C        ENDDO
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (BC|DA)
-        IF(NBS.LE.NCS) THEN
+        IF(KBS.LE.KCS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(NBS+JBAS,NCS+KBAS) = GXCH(NBS+JBAS,NCS+KBAS)
-     &                + PAB*PCD*XSSSS(M)*DREAL(DENT(NDS+LBAS,NAS+IBAS))
+              GXCH(KBS+JBAS,KCS+KBAS) = GXCH(KBS+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22883,8 +22795,9 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/LA,LB,LC,LD,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,PAB,PCD
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
