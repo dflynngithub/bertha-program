@@ -92,15 +92,15 @@ C     MOLECULAR HARTREE-FOCK SCF ROUTINE
       IF(TREE.EQ.'HFSCF'.OR..NOT.READIN) THEN
 C
 C       PRINT SUMMARY OF INPUT DATA
-        CALL INPUT
+c        CALL INPUT
 C
 C       PRINT MEMORY ALLOCATION SUMMARY
-        CALL MEMORY
+c        CALL MEMORY
 C
 C       NUCLEAR POTENTIALS
         CALL SYSTEM_CLOCK(ICL1,RATE)
         CALL NUCCOUL
-        CALL NUCVCPL
+c        CALL NUCVCPL
         CALL SYSTEM_CLOCK(ICL2)
         TNUC = TNUC + DFLOAT(ICL2-ICL1)/RATE
 C
@@ -122,7 +122,7 @@ C
       ENDIF
 C
 C     PRINT SUMMARY OF OUTPUT DATA
-      CALL OUTPUT
+c      CALL OUTPUT
 C
 C     CLOSE FILE FOR TERMINAL RECORD
       CLOSE(UNIT=7)
@@ -653,18 +653,19 @@ C
       ENDDO
 C
 C     PRINT A BIG SECTION HEADER
-      WRITE(6, *) ' '
-      WRITE(7, *) ' '
-      WRITE(6, *) REPEAT('#',72)
-      WRITE(7, *) REPEAT('#',72)
-      WRITE(6, *) REPEAT(' ',30),'BERTHA-SCF'
-      WRITE(7, *) REPEAT(' ',30),'BERTHA-SCF'
-      WRITE(6, *) REPEAT('#',72)
-      WRITE(7, *) REPEAT('#',72)
-      WRITE(6, *) ' '
-      WRITE(7, *) ' '
-      WRITE(6, *) REPEAT('=',72)
-      WRITE(7, *) REPEAT('=',72)
+c      WRITE(6, *) ' '
+c      WRITE(7, *) ' '
+c      WRITE(6, *) REPEAT('#',72)
+c      WRITE(7, *) REPEAT('#',72)
+c      WRITE(6, *) REPEAT(' ',30),'BERTHA-SCF'
+c      WRITE(7, *) REPEAT(' ',30),'BERTHA-SCF'
+c      WRITE(6, *) REPEAT('#',72)
+c      WRITE(7, *) REPEAT('#',72)
+c      WRITE(6, *) ' '
+c      WRITE(7, *) ' '
+c      WRITE(6, *) REPEAT('=',72)
+c      WRITE(7, *) REPEAT('=',72)
+      WRITE(6, *) REPEAT(' ',29)
       WRITE(6, *) REPEAT(' ',29),'Input summary'
       WRITE(7, *) REPEAT(' ',29),'Input summary'
       WRITE(6, *) REPEAT('=',72)
@@ -690,42 +691,42 @@ C     CONFIRM SOLUTION SPACE DIMENSION OR EXIT
       ENDIF
 C
 C     NEW START OR READ IN HFSCF EXPANSION COEFFICIENTS
-      IF(READIN) THEN
-        WRITE(6, *) 'SCF density matrix:',REPEAT(' ',46),'Read in'
-        WRITE(7, *) 'SCF density matrix:',REPEAT(' ',46),'Read in'
-      ELSE
-        WRITE(6, *) 'SCF density matrix:',REPEAT(' ',44),'New start'
-        WRITE(7, *) 'SCF density matrix:',REPEAT(' ',44),'New start'
-      ENDIF
+c      IF(READIN) THEN
+c       WRITE(6, *) 'SCF density matrix:',REPEAT(' ',46),'Read in'
+c        WRITE(7, *) 'SCF density matrix:',REPEAT(' ',46),'Read in'
+c      ELSE
+c        WRITE(6, *) 'SCF density matrix:',REPEAT(' ',44),'New start'
+c        WRITE(7, *) 'SCF density matrix:',REPEAT(' ',44),'New start'
+c      ENDIF
 C
 C     EQ-COEFFICIENT CALCULATION
-      IF(EQFILE) THEN
-        WRITE(6, *) 'Eq-coefficients:',REPEAT(' ',44),'Save to file'
-        WRITE(7, *) 'Eq-coefficients:',REPEAT(' ',44),'Save to file'
-      ELSE
-        WRITE(6, *) 'Eq-coefficients:',REPEAT(' ',48),'By batch'
-        WRITE(7, *) 'Eq-coefficients:',REPEAT(' ',48),'By batch'
-      ENDIF
+c      IF(EQFILE) THEN
+c        WRITE(6, *) 'Eq-coefficients:',REPEAT(' ',44),'Save to file'
+c        WRITE(7, *) 'Eq-coefficients:',REPEAT(' ',44),'Save to file'
+c      ELSE
+c        WRITE(6, *) 'Eq-coefficients:',REPEAT(' ',48),'By batch'
+c        WRITE(7, *) 'Eq-coefficients:',REPEAT(' ',48),'By batch'
+c      ENDIF
 C
 C     OPENMP PARALLEL OPTION
-      IF(OPENMP) THEN
-        WRITE(6, *) 'OpenMP parallel option:',REPEAT(' ',42),'Enabled'
-        WRITE(7, *) 'OpenMP parallel option:',REPEAT(' ',42),'Enabled'
-        WRITE(6, *) 'OpenMP thread limit:'   ,REPEAT(' ',40),NPRCSR
-        WRITE(7, *) 'OpenMP thread limit:'   ,REPEAT(' ',40),NPRCSR
-      ELSE
-        WRITE(6, *) 'OpenMP parallel option:',REPEAT(' ',41),'Disabled'
-        WRITE(7, *) 'OpenMP parallel option:',REPEAT(' ',41),'Disabled'
-      ENDIF
+c      IF(OPENMP) THEN
+c        WRITE(6, *) 'OpenMP parallel option:',REPEAT(' ',42),'Enabled'
+c        WRITE(7, *) 'OpenMP parallel option:',REPEAT(' ',42),'Enabled'
+c        WRITE(6, *) 'OpenMP thread limit:'   ,REPEAT(' ',40),NPRCSR
+c        WRITE(7, *) 'OpenMP thread limit:'   ,REPEAT(' ',40),NPRCSR
+c      ELSE
+c        WRITE(6, *) 'OpenMP parallel option:',REPEAT(' ',41),'Disabled'
+c        WRITE(7, *) 'OpenMP parallel option:',REPEAT(' ',41),'Disabled'
+c      ENDIF
 C
 C     SECTION FOR FILE NAMES
-      WRITE(6, *) REPEAT('-',72)
-      WRITE(7, *) REPEAT('-',72)
+c      WRITE(6, *) REPEAT('-',72)
+c      WRITE(7, *) REPEAT('-',72)
 C
 C     PRINT FILE OUTPUT NAMES
       LN = LEN(TRIM(OUTFL))
-      WRITE(6, *) 'Output file name: ',REPEAT(' ',54-LN),TRIM(OUTFL)
-      WRITE(7, *) 'Output file name: ',REPEAT(' ',54-LN),TRIM(OUTFL)
+c      WRITE(6, *) 'Output file name: ',REPEAT(' ',54-LN),TRIM(OUTFL)
+c      WRITE(7, *) 'Output file name: ',REPEAT(' ',54-LN),TRIM(OUTFL)
 C
 C     RECORD TIME AT BEGINNING OF CALCULATION
       CALL SYSTEM_CLOCK(ICL1,RATE)
@@ -738,10 +739,10 @@ C     SECTION FOR PHYSICAL PARAMETERS
       WRITE(6, *) REPEAT('-',72)
       WRITE(7, *) REPEAT('-',72)
 C
-C     PRINT SPEED OF LIGHT
-20    FORMAT(1X,A,43X,F14.10)
-      WRITE(6,20) 'Speed of light:',CV
-      WRITE(7,20) 'Speed of light:',CV
+cC     PRINT SPEED OF LIGHT
+c20    FORMAT(1X,A,43X,F14.10)
+c      WRITE(6,20) 'Speed of light:',CV
+c      WRITE(7,20) 'Speed of light:',CV
 C
 C     END OF INPUT SUMMARY
       WRITE(6, *) REPEAT('=',72)
@@ -2060,16 +2061,16 @@ C
       ENDIF
 C
 C     PRINT A BIG SECTION HEADER
-      WRITE(6, *) ' '
-      WRITE(7, *) ' '
-      WRITE(6, *) REPEAT('#',72)
-      WRITE(7, *) REPEAT('#',72)
-      WRITE(6, *) REPEAT(' ',19),'NUCLEAR COORDINATES AND POTENTIALS'
-      WRITE(7, *) REPEAT(' ',19),'NUCLEAR COORDINATES AND POTENTIALS'
-      WRITE(6, *) REPEAT('#',72)
-      WRITE(7, *) REPEAT('#',72)
-      WRITE(6, *) ' '
-      WRITE(7, *) ' '
+c      WRITE(6, *) ' '
+c      WRITE(7, *) ' '
+c      WRITE(6, *) REPEAT('#',72)
+c      WRITE(7, *) REPEAT('#',72)
+c      WRITE(6, *) REPEAT(' ',19),'NUCLEAR COORDINATES AND POTENTIALS'
+c      WRITE(7, *) REPEAT(' ',19),'NUCLEAR COORDINATES AND POTENTIALS'
+c      WRITE(6, *) REPEAT('#',72)
+c      WRITE(7, *) REPEAT('#',72)
+c      WRITE(6, *) ' '
+c      WRITE(7, *) ' '
 C
 C     LOGICAL OPTION TO DISABLE ROTATION/TRANSLATION
       TRANSFORM = .TRUE.
@@ -2463,6 +2464,7 @@ C     ATOMIC COORDINATES
 20    FORMAT(11X,A,1X,A)
 21    FORMAT(1X,A,12X,A,14X,A,14X,A)
 22    FORMAT(1X,I2,' (',A,') ',6X,F16.10,5X,F16.10,5X,F16.10)
+      goto 555
       WRITE(6, *) ' '
       WRITE(7, *) ' '
       WRITE(6, *) REPEAT('=',72)
@@ -2544,6 +2546,7 @@ C
         WRITE(7, *) REPEAT('=',72)
         WRITE(6, *) ' '
         WRITE(7, *) ' '
+555     continue
 C
 C       NUCLEAR REPULSION ENERGY
         ENUC = 0.0D0
@@ -5071,7 +5074,7 @@ C
      &            TCC2,TCMC,TB1A,TB1I,TB1B,TB1R,TB1F,TB1M,TB1T,TBEC,
      &            TBRM,TBRW,TBC1,TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,
      &            TC2T,TCVT,TB2T,TACC,TEIG,TSCR,TTOT,TC2S,TB2S
-      COMMON/ZZZZ/YDIRTOT,ZDIRTOT,YXCHTOT,ZXCHTOT
+      COMMON/ZZZZ/YDIRTOT,ZDIRTOT,YXCHTOT,ZXCHTOT,aaa,bbb
 C
 C**********************************************************************C
 C     SCF CALCULATION CHOICES AND ARRAY INITIALISATION                 C
@@ -5175,16 +5178,16 @@ C     RECORD TIME AT START OF MOLECULAR SCF CALCULATION
       CALL SYSTEM_CLOCK(ICL1,RATE)
 C
 C     PRINT A BIG SECTION HEADER
-      WRITE(6, *) ' '
-      WRITE(7, *) ' '
-      WRITE(6, *) REPEAT('#',72)
-      WRITE(7, *) REPEAT('#',72)
-      WRITE(6, *) REPEAT(' ',23),'MOLECULAR HARTREE-FOCK SCF'
-      WRITE(7, *) REPEAT(' ',23),'MOLECULAR HARTREE-FOCK SCF'
-      WRITE(6, *) REPEAT('#',72)
-      WRITE(7, *) REPEAT('#',72)
-      WRITE(6, *) ' '
-      WRITE(7, *) ' '
+c      WRITE(6, *) ' '
+c      WRITE(7, *) ' '
+c      WRITE(6, *) REPEAT('#',72)
+c      WRITE(7, *) REPEAT('#',72)
+c      WRITE(6, *) REPEAT(' ',23),'MOLECULAR HARTREE-FOCK SCF'
+c      WRITE(7, *) REPEAT(' ',23),'MOLECULAR HARTREE-FOCK SCF'
+c      WRITE(6, *) REPEAT('#',72)
+c      WRITE(7, *) REPEAT('#',72)
+c      WRITE(6, *) ' '
+c      WRITE(7, *) ' '
 C
 C     REASONS TO SKIP DIRECTLY TO BREIT PERTURBATION ANAYLSIS
       IF(SHAPE.EQ.'ATOMIC'.AND.HMLT.EQ.'DHFP') THEN
@@ -5589,12 +5592,12 @@ C       MOLECULAR ENERGIES
 122     FORMAT(1X,A,19X,ES21.12)
         WRITE(6, *) REPEAT(' ',72)
         WRITE(7, *) REPEAT(' ',72)
-        WRITE(6, *) REPEAT('=',72)
-        WRITE(7, *) REPEAT('=',72)
-        WRITE(6, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
-        WRITE(7, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
-        WRITE(6, *) REPEAT('=',72)
-        WRITE(7, *) REPEAT('=',72)
+c        WRITE(6, *) REPEAT('=',72)
+c        WRITE(7, *) REPEAT('=',72)
+c        WRITE(6, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
+c        WRITE(7, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
+c        WRITE(6, *) REPEAT('=',72)
+c        WRITE(7, *) REPEAT('=',72)
         WRITE(6, *) 'Source',REPEAT(' ',60),'Energy'
         WRITE(7, *) 'Source',REPEAT(' ',60),'Energy'
         WRITE(6, *) REPEAT('-',72)
@@ -6071,14 +6074,14 @@ C       LET'S CALL THIS STAGE 4
         SHLEV(ILEV) = SHLV
 C
 C       TITLE FOR CALL TO QED ROUTINES
-        WRITE(6, *) ' '
-        WRITE(7, *) ' '
-        WRITE(6, *) REPEAT('=',72)
-        WRITE(7, *) REPEAT('=',72)
-        WRITE(6, *) REPEAT(' ',19),'QED contributions (1st order P.T.)'
-        WRITE(7, *) REPEAT(' ',19),'QED contributions (1st order P.T.)'
-        WRITE(6, *) REPEAT('=',72)
-        WRITE(7, *) REPEAT('=',72)
+c        WRITE(6, *) ' '
+c        WRITE(7, *) ' '
+c        WRITE(6, *) REPEAT('=',72)
+c        WRITE(7, *) REPEAT('=',72)
+c        WRITE(6, *) REPEAT(' ',19),'QED contributions (1st order P.T.)'
+c        WRITE(7, *) REPEAT(' ',19),'QED contributions (1st order P.T.)'
+c        WRITE(6, *) REPEAT('=',72)
+c        WRITE(7, *) REPEAT('=',72)
 C
 C       CALCULATE LOW-ENERGY ELECTRON SELF-INTERACTION ELEMENTS
         CALL SYSTEM_CLOCK(ICL7)
@@ -6297,12 +6300,12 @@ C     DATE AND TIME AT END OF CALCULATION
       CALL TIMENOW(STAMP)
 C
 C     PRINT OUT FINAL SCF RESULTS
-      WRITE(6, *) ' '
-      WRITE(7, *) ' '
-      WRITE(6, *) REPEAT(' ',25),'Molecular SCF summary'
-      WRITE(7, *) REPEAT(' ',25),'Molecular SCF summary'
-      WRITE(6, *) REPEAT('=',72)
-      WRITE(7, *) REPEAT('=',72)
+c      WRITE(6, *) ' '
+c      WRITE(7, *) ' '
+c      WRITE(6, *) REPEAT(' ',25),'Molecular SCF summary'
+c      WRITE(7, *) REPEAT(' ',25),'Molecular SCF summary'
+c      WRITE(6, *) REPEAT('=',72)
+c      WRITE(7, *) REPEAT('=',72)
 C
 C     MOLECULAR ENERGIES
       EDIR = EGDR+EQDR+EBDR+EWDR
@@ -6311,54 +6314,67 @@ C     MOLECULAR ENERGIES
 51    FORMAT(1X,A,39X,F17.9)
 151   FORMAT(1X,A,36X,ES20.9)
 52    FORMAT(1X,A,1X,F17.9,2X,F17.9,2X,F17.9)
-      WRITE(6, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
-      WRITE(7, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
+c      WRITE(6, *) REPEAT('=',72)
+c      WRITE(6, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
+c      WRITE(7, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
       WRITE(6, *) REPEAT('=',72)
       WRITE(7, *) REPEAT('=',72)
       WRITE(6,50) 'Source','Direct','Exchange','Total'
       WRITE(7,50) 'Source','Direct','Exchange','Total'
       WRITE(6, *) REPEAT('-',72)
       WRITE(7, *) REPEAT('-',72)
-      WRITE(6,51) 'Nucleus-nucleus ',ENUC
-      WRITE(7,51) 'Nucleus-nucleus ',ENUC
-      WRITE(6,51) 'Electron-nucleus',EHNC
-      WRITE(7,51) 'Electron-nucleus',EHNC
-      WRITE(6,51) 'Electron kinetic',EHKN
-      WRITE(7,51) 'Electron kinetic',EHKN
-      IF(HMLT.NE.'DHFP'.AND.HMLT.NE.'DHFQ') GOTO 405
-      WRITE(6,51) 'Anomalous moment',EANM
-      WRITE(7,51) 'Anomalous moment',EANM
-      WRITE(6,51) 'Self-interaction',ESLF
-      WRITE(7,51) 'Self-interaction',ESLF
-      WRITE(6,51) 'Uehling nuclear ',EUEH
-      WRITE(7,51) 'Uehling nuclear ',EUEH
-      WRITE(6,51) 'W-Kroll nuclear ',EWKR
-      WRITE(7,51) 'W-Kroll nuclear ',EWKR
-      WRITE(6,51) 'Kal-Sab nuclear ',EKSB
-      WRITE(7,51) 'Kal-Sab nuclear ',EKSB
+c      WRITE(6,51) 'Nucleus-nucleus ',ENUC
+c      WRITE(7,51) 'Nucleus-nucleus ',ENUC
+c      WRITE(6,51) 'Electron-nucleus',EHNC
+c      WRITE(7,51) 'Electron-nucleus',EHNC
+c      WRITE(6,51) 'Electron kinetic',EHKN
+c      WRITE(7,51) 'Electron kinetic',EHKN
+c      IF(HMLT.NE.'DHFP'.AND.HMLT.NE.'DHFQ') GOTO 405
+c      WRITE(6,51) 'Anomalous moment',EANM
+c      WRITE(7,51) 'Anomalous moment',EANM
+c      WRITE(6,51) 'Self-interaction',ESLF
+c      WRITE(7,51) 'Self-interaction',ESLF
+c      WRITE(6,51) 'Uehling nuclear ',EUEH
+c      WRITE(7,51) 'Uehling nuclear ',EUEH
+c      WRITE(6,51) 'W-Kroll nuclear ',EWKR
+c      WRITE(7,51) 'W-Kroll nuclear ',EWKR
+c      WRITE(6,51) 'Kal-Sab nuclear ',EKSB
+c      WRITE(7,51) 'Kal-Sab nuclear ',EKSB
 405   CONTINUE
       IF(HMLT.EQ.'BARE') GOTO 400
-      WRITE(6,52) 'Coulomb (closed)',EGDR,EGXC,ECLG
-      WRITE(7,52) 'Coulomb (closed)',EGDR,EGXC,ECLG
+      WRITE(6,52) 'No swap         ',0.0d0,aaa,0.0d0
+      WRITE(6, *) REPEAT('-',72)
+      WRITE(6,52) 'IJ swap         ',0.0d0,bbb,0.0d0
+      WRITE(6,52) 'IJ swap (guess) ',0.0d0,EGXC-aaa,0.0d0
+c      WRITE(6,52) '        KL swap ',0.0d0,0.0d0,0.0d0
+c      WRITE(6,52) 'IJ swap KL swap ',0.0d0,0.0d0,0.0d0
       IF(NOPN.EQ.0) GOTO 410
       WRITE(6,52) 'Coulomb (open)  ',EQDR,EQXC,ECLQ
       WRITE(7,52) 'Coulomb (open)  ',EQDR,EQXC,ECLQ
 410   CONTINUE
       IF(HMLT.EQ.'NORL'.OR.HMLT.EQ.'DHFR') GOTO 400
-      WRITE(6,52) 'Breit (closed)  ',EBDR,EBXC,EBRG
-      WRITE(7,52) 'Breit (closed)  ',EBDR,EBXC,EBRG
+c      WRITE(6,52) 'Breit (closed)  ',EBDR,EBXC,EBRG
+c      WRITE(7,52) 'Breit (closed)  ',EBDR,EBXC,EBRG
       IF(NOPN.EQ.0) GOTO 400
       WRITE(6,52) 'Breit (open)    ',EWDR,EWXC,EBRQ
       WRITE(7,52) 'Breit (open)    ',EWDR,EWXC,EBRQ
 400   CONTINUE
       WRITE(6, *) REPEAT('-',72)
       WRITE(7, *) REPEAT('-',72)
-      WRITE(6,52) 'Molecule        ',EDIR,EXCH,ETOT
-      WRITE(7,52) 'Molecule        ',EDIR,EXCH,ETOT
+c      WRITE(6,52) 'Molecule        ',EDIR,EXCH,ETOT
+c      WRITE(7,52) 'Molecule        ',EDIR,EXCH,ETOT
+      WRITE(6,52) 'IJ missing      ',0.0d0,aaa+bbb-EGXC,0.0d0
+      WRITE(6,52) 'Computed result ',EGDR,EGXC,0.0d0
       WRITE(6, *) REPEAT('=',72)
       WRITE(7, *) REPEAT('=',72)
+c      WRITE(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+c      WRITE(*,*) 'DIFFERENCE IS: ',EGXC-278.005874311D0
+c      WRITE(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
+c      WRITE(*,*) 'DIR: ',YDIRTOT,ZDIRTOT,YDIRTOT/ZDIRTOT
+c      WRITE(*,*) 'XCH: ',YXCHTOT,ZXCHTOT,YXCHTOT/ZXCHTOT
 C
 C     EQ-COEFFICIENT AND R-INTEGRAL ANALYSIS
+      goto 666
 53    FORMAT(1X,A,4X,A,14X,A,20X,A)
 54    FORMAT(1X,A,3X,A,14X,A,A)
 64    FORMAT(1X,A,3X,A)
@@ -6447,27 +6463,29 @@ C     CONVERGENCE ANALYSIS
       WRITE(7, *) REPEAT('=',72)
       WRITE(6, *) ' '
       WRITE(7, *) ' '
+666   continue
 C
 C     HFSCF LABOUR ANALYIS
 57    FORMAT(1X,A,24X,A)
 58    FORMAT(1X,A,1X,25X,A)
-      WRITE(6, *) REPEAT(' ',72)
-      WRITE(7, *) REPEAT(' ',72)
-      WRITE(6, *) REPEAT(' ',26),'HFSCF labour analysis'
-      WRITE(7, *) REPEAT(' ',26),'HFSCF labour analysis'
-      WRITE(6, *) REPEAT('=',72)
-      WRITE(7, *) REPEAT('=',72)
+c      WRITE(6, *) REPEAT(' ',72)
+c      WRITE(7, *) REPEAT(' ',72)
+c      WRITE(6, *) REPEAT(' ',26),'HFSCF labour analysis'
+c      WRITE(7, *) REPEAT(' ',26),'HFSCF labour analysis'
+c      WRITE(6, *) REPEAT('=',72)
+c      WRITE(7, *) REPEAT('=',72)
       IF(HMLT.EQ.'BARE') GOTO 530
       IF(TC1T.LT.0.1D0) GOTO 531
       TC1O = TC1T-TC1A-TC1I-TC1B-TC1R-TC1F-TC1M
+C     goto 680
       WRITE(6, *) REPEAT(' ',24),'Coulomb (atomic) details'
       WRITE(7, *) REPEAT(' ',24),'Coulomb (atomic) details'
       WRITE(6, *) REPEAT('=',72)
       WRITE(7, *) REPEAT('=',72)
-      WRITE(6,57) 'Angular coefficients            ',HMS(TC1A)
-      WRITE(7,57) 'Angular coefficients            ',HMS(TC1A)
-      WRITE(6,57) 'Basis function products         ',HMS(TC1I)
-      WRITE(7,57) 'Basis function products         ',HMS(TC1I)
+c      WRITE(6,57) 'Angular coefficients            ',HMS(TC1A)
+c      WRITE(7,57) 'Angular coefficients            ',HMS(TC1A)
+c      WRITE(6,57) 'Basis function products         ',HMS(TC1I)
+c      WRITE(7,57) 'Basis function products         ',HMS(TC1I)
       WRITE(6,57) 'Pre-processing beta integrals   ',HMS(TC1B)
       WRITE(7,57) 'Pre-processing beta integrals   ',HMS(TC1B)
       WRITE(6,57) 'R(AB|CD) integrals              ',HMS(TC1R)
@@ -6484,6 +6502,7 @@ C     HFSCF LABOUR ANALYIS
       WRITE(7,57) 'Total                           ',HMS(TC1T)
       WRITE(6, *) REPEAT('=',72)
       WRITE(7, *) REPEAT('=',72)
+680   continue
 531   CONTINUE
       IF(TC2T.LT.0.1D0) GOTO 532
       TC2O = TC2T-TCLV-TC2S-TCEC-TCRM-TCRW-TCC1-TCC2-TCMC
@@ -6578,6 +6597,7 @@ C     HFSCF LABOUR ANALYIS
 530   CONTINUE
       TOTH = TTOT-TEPP-THMX-TAMX-TSMX-TUMX-TC1T
      &      -TC2T-TCVT-TB1T-TB2T-TACC-TEIG
+      goto 667
       WRITE(6, *) REPEAT(' ',27),'Overall SCF summary'
       WRITE(7, *) REPEAT(' ',27),'Overall SCF summary'
       WRITE(6, *) REPEAT('=',72)
@@ -6623,13 +6643,7 @@ C     HFSCF LABOUR ANALYIS
       WRITE(7,58) 'Time at end of calculation',STAMP
       WRITE(6, *) REPEAT('=',72)
       WRITE(7, *) REPEAT('=',72)
-      
-      WRITE(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
-      WRITE(*,*) 'DIFFERENCE IS: ',EGXC-278.005874311D0
-      WRITE(*,*) '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
-      WRITE(*,*) 'DIR: ',YDIRTOT,ZDIRTOT,YDIRTOT/ZDIRTOT
-      WRITE(*,*) 'XCH: ',YXCHTOT,ZXCHTOT,YXCHTOT/ZXCHTOT
-
+667   continue
 C
       RETURN
       END
@@ -21546,6 +21560,7 @@ C
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
       COMPLEX*16 GPLT(MDM,MDM)
+      DIMENSION DDIF(MDM,MDM),XDIF(MDM,MDM)
       DIMENSION DTRU(MDM,MDM),XTRU(MDM,MDM)
       DIMENSION DTST(MDM,MDM),XTST(MDM,MDM)
       DIMENSION XDIR(32,32),XXCH(32,32)
@@ -21559,8 +21574,8 @@ C
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
-      COMMON/MT1A/IZ,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-                  NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
+      COMMON/MT1A/LA,LB,LC,LD,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,PAB,PCD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/RCFF/T0000,T1000,T0100,T0010,T0001,T1100,T1010,T1001,
@@ -21573,7 +21588,7 @@ C
      &            TBRM,TBRW,TBC1,TBC2,TBMC,TSMX,TUMX,THMX,TAMX,TC1T,
      &            TC2T,TCVT,TB2T,TACC,TEIG,TSCR,TTOT,TC2S,TB2S
       COMMON/XNUS/INU(MNU,16),NUS(MNU),NUI,NUF,NUNUM,K4AD
-      COMMON/ZZZZ/YDIRTOT,ZDIRTOT,YXCHTOT,ZXCHTOT
+      COMMON/ZZZZ/YDIRTOT,ZDIRTOT,YXCHTOT,ZXCHTOT,aaa,bbb
 C
 C     ANGULAR FACTOR SENSITIVITY PARAMETER
       DATA SENS/1.0D-10/
@@ -21588,9 +21603,17 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       ELSE
         ISYM = 0
       ENDIF
+      
+      DO I=1,MDM
+        DO J=1,MDM
+          XDIF(I,J) = 0.0D0
+          XTRU(I,J) = 0.0D0
+          XTST(I,J) = 0.0D0
+        ENDDO
+      ENDDO
 C
-      PRM1IJ = .TRUE.
-      PRM1KL = .FALSE.
+      PRM1IJ = .FALSE.
+      PRM1KL = .TRUE.
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 1000)                 C
@@ -21628,6 +21651,8 @@ C       TRIANGLE RULE FOR LA <-> LB
           IF(LA.GT.LB) GOTO 1001
         ENDIF
 C
+C        if(LA.ne.1.or.LB.ne.1) goto 1001
+C
 C     LOOP OVER LQN(C) VALUES
       DO 1100 LC=0,(NKAP(IZ)-1)/2
 C
@@ -21659,6 +21684,8 @@ C       TRIANGLE RULE FOR LC <-> LD
         IF(PRM1KL) THEN
           IF(LC.GT.LD) GOTO 1101
         ENDIF
+C
+C        IF(LC.ne.1.or.LD.ne.1) GOTO 1101
 C
 C       DETERMINE THE TENSOR ORDERS REQUIRED FOR THIS LQN BLOCK
         CALL SYSTEM_CLOCK(ICL3,RATE)
@@ -21828,11 +21855,12 @@ C
       DO 4000 MB=1,IABS(KQN(2))
         MQN(2) = 2*MB-1
 C
-C       TRIANGLE RULE FOR MA <-> MB
-        IF(PRM1IJ) THEN
-          IF(KA.EQ.KB.AND.MA.GT.MB) GOTO 4001
-C         if(ma.ne.1.or.mb.ne.1) goto 4001
-        ENDIF
+CC       TRIANGLE RULE FOR MA <-> MB
+C        IF(PRM1IJ) THEN
+C          IF(KA.EQ.KB.AND.MA.GT.MB) GOTO 4001
+C        ENDIF
+C
+C       if(MA.NE.1.OR.MB.NE.1) goto 4001
 C
       DO 4100 MC=1,IABS(KQN(3))
         MQN(3) = 2*MC-1
@@ -21840,10 +21868,12 @@ C
       DO 4100 MD=1,IABS(KQN(4))
         MQN(4) = 2*MD-1
 C
-C       TRIANGLE RULE FOR MC <-> MD
-        IF(PRM1KL) THEN
-          IF(MC.GT.MD) GOTO 4101
-        ENDIF
+CC       TRIANGLE RULE FOR MC <-> MD
+C        IF(PRM1KL) THEN
+C          IF(MC.GT.MD) GOTO 4101
+C        ENDIF
+C
+C        if(MC.NE.1.OR.MD.NE.1) goto 4101
 C
 C**********************************************************************C
 C     LOOP OVER THE SIGNS OF |MQN| FOR A,B,C,D BLOCKS (USE INDEX 5000) C
@@ -21872,8 +21902,12 @@ C
 C
 C       TRIANGLE RULE FOR |MC| <-> |MD|
         IF(PRM1KL) THEN
-          IF(MMC.GT.MMD) GOTO 5101
+          IF(KC.EQ.KD.AND.MC.EQ.MD.AND.MMC.GT.MMD) GOTO 5101
         ENDIF
+C
+C     PHASE FACTORS FOR PERMUTATION SWAPS
+      PAB = ISIGN(1,KQN(1)*KQN(2))*DFLOAT((-1)**((MMJA-MMJB)/2))
+      PCD = ISIGN(1,KQN(3)*KQN(4))*DFLOAT((-1)**((MMJC-MMJD)/2))
 C
 C     STARTING FOCK ADDRESS FOR EACH BASIS LIST
       NAL = LRGE(IZ,KA,IMJA)
@@ -21905,7 +21939,8 @@ C     APPLY ANGULAR MQN SELECTION RULES
       ENDIF
 C
 C     THIS SELECTION RULE IS FOR THE IJ PERMUTATION
-      IF(MMJB-MMJA.EQ.MMJD-MMJC) THEN
+C     IF(MMJB-MMJA.EQ.MMJD-MMJC) THEN
+      IF(-MMJB+MMJA.EQ.MMJD-MMJC) THEN
         IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
           IF(MMB.EQ.MMA.AND.MMC.EQ.MMD) GOTO 5102
           IF(MMB.EQ.MMD.AND.MMC.EQ.MMA) GOTO 5102
@@ -21980,7 +22015,7 @@ C     MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
       IF(ISYM.EQ.0) THEN
         CALL CLMMT1G(XLLLL,XSSLL,XLLSS,XSSSS)
       ELSE
-        CALL CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH)
+        CALL CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,IZ)
       ENDIF
 C
 C     MATRIX MULTIPLICATION STEP COMPLETE
@@ -22028,6 +22063,93 @@ C     EARLY EXIT FOR LQN TRIANGLE RULE
 C     END LOOP OVER LQN(AB)
 1000  CONTINUE
 C
+C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
+      CALL SYSTEM_CLOCK(ICL2)
+      IF(HMLT.EQ.'NORL') THEN
+        T2ES(1,1) = T2ES(1,1) +        DFLOAT(ICL2-ICL1)/RATE
+      ELSE
+        T2ES(1,1) = T2ES(1,1) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,2) = T2ES(1,2) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,3) = T2ES(1,3) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+      ENDIF
+C
+      aaa = 67.427887829d0
+      bbb =  6.063340786d0
+C      
+      OPEN(UNIT=8,FILE='plots/GXCH-TRUE.dat',STATUS='UNKNOWN')
+      REWIND(UNIT=8)
+      DO I=1,MDM
+        READ(8, *) (XTRU(I,J),J=1,MDM)
+      ENDDO
+      CLOSE(UNIT=8)
+C      DO I=1,MDM
+C        DO J=1,MDM
+C          XTRU(I,J) = DREAL(GXCH(I,J))
+C        ENDDO
+C      ENDDO
+      TITLE = 'GXCH-TRUE'
+      CALL DGNUMAP(XTRU,TITLE,MDM)
+C
+      DO I=1,MDM
+        DO J=1,MDM
+          XTST(I,J) = DREAL(GXCH(I,J))
+        ENDDO
+      ENDDO
+      TITLE = 'GXCH-TEST'
+      CALL DGNUMAP(XTST,TITLE,MDM)
+C
+      DO I=1,MDM
+        DO J=1,MDM
+          XDIF(I,J) = XTRU(I,J)-XTST(I,J)
+        ENDDO
+      ENDDO
+      TITLE = 'GXCH-DIFF'
+      CALL DGNUMAP(XDIF,TITLE,MDM)
+C
+5678  FORMAT(' KQN:',1X,I2,1X,I2,3X,'MQN:',1X,I2,1X,I2,3X,'ZERR:',F10.6)
+      WRITE(*,*) 'AFFLICTED BLOCKS:'
+      DO KA=1,NKAP(IZ)
+        KQN(1)  = KAPA(KA,IZ)
+        LA      = LVAL(KQN(1))
+        NBAS(1) = NFNC(LA,IZ)
+        DO KB=1,NKAP(IZ)
+          KQN(2)  = KAPA(KB,IZ)
+          LB      = LVAL(KQN(2))
+          NBAS(2) = NFNC(LB,IZ)
+          DO MA=1,IABS(KQN(1))
+            MQN(1) = 2*MA-1
+            DO MMA=1,2
+              MMJA = MQN(1)*((-1)**MMA)
+              IMJA = MQN(1)+MMA-1
+              DO MB=1,IABS(KQN(1))
+                MQN(2) = 2*MB-1
+                DO MMB=1,2
+                  MMJB = MQN(2)*((-1)**MMB)
+                  IMJB = MQN(2)+MMB-1
+C
+                  NAL = LRGE(IZ,KA,IMJA)
+                  NBL = LRGE(IZ,KB,IMJB)
+C
+                  ZERR = 0.0D0
+                  IF(NAL.LT.248.AND.NBL.LT.248) THEN
+                    DO IBAS=1,NBAS(1)
+                      DO JBAS=1,NBAS(2)
+                        ZERR = ZERR + DABS(XDIF(NAL+IBAS,NBL+JBAS))
+                      ENDDO
+                    ENDDO
+                    IF(ZERR.GT.1.0D-10) THEN
+                      WRITE(*,5678) KQN(1),KQN(2),MMJA,MMJB,ZERR
+                    ENDIF
+                  ENDIF
+C
+                ENDDO
+              ENDDO
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
+C
 C     MATRIX HERMITICITY (CLOSED-SHELL)
       CALL SYSTEM_CLOCK(ICL3,RATE)
       DO I=1,NDIM
@@ -22049,22 +22171,11 @@ C     MATRIX HERMITICITY (OPEN-SHELL)
       CALL SYSTEM_CLOCK(ICL4)
       TC1M = TC1M + DFLOAT(ICL4-ICL3)/RATE
 C
-C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
-      CALL SYSTEM_CLOCK(ICL2)
-      IF(HMLT.EQ.'NORL') THEN
-        T2ES(1,1) = T2ES(1,1) +        DFLOAT(ICL2-ICL1)/RATE
-      ELSE
-        T2ES(1,1) = T2ES(1,1) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
-        T2ES(1,2) = T2ES(1,2) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
-        T2ES(1,3) = T2ES(1,3) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
-        T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
-      ENDIF
-C
       RETURN
       END
 C
 C
-      SUBROUTINE CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH)
+      SUBROUTINE CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS,ZDIR,ZXCH,IZ)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
@@ -22094,11 +22205,12 @@ C
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/BDIM/NDIM,NSKP,NOCC,NVRT
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/IZ,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-                  NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
+      COMMON/MT1A/LA,LB,LC,LD,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,PAB,PCD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
@@ -22119,28 +22231,10 @@ C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       ENDIF
 C
 C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
-      MMJA = MA*((-1)**MMA)
-      MMJB = MB*((-1)**MMB)
-      MMJC = MC*((-1)**MMC)
-      MMJD = MD*((-1)**MMD)
-C
-C     ADDRESSES FOR THE KRAMERS COMPLEMENT
-C     IMJA = 2*MA-2+MMA
-      KMJA = 2*MA+1-MMA
-      KMJB = 2*MB+1-MMB
-      KMJC = 2*MC+1-MMC
-      KMJD = 2*MD+1-MMD
-C
-C     STARTING FOCK ADDRESS FOR EACH BASIS LIST
-      KAL = LRGE(IZ,KA,KMJA)
-      KBL = LRGE(IZ,KB,KMJB)
-      KCL = LRGE(IZ,KC,KMJC)
-      KDL = LRGE(IZ,KD,KMJD)
-C
-      KAS = LRGE(IZ,KA,KMJA)+NSKP
-      KBS = LRGE(IZ,KB,KMJB)+NSKP
-      KCS = LRGE(IZ,KC,KMJC)+NSKP
-      KDS = LRGE(IZ,KD,KMJD)+NSKP
+      MMJA = MQN(1)*((-1)**MMA)
+      MMJB = MQN(2)*((-1)**MMB)
+      MMJC = MQN(3)*((-1)**MMC)
+      MMJD = MQN(4)*((-1)**MMD)
 C
 C**********************************************************************C
 C     ASSEMBLE THE CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)           C
@@ -22203,21 +22297,25 @@ C
 102     CONTINUE
 C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GDIR: PERMUTATION SYMMETRY I⇄J                                 C
+C       GDIR: PERMUTATION SYMMETRY I⇄J         ONLY                    C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1IJ) GOTO 103
 C
+C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
+        NAL = LRGE(IZ,KA,2*MA+1-MMA)
+        NBL = LRGE(IZ,KB,2*MB+1-MMB)
+C
+        NAS = LRGE(IZ,KA,2*MA+1-MMA)+NSKP
+        NBS = LRGE(IZ,KB,2*MB+1-MMB)+NSKP
+C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
         IF(KA.EQ.KB) GOTO 103
-        IF(MMJA.EQ.MMJB) GOTO 103
-        IF(MA.LT.MB) GOTO 103
-        IF(MA.EQ.MB.AND.MMA.LT.MMB) GOTO 103
 C
 C       MQN SIGN SELECTION RULE
-        IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 103
-        IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 103
+        IF(-MMJB-MMJA.NE.-MMJD-MMJC) GOTO 103
+        IF(MMB.EQ.MMA.OR.MMC.EQ.MMD) GOTO 103
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|CD)
         IF(NBL.LE.NAL) THEN
@@ -22226,8 +22324,8 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|CD)
             DO LBAS=1,NBAS(4)
               M = M+1
               GDIR(NBL+JBAS,NAL+IBAS) = GDIR(NBL+JBAS,NAL+IBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
-     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+     &                   +  PAB*XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +  PAB*XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22239,13 +22337,66 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|CD)
             DO LBAS=1,NBAS(4)
               M = M+1
               GDIR(NBS+JBAS,NAS+IBAS) = GDIR(NBS+JBAS,NAS+IBAS)
-     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
-     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+     &                   +  PAB*XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +  PAB*XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 103     CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: PERMUTATION SYMMETRY      K⇄L ONLY                       C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1KL) GOTO 104
+C
+C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
+        NCL = LRGE(IZ,KC,2*MC+1-MMC)
+        NDL = LRGE(IZ,KD,2*MD+1-MMD)
+C
+        NCS = LRGE(IZ,KC,2*MC+1-MMC)+NSKP
+        NDS = LRGE(IZ,KD,2*MD+1-MMD)+NSKP
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KC.EQ.KD) GOTO 104
+C
+C       MQN SIGN SELECTION RULE
+        IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 104
+        IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 104
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|DC)
+        IF(NAL.LE.NBL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &                   +  PCD*XLLLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
+     &                   +  PCD*XLLSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|DC)
+        IF(NAS.LE.NBS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+     &                   +  PCD*XSSLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
+     &                   +  PCD*XSSSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+104     CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C     END CONDITIONAL OVER HMLT TYPES
       ENDIF
@@ -22332,74 +22483,156 @@ C
 202     CONTINUE
 C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GXCH: PERMUTATION SYMMETRY I⇄J                                 C
+C       GXCH: PERMUTATION SYMMETRY I⇄J         ONLY                    C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1IJ) GOTO 203
 C
+C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
+        NAL = LRGE(IZ,KA,2*MA+1-MMA)
+        NBL = LRGE(IZ,KB,2*MB+1-MMB)
+C
+        NAS = LRGE(IZ,KA,2*MA+1-MMA)+NSKP
+        NBS = LRGE(IZ,KB,2*MB+1-MMB)+NSKP
+C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-c       IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.EQ.MMB) GOTO 203
+C       IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.EQ.MMB) GOTO 203
         IF(KA.EQ.KB) GOTO 203
-        IF(MMJA.EQ.MMJB) GOTO 203
-        IF(MA.LT.MB) GOTO 203
-        IF(MA.EQ.MB.AND.MMA.LT.MMB) GOTO 203
+C       IF(MMJA.EQ.MMJB) GOTO 203
+C       IF(MA.GT.MB) GOTO 203
+C       IF(MA.EQ.MB.AND.MMA.GT.MMB) GOTO 203
 C
 C       MQN SIGN SELECTION RULE
-        IF(MMJB-MMJD.NE.MMJA-MMJC) GOTO 203
-        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 203
+        IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
+        IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 203
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-        IF(KBL.LE.KDL) THEN
+        IF(NBL.LE.NDL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
+              GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
+     &                   +  PAB*XLLLL(M)*DREAL(DENT(NCL+KBAS,NAL+IBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-        IF(KBL.LE.NDS) THEN
+        IF(NBL.LE.NDS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(KBL+JBAS,NDS+LBAS) = GXCH(KBL+JBAS,NDS+LBAS)
-     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
+              GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
+     &                   +  PAB*XLLSS(M)*DREAL(DENT(NCS+KBAS,NAL+IBAS))
             ENDDO
           ENDDO
-C
         ENDIF
 C
 CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C        IF(KBS.LT.NDL) THEN
+C        IF(NBS.LT.NDL) THEN
 C          M = 0
 C          DO KBAS=1,NBAS(3)
 C            DO LBAS=1,NBAS(4)
 C              M = M+1
-C              GXCH(KBS+JBAS,NDL+LBAS) = GXCH(KBS+JBAS,NDL+LBAS)
-C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
+C              GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NAS+IBAS))
 C            ENDDO
 C          ENDDO
 C        ENDIF
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-        IF(KBS.LE.NDS) THEN
+        IF(NBS.LE.NDS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GXCH(KBS+JBAS,NDS+LBAS) = GXCH(KBS+JBAS,NDS+LBAS)
-     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
+              GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
+     &                   +  PAB*XSSSS(M)*DREAL(DENT(NCS+KBAS,NAS+IBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 203     CONTINUE
-CC
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: PERMUTATION SYMMETRY         K⇄L ONLY                    C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1KL) GOTO 204
+C
+C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
+        NCL = LRGE(IZ,KC,2*MC+1-MMC)
+        NDL = LRGE(IZ,KD,2*MD+1-MMD)
+C
+        NCS = LRGE(IZ,KC,2*MC+1-MMC)+NSKP
+        NDS = LRGE(IZ,KD,2*MD+1-MMD)+NSKP
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KC.EQ.KD) GOTO 204
+C
+C       MQN SIGN SELECTION RULE
+C        IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
+C        IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 203
+C
+        IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 204
+        IF(MMA.NE.MMC.OR.MMD.NE.MMB) GOTO 204
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AC|DB)
+        IF(NAL.LE.NCL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NCL+KBAS) = GXCH(NAL+IBAS,NCL+KBAS)
+     &                   +  PCD*XLLLL(M)*DREAL(DENT(NDL+LBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AC|DB)
+        IF(NAL.LE.NCS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,NCS+KBAS) = GXCH(NAL+IBAS,NCS+KBAS)
+     &                   +  PCD*XLLSS(M)*DREAL(DENT(NDS+LBAS,NBL+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AC|DB)
+C        M = 0
+C        DO KBAS=1,NBAS(3)
+C          DO LBAS=1,NBAS(4)
+C            M = M+1
+C            GXCH(NAS+IBAS,NCL+KBAS) = GXCH(NAS+IBAS,NCL+KBAS)
+C     &                   +  PCD*XSSLL(M)*DREAL(DENT(NDL+LBAS,NBS+JBAS)
+C          ENDDO
+C        ENDDO
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AC|DB)
+        IF(NAS.LE.NCS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAS+IBAS,NCS+KBAS) = GXCH(NAS+IBAS,NCS+KBAS)
+     &                   +  PCD*XSSSS(M)*DREAL(DENT(NDS+LBAS,NBS+JBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+204     CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
 C     END CONDITIONAL OVER HMLT TYPES
       ENDIF
 C
@@ -22583,8 +22816,8 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/IZ,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-                  NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
+      COMMON/MT1A/LA,LB,LC,LD,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,PAB,PCD
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
@@ -23614,8 +23847,8 @@ C
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
-      COMMON/MT1A/IZ,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-                  NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
+      COMMON/BT1A/KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/RCFF/T0000,T1000,T0100,T0010,T0001,T1100,T1010,T1001,
@@ -24062,8 +24295,8 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/IZ,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-                  NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
+      COMMON/BT1A/KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
@@ -24275,8 +24508,8 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/IZ,KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
-                  NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
+      COMMON/BT1A/KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
