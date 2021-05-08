@@ -22074,8 +22074,8 @@ C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
         T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
       ENDIF
 C
-      aaa = 67.427887829d0
-      bbb =  6.063340786d0
+      aaa = 226.917016950d0
+      bbb =  51.088857361d0
 C      
       OPEN(UNIT=8,FILE='plots/GXCH-TRUE.dat',STATUS='UNKNOWN')
       REWIND(UNIT=8)
@@ -22497,11 +22497,7 @@ C
         NBS = LRGE(IZ,KB,2*MB+1-MMB)+NSKP
 C
 C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-C       IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.EQ.MMB) GOTO 203
         IF(KA.EQ.KB) GOTO 203
-C       IF(MMJA.EQ.MMJB) GOTO 203
-C       IF(MA.GT.MB) GOTO 203
-C       IF(MA.EQ.MB.AND.MMA.GT.MMB) GOTO 203
 C
 C       MQN SIGN SELECTION RULE
         IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
@@ -22563,6 +22559,7 @@ C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
         IF(.NOT.PRM1KL) GOTO 204
+C        WRITE(*,*) 'SMALL PROBLEM'
 C
 C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
         NCL = LRGE(IZ,KC,2*MC+1-MMC)
@@ -22575,11 +22572,8 @@ C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
         IF(KC.EQ.KD) GOTO 204
 C
 C       MQN SIGN SELECTION RULE
-C        IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
-C        IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 203
-C
         IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 204
-        IF(MMA.NE.MMC.OR.MMD.NE.MMB) GOTO 204
+        IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 204
 C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AC|DB)
         IF(NAL.LE.NCL) THEN
@@ -22632,6 +22626,79 @@ C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C       GXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+
+        IF(.NOT.PRM1IJ) GOTO 205
+        IF(.NOT.PRM1KL) GOTO 205
+        WRITE(*,*) 'BIG PROBLEM'
+C
+C       STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS OF THESE MQNS
+        NAL = LRGE(IZ,KA,2*MA+1-MMA)
+        NBL = LRGE(IZ,KB,2*MB+1-MMB)
+        NCL = LRGE(IZ,KC,2*MC+1-MMC)
+        NDL = LRGE(IZ,KD,2*MD+1-MMD)
+C
+        NAS = LRGE(IZ,KA,2*MA+1-MMA)+NSKP
+        NBS = LRGE(IZ,KB,2*MB+1-MMB)+NSKP
+        NCS = LRGE(IZ,KC,2*MC+1-MMC)+NSKP
+        NDS = LRGE(IZ,KD,2*MD+1-MMD)+NSKP
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+C       IF(KA.EQ.KB) GOTO 205
+C       IF(KC.EQ.KD) GOTO 205
+C
+C       MQN SIGN SELECTION RULE
+        IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 205
+        IF(MMB.EQ.MMC.OR.MMD.EQ.MMA) GOTO 205
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (BC|DA)
+        IF(NBL.LE.NCL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBL+JBAS,NCL+KBAS) = GXCH(NBL+JBAS,NCL+KBAS)
+     &                + PAB*PCD*XLLLL(M)*DREAL(DENT(NDL+LBAS,NAL+IBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (BC|DA)
+        IF(NBL.LE.NCS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBL+JBAS,NCS+KBAS) = GXCH(NBL+JBAS,NCS+KBAS)
+     &                + PAB*PCD*XLLSS(M)*DREAL(DENT(NDS+LBAS,NAL+IBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (BC|DA)
+C        M = 0
+C        DO KBAS=1,NBAS(3)
+C          DO LBAS=1,NBAS(4)
+C            M = M+1
+C            GXCH(NBS+JBAS,NCL+KBAS) = GXCH(NBS+JBAS,NCL+KBAS)
+C     &                 + PAB*PCD*XSSLL(M)*DREAL(DENT(NDL+LBAS,NAS+IBAS)
+C          ENDDO
+C        ENDDO
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (BC|DA)
+        IF(NBS.LE.NCS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NBS+JBAS,NCS+KBAS) = GXCH(NBS+JBAS,NCS+KBAS)
+     &                + PAB*PCD*XSSSS(M)*DREAL(DENT(NDS+LBAS,NAS+IBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+205     CONTINUE
 C
 C     END CONDITIONAL OVER HMLT TYPES
       ENDIF
