@@ -1,4 +1,4 @@
-      PROGRAM BERTHA
+      PROGRAM BERTHAATOMIC
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
