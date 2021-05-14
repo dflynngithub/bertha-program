@@ -12863,12 +12863,8 @@ C     PERFORM SECOND CONTRACTION: ( -| -) = E(AB| -)*G(AB| -).         C
 C     THIS YIELDS A FULL BATCH OF TWO-ELECTRON INTEGRALS (16 PERM'NS). C
 C**********************************************************************C
 C
-C     INITIALISE RR ARRAY
-      DO M=1,MAXCD
-        DO ITG=1,16
-          RR(M,ITG) = DCMPLX(0.0D0,0.0D0)
-        ENDDO
-      ENDDO
+C     TIME AT START OF SECOND CONTRACTION
+      CALL SYSTEM_CLOCK(ICL1,RATE)
 C
 C     CALCULATE PHASES FOR BASIS FUNCTION OVERLAP COMBINATIONS
       PAB = ISIGN(1,KQN(1)*KQN(2))*(-1)**((MQN(1)-MQN(2))/2)
