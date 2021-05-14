@@ -3714,6 +3714,7 @@ C  ENRGIES CALCULATES INTERACTION ENERGIES OF THE CURRENT DENSITY      C
 C  MATRIX OVER OCCUPIED SPINORS WITH THE MATRIX REP OF OPERATORS.      C
 C**********************************************************************C
       INCLUDE 'parameters.h'
+      INCLUDE 'scfoptions.h'
 C
       COMPLEX*16 ETMP(16)
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -3734,32 +3735,19 @@ C
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
 C
 C     INITIALISE MOLECULAR ENERGY COUNTERS
-      DO N=1,14
+      DO N=1,16
         ETMP(N) = DCMPLX(0.0D0,0.0D0)
       ENDDO
+C
+C**********************************************************************C
+C     BARE HAMILTONIAN                                                 C
+C**********************************************************************C
 C
 C     CALCULATE MOLECULAR ENERGY COUNTERS OVER THE MOST RECENT DENSITY
       DO I=1,NDIM
         DO J=1,NDIM
           ETMP( 1) = ETMP( 1) +       DENT(I,J)*HKIN(I,J)
           ETMP( 2) = ETMP( 2) +       DENT(I,J)*HNUC(I,J)
-          ETMP( 3) = ETMP( 3) +       DENT(I,J)*VANM(I,J)
-          ETMP( 4) = ETMP( 4) +       DENT(I,J)*VSLF(I,J)
-          ETMP( 5) = ETMP( 5) +       DENT(I,J)*VUEH(I,J)
-          ETMP( 6) = ETMP( 6) +       DENT(I,J)*VWKR(I,J)
-          ETMP( 7) = ETMP( 7) +       DENT(I,J)*VKSB(I,J)
-          ETMP( 8) = ETMP( 8) + 0.5D0*DENT(I,J)*GDIR(I,J)
-          ETMP( 9) = ETMP( 9) + 0.5D0*DENT(I,J)*GXCH(I,J)
-          ETMP(10) = ETMP(10) + 0.5D0*DENT(I,J)*BDIR(I,J)
-          ETMP(11) = ETMP(11) + 0.5D0*DENT(I,J)*BXCH(I,J)
-          ETMP(12) = ETMP(12) + 0.5D0*DENT(I,J)*QDIR(I,J)
-     &                        + 0.5D0*DENO(I,J)*QDIR(I,J)*(FOPN-1.0D0)
-          ETMP(13) = ETMP(13) + 0.5D0*DENT(I,J)*QXCH(I,J)
-     &                        + 0.5D0*DENO(I,J)*QXCH(I,J)*(FOPN-1.0D0)
-          ETMP(14) = ETMP(14) + 0.5D0*DENT(I,J)*WDIR(I,J)
-     &                        + 0.5D0*DENO(I,J)*WDIR(I,J)*(FOPN-1.0D0)
-          ETMP(15) = ETMP(15) + 0.5D0*DENT(I,J)*WXCH(I,J)
-     &                        + 0.5D0*DENO(I,J)*WXCH(I,J)*(FOPN-1.0D0)
           ETMP(16) = ETMP(16) +       DENT(I,J)*FOCK(I,J)
         ENDDO
       ENDDO
@@ -3767,29 +3755,128 @@ C
 C     REAL COMPONENTS ARE ACTUAL ENERGIES
       EHKN = DREAL(ETMP( 1))
       EHNC = DREAL(ETMP( 2))
+      EDHF = DREAL(ETMP(16))
+C
+C     CONTRIBUTIONS TO TOTAL ENERGY COUNTERS
+      EONE = EHKN+EHNC
+      ETOT = ENUC+EONE
+C
+      IF(HMLT.EQ.'BARE') RETURN
+C
+C**********************************************************************C
+C     NORL AND DHFR HAMILTONIANS                                       C
+C**********************************************************************C
+C
+C     CALCULATE MOLECULAR ENERGY COUNTERS OVER THE MOST RECENT DENSITY
+      DO I=1,NDIM
+        DO J=1,NDIM
+          ETMP( 8) = ETMP( 8) + 0.5D0*DENT(I,J)*GDIR(I,J)
+          ETMP( 9) = ETMP( 9) + 0.5D0*DENT(I,J)*GXCH(I,J)
+        ENDDO
+      ENDDO
+C
+C     REAL COMPONENTS ARE ACTUAL ENERGIES
+      EGDR = DREAL(ETMP( 8))
+      EGXC = DREAL(ETMP( 9))
+C
+C     CONTRIBUTIONS TO TOTAL ENERGY COUNTERS
+      ECLG = EGDR-EGXC
+      ETOT = ETOT+ECLG
+C
+C     OPEN-SHELL SYSTEMS
+      IF(NOPN.EQ.0) GOTO 200
+C
+C     CALCULATE MOLECULAR ENERGY COUNTERS OVER THE MOST RECENT DENSITY
+      DO I=1,NDIM
+        DO J=1,NDIM
+          ETMP(12) = ETMP(12) + 0.5D0*DENT(I,J)*QDIR(I,J)
+     &                        + 0.5D0*DENO(I,J)*QDIR(I,J)*(FOPN-1.0D0)
+          ETMP(13) = ETMP(13) + 0.5D0*DENT(I,J)*QXCH(I,J)
+     &                        + 0.5D0*DENO(I,J)*QXCH(I,J)*(FOPN-1.0D0)
+        ENDDO
+      ENDDO
+C
+C     REAL COMPONENTS ARE ACTUAL ENERGIES
+      EQDR = DREAL(ETMP(12))
+      EQXC = DREAL(ETMP(13))
+C
+C     CONTRIBUTIONS TO TOTAL ENERGY COUNTERS
+      ECLQ = EQDR-EQXC
+      ETOT = ETOT+ECLQ
+C
+200   CONTINUE
+      IF(HMLT.EQ.'NORL'.OR.HMLT.EQ.'DHFR') RETURN
+C
+C**********************************************************************C
+C     DHFB HAMILTONIAN                                                 C
+C**********************************************************************C
+C
+C     CALCULATE MOLECULAR ENERGY COUNTERS OVER THE MOST RECENT DENSITY
+      DO I=1,NDIM
+        DO J=1,NDIM
+          ETMP(10) = ETMP(10) + 0.5D0*DENT(I,J)*BDIR(I,J)
+          ETMP(11) = ETMP(11) + 0.5D0*DENT(I,J)*BXCH(I,J)
+        ENDDO
+      ENDDO
+C
+C     REAL COMPONENTS ARE ACTUAL ENERGIES
+      EBDR = DREAL(ETMP(10))
+      EBXC = DREAL(ETMP(11))
+C
+C     CONTRIBUTIONS TO TOTAL ENERGY COUNTERS
+      EBRG = EBDR-EBXC
+      ETOT = ETOT+EBRG
+C
+C     OPEN-SHELL SYSTEMS
+      IF(NOPN.EQ.0) GOTO 300
+C
+C     CALCULATE MOLECULAR ENERGY COUNTERS OVER THE MOST RECENT DENSITY
+      DO I=1,NDIM
+        DO J=1,NDIM
+          ETMP(14) = ETMP(14) + 0.5D0*DENT(I,J)*WDIR(I,J)
+     &                        + 0.5D0*DENO(I,J)*WDIR(I,J)*(FOPN-1.0D0)
+          ETMP(15) = ETMP(15) + 0.5D0*DENT(I,J)*WXCH(I,J)
+     &                        + 0.5D0*DENO(I,J)*WXCH(I,J)*(FOPN-1.0D0)
+        ENDDO
+      ENDDO
+C
+C     REAL COMPONENTS ARE ACTUAL ENERGIES
+      EWDR = DREAL(ETMP(14))
+      EWXC = DREAL(ETMP(15))
+C
+C     CONTRIBUTIONS TO TOTAL ENERGY COUNTERS
+      EBRQ = EWDR-EWXC
+      ETOT = ETOT+EBRQ
+C
+300   CONTINUE
+      IF(HMLT.EQ.'DHFB') RETURN
+C
+C**********************************************************************C
+C     NORL AND DHFR HAMILTONIANS                                       C
+C**********************************************************************C
+C
+C     CALCULATE MOLECULAR ENERGY COUNTERS OVER THE MOST RECENT DENSITY
+      DO I=1,NDIM
+        DO J=1,NDIM
+          ETMP( 3) = ETMP( 3) + DENT(I,J)*VANM(I,J)
+          ETMP( 4) = ETMP( 4) + DENT(I,J)*VSLF(I,J)
+          ETMP( 5) = ETMP( 5) + DENT(I,J)*VUEH(I,J)
+          ETMP( 6) = ETMP( 6) + DENT(I,J)*VWKR(I,J)
+          ETMP( 7) = ETMP( 7) + DENT(I,J)*VKSB(I,J)
+        ENDDO
+      ENDDO
+C
+C     REAL COMPONENTS ARE ACTUAL ENERGIES
       EANM = DREAL(ETMP( 3))
       ESLF = DREAL(ETMP( 4))
       EUEH = DREAL(ETMP( 5))
       EWKR = DREAL(ETMP( 6))
       EKSB = DREAL(ETMP( 7))
-      EGDR = DREAL(ETMP( 8))
-      EGXC = DREAL(ETMP( 9))
-      EBDR = DREAL(ETMP(10))
-      EBXC = DREAL(ETMP(11))
-      EQDR = DREAL(ETMP(12))
-      EQXC = DREAL(ETMP(13))
-      EWDR = DREAL(ETMP(14))
-      EWXC = DREAL(ETMP(15))
-      EDHF = DREAL(ETMP(16))
 C
-C     ADD ALL CONTRIBUTIONS TO THE TOTAL ENERGY
-      EONE = EHKN+EHNC+EANM+ESLF+EUEH+EWKR+EKSB
-      ECLG = EGDR-EGXC
-      ECLQ = EQDR-EQXC
-      EBRG = EBDR-EBXC
-      EBRQ = EWDR-EWXC
+C     CONTRIBUTIONS TO TOTAL ENERGY COUNTERS
+      EONE = EONE+EANM+ESLF+EUEH+EWKR+EKSB
 C     ETOT = 0.5D0*EONE+0.5D0*EDHF-ECLQ-EBRQ
-      ETOT = ENUC+EONE+ECLG+ECLQ+EBRG+EBRQ
+      ETOT = ETOT+EANM+ESLF+EUEH+EWKR+EKSB
 C
       RETURN
       END
@@ -4993,10 +5080,12 @@ C   [F] WKRNUC: CONSTRUCTS MULTI-CENTRE WICHMANN-KROLL ELEMENTS.       C
 C   [G] KSBNUC: CONSTRUCTS MULTI-CENTRE KÄLLÉN-SABRY ELEMENTS.         C
 C   [H] COULOMB: CONSTRUCTS ALL MULTI-CENTRE COULOMB SCF ELEMENTS.     C
 C   [I] ERI: GENERATES A BLOCK OF ELECTRON REPULSION INTEGRALS.        C
-C   [J] CLMMAT: MULTIPLIES BATCH FROM RR BY DENSITIES, ADDS TO GMAT.   C
+C   [J] CLMMTZ: COULOMB MATRIX FROM MOLECULAR INTEGRALS (Z-SYMM).      C
+C   [J] CLMMTG: COULOMB MATRIX FROM MOLECULAR INTEGRALS (GENERAL).     C
 C   [K] BREIT: MATRIX REP OF MEAN-FIELD BREIT INTERACTION.             C
 C   [L] BII: GENERATES A BLOCK OF BREIT INTERACTION INTEGRALS.         C
-C   [M] BRTMAT: MULTIPLIES BATCH FROM RR BY DENSITIES, ADDS TO BDSC.   C
+C   [J] BRTMTZ: BREIT MATRIX FROM MOLECULAR INTEGRALS (Z-SYMM).        C
+C   [J] BRTMTG: BREIT MATRIX FROM MOLECULAR INTEGRALS (GENERAL).       C
 C   [N] COUPLE: ESTABLISH OPEN/CLOSED SHELL COUPLING BETWEEN ARRAYS.   C
 C   [O] SPARSITY: SEARCHES FOR VANISHING MATRIX ELEMTNS IN A MATRIX.   C
 C   [P] NCART: RETURNS THE CARTESIAN INDEX FROM A LOOP INDEX.          C
@@ -5123,9 +5212,6 @@ C
 C**********************************************************************C
 C     ECONOMISATION STRATEGIES                                         C
 C**********************************************************************C
-C
-C     ONE-CENTRE INTEGRAL SYMMETRY RELATIONS FOR RECYCLING XK BATCHES
-      PRM1CT = .FALSE.
 C
 C     MULTI-CENTRE INTEGRAL SYMMETRY RELATIONS FOR RECYCLING RR BATCHES
       INTSYM = .TRUE.
@@ -5499,14 +5585,13 @@ C       MATRIX ARITHMETIC ROUTINES
         TDGN =        DFLOAT(ICL6-ICL5)/RATE
         TEIG = TEIG + DFLOAT(ICL6-ICL5)/RATE
 C
+C       UPDATE THE DENSITY MATRIX
+        CALL DENSTY
+C
 C       WEIGHTED ENERGY DIFFERENCE NORM, WEDN
         DOFF = DABS(ETOT)+1.0D0
         WEDN(ITER) = DABS(ESAV(ITER-1)-ETOT)/DOFF
         ESAV(ITER) = ETOT
-C
-C       UPDATE THE DENSITY MATRIX
-        CALL DENSTY
-        CALL ENRGIES
 C
 C       DENSITY DAMPING PARAMETERS
         EFRC = 0.7D0
@@ -6129,41 +6214,6 @@ C         TC1T = TC1T + DFLOAT(ICL8-ICL7)/RATE
           TB1T = TB1T + DFLOAT(ICL8-ICL7)/RATE
 C
         ENDIF
-c
-cc
-cc       custom code
-cC
-c333     FORMAT(1X,i2,' & ',F14.8,4(' & ',F13.8),' \\')
-c        eitot = 0.0d0
-c        ebtot = 0.0d0
-c        eutot = 0.0d0
-c        ewtot = 0.0d0
-c        ektot = 0.0d0
-cc       loop over odd orbitals up to the edge
-c        do n=1,nocc,2
-cc         fock address for this orbital
-c          iorb = n+nskp
-cc         expectation values
-c          eb = 0.0d0
-c          eu = 0.0d0
-c          ew = 0.0d0
-c          ek = 0.0d0
-c          do i=1,ndim
-c            do j=1,ndim
-c              eb = eb - dconjg(coef(i,iorb))*bxch(i,j)*coef(j,iorb)
-c              eu = eu + dconjg(coef(i,iorb))*vueh(i,j)*coef(j,iorb)
-c              ew = ew + dconjg(coef(i,iorb))*vwkr(i,j)*coef(j,iorb)
-c              ek = ek + dconjg(coef(i,iorb))*vksb(i,j)*coef(j,iorb)
-c            enddo
-c          enddo
-c          write(*,333) (n+1)/2,eign(iorb),0.5D0*eb,eu,ew,ek
-c          eitot = eitot + 2.0d0*eign(iorb)
-c          ebtot = ebtot +       eb
-c          eutot = eutot + 2.0d0*eu
-c          ewtot = ewtot + 2.0d0*ew
-c          ektot = ektot + 2.0d0*ek
-c        enddo
-c        write(*,333) 0,eitot,ebtot,eutot,ewtot,ektot
 C
 C       CALCULATE FRACTION OF SCREENED INTEGRALS
         DO MCNT=1,5
@@ -10327,9 +10377,9 @@ C           GENERATE BATCH OF ELECTRON REPULSION INTEGRALS
 C
 C           MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
             IF(ISYM.EQ.0) THEN
-              CALL CLMMAT(RR,IFLG,TCMC)
+              CALL CLMMTG(RR,IFLG,TCMC)
             ELSE
-              CALL CLMMATZ(RR,IFLG,TCMC)
+              CALL CLMMTZ(RR,IFLG,TCMC)
             ENDIF
 C
           ENDIF
@@ -12001,9 +12051,9 @@ C       GENERATE BATCH OF ELECTRON REPULSION INTEGRALS
 C
 C       MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
         IF(ISYM.EQ.0) THEN
-          CALL CLMMAT(RR,IFLG,TCMC)
+          CALL CLMMTG(RR,IFLG,TCMC)
         ELSE
-          CALL CLMMATZ(RR,IFLG,TCMC)
+          CALL CLMMTZ(RR,IFLG,TCMC)
         ENDIF
 C
       ENDIF
@@ -13133,20 +13183,20 @@ C
       END
 C
 C
-      SUBROUTINE CLMMATZ(RR,IFLG,TADD)
+      SUBROUTINE CLMMTZ(RR,IFLG,TADD)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C  CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT ZZZZZZZZ  C
-C CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT         ZZ   C
-C CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT        ZZ    C
-C CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT       ZZ     C
-C CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT      ZZ      C
-C CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT     ZZ       C
-C  CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT    ZZZZZZZZ  C
+C      CCCCCC  LL       MM       MM MM       MM TTTTTTTT ZZZZZZZZ      C
+C     CC    CC LL       MMM     MMM MMM     MMM    TT         ZZ       C
+C     CC       LL       MMMM   MMMM MMMM   MMMM    TT        ZZ        C
+C     CC       LL       MM MM MM MM MM MM MM MM    TT       ZZ         C
+C     CC       LL       MM  MMM  MM MM  MMM  MM    TT      ZZ          C
+C     CC    CC LL       MM   M   MM MM   M   MM    TT     ZZ           C
+C      CCCCCC  LLLLLLLL MM       MM MM       MM    TT    ZZZZZZZZ      C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  CLMMATZ MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND    C
+C  CLMMTZ MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
 C  ADDS THE CONTRIBUTIONS TO THE OPEN/CLOSED SCF COULOMB MATRICES.     C
 C  DEPENDING ON THE COMBINATION OF MQN VALUES, CAN TAKE ADVANTAGE OF   C
 C  INTEGRAL PERMUTATION SYMMETRIES (MINIMISING CALLS TO ERI):          C
@@ -13154,7 +13204,7 @@ C              ( MA, MB|-MD,-MC) =     PCD*( MA, MB| MC, MD)           C
 C              (-MB,-MA| MC, MD) = PAB*    ( MA, MB| MC, MD)           C
 C              ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)           C
 C -------------------------------------------------------------------- C
-C  THIS IS A SPECIAL CASE OF COULOMB MATRIX ASSEMBLER CLMMAT, WHICH    C
+C  THIS IS A SPECIAL CASE OF COULOMB MATRIX ASSEMBLER CLMMTG, WHICH    C
 C  MAY ONLY BE USED WHEN THE FOCK MATRIX IS REAL-VALUED -- EXAMPLES    C
 C  ARE ATOMS, DIATOMICS, LINEAR OR PLANAR MOLECULES.                   C
 C -------------------------------------------------------------------- C
@@ -13204,8 +13254,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.EQ.0) THEN
-        WRITE(6,*) 'In CLMMATZ: you probably should be using CLMMAT.'
-        WRITE(7,*) 'In CLMMATZ: you probably should be using CLMMAT.'
+        WRITE(6,*) 'In CLMMTZ: you probably should be using CLMMTG.'
+        WRITE(7,*) 'In CLMMTZ: you probably should be using CLMMTG.'
       ENDIF
 C
 C**********************************************************************C
@@ -13826,20 +13876,20 @@ C
       END
 C
 C
-      SUBROUTINE CLMMAT(RR,IFLG,TADD)
+      SUBROUTINE CLMMTG(RR,IFLG,TADD)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C       CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT      C
-C      CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT         C
-C      CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT         C
-C      CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT         C
-C      CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT         C
-C      CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT         C
-C       CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT         C
+C       CCCCCC  LL       MM       MM MM       MM TTTTTTTT GGGGGG       C
+C      CC    CC LL       MMM     MMM MMM     MMM    TT   GG    GG      C
+C      CC       LL       MMMM   MMMM MMMM   MMMM    TT   GG            C
+C      CC       LL       MM MM MM MM MM MM MM MM    TT   GG            C
+C      CC       LL       MM  MMM  MM MM  MMM  MM    TT   GG   GGG      C
+C      CC    CC LL       MM   M   MM MM   M   MM    TT   GG    GG      C
+C       CCCCCC  LLLLLLLL MM       MM MM       MM    TT    GGGGGG       C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  CLMMAT MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
+C  CLMMTG MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
 C  ADDS THE CONTRIBUTIONS TO THE OPEN/CLOSED SCF COULOMB MATRICES.     C
 C  DEPENDING ON THE COMBINATION OF MQN VALUES, CAN TAKE ADVANTAGE OF   C
 C  INTEGRAL PERMUTATION SYMMETRIES (MINIMISING CALLS TO ERI):          C
@@ -13888,8 +13938,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.NE.0) THEN
-        WRITE(6,*) 'In CLMMAT: you probably should be using CLMMATZ.'
-        WRITE(7,*) 'In CLMMAT: you probably should be using CLMMATZ.'
+        WRITE(6,*) 'In CLMMTG: you probably should be using CLMMTZ.'
+        WRITE(7,*) 'In CLMMTG: you probably should be using CLMMTZ.'
       ENDIF
 C
 C**********************************************************************C
@@ -15915,9 +15965,9 @@ C           GENERATE A BATCH OF BREIT INTERACTION INTEGRALS
 C
 C           MULTIPLY BY DENSITY ELEMENTS AND ADD TO WDIR/WMAT
             IF(ISYM.EQ.0) THEN
-              CALL BRTMAT(RR,TBMC)
+              CALL BRTMTG(RR,TBMC)
             ELSE
-              CALL BRTMATZ(RR,TBMC)
+              CALL BRTMTZ(RR,TBMC)
             ENDIF
 C
           ENDIF
@@ -17558,9 +17608,9 @@ C       GENERATE A BATCH OF BREIT INTERACTION INTEGRALS
 C
 C       MULTIPLY BY DENSITY ELEMENTS AND ADD TO WDIR/WMAT
         IF(ISYM.EQ.0) THEN
-          CALL BRTMAT(RR,TBMC)
+          CALL BRTMTG(RR,TBMC)
         ELSE
-          CALL BRTMATZ(RR,TBMC)
+          CALL BRTMTZ(RR,TBMC)
         ENDIF
 C
       ENDIF
@@ -19110,20 +19160,20 @@ C
       END
 C
 C
-      SUBROUTINE BRTMATZ(RR,TADD)
+      SUBROUTINE BRTMTZ(RR,TADD)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C   BBBBBBB  RRRRRRR TTTTTTTT MM       MM    AA   TTTTTTTT ZZZZZZZZ    C
-C   BB    BB RR    RR   TT    MMM     MMM   AAAA     TT         ZZ     C
-C   BB    BB RR    RR   TT    MMMM   MMMM  AA  AA    TT        ZZ      C
-C   BBBBBBB  RR    RR   TT    MM MM MM MM AA    AA   TT       ZZ       C
-C   BB    BB RRRRRRR    TT    MM  MMM  MM AAAAAAAA   TT      ZZ        C
-C   BB    BB RR    RR   TT    MM   M   MM AA    AA   TT     ZZ         C
-C   BBBBBBB  RR    RR   TT    MM       MM AA    AA   TT    ZZZZZZZZ    C
+C       BBBBBBB  RRRRRRR TTTTTTTT MM       MM TTTTTTTT ZZZZZZZZ        C
+C       BB    BB RR    RR   TT    MMM     MMM    TT         ZZ         C
+C       BB    BB RR    RR   TT    MMMM   MMMM    TT        ZZ          C
+C       BBBBBBB  RR    RR   TT    MM MM MM MM    TT       ZZ           C
+C       BB    BB RRRRRRR    TT    MM  MMM  MM    TT      ZZ            C
+C       BB    BB RR    RR   TT    MM   M   MM    TT     ZZ             C
+C       BBBBBBB  RR    RR   TT    MM       MM    TT    ZZZZZZZZ        C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  BRTMAT MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
+C  BRTMTZ MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
 C  ADDS THE CONTRIBUTIONS TO THE OPEN/CLOSED SCF BREIT MATRICES.       C
 C  DEPENDING ON THE COMBINATION OF MQN VALUES, CAN TAKE ADVANTAGE OF   C
 C  INTEGRAL PERMUTATION SYMMETRIES (MINIMISING CALLS TO BII):          C
@@ -19131,7 +19181,7 @@ C              ( MA, MB|-MD,-MC) =     PCD*( MA, MB| MC, MD)           C
 C              (-MB,-MA| MC, MD) = PAB*    ( MA, MB| MC, MD)           C
 C              ( MC, MD| MA, MB) =         ( MA, MB| MC, MD)           C
 C -------------------------------------------------------------------- C
-C  THIS IS A SPECIAL CASE OF BREIT MATRIX ASSEMBLER BRTMAT, WHICH      C
+C  THIS IS A SPECIAL CASE OF BREIT MATRIX ASSEMBLER BRTMTZ, WHICH      C
 C  MAY ONLY BE USED WHEN THE FOCK MATRIX IS REAL-VALUED -- EXAMPLES    C
 C  ARE ATOMS, DIATOMICS, LINEAR OR PLANAR MOLECULES.                   C
 C -------------------------------------------------------------------- C
@@ -19175,8 +19225,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.EQ.0) THEN
-        WRITE(6,*) 'In BRTMATZ: you probably should be using BRTMAT.'
-        WRITE(7,*) 'In BRTMATZ: you probably should be using BRTMAT.'
+        WRITE(6,*) 'In BRTMTZ: you probably should be using BRTMTG.'
+        WRITE(7,*) 'In BRTMTZ: you probably should be using BRTMTG.'
       ENDIF
 C
 C**********************************************************************C
@@ -19760,20 +19810,20 @@ C
       END
 C
 C
-      SUBROUTINE BRTMAT(RR,TADD)
+      SUBROUTINE BRTMTG(RR,TADD)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C        BBBBBBB  RRRRRRR TTTTTTTT MM       MM    AA   TTTTTTTT        C
-C        BB    BB RR    RR   TT    MMM     MMM   AAAA     TT           C
-C        BB    BB RR    RR   TT    MMMM   MMMM  AA  AA    TT           C
-C        BBBBBBB  RR    RR   TT    MM MM MM MM AA    AA   TT           C
-C        BB    BB RRRRRRR    TT    MM  MMM  MM AAAAAAAA   TT           C
-C        BB    BB RR    RR   TT    MM   M   MM AA    AA   TT           C
-C        BBBBBBB  RR    RR   TT    MM       MM AA    AA   TT           C
+C        BBBBBBB  RRRRRRR TTTTTTTT MM       MM TTTTTTTT GGGGGG         C
+C        BB    BB RR    RR   TT    MMM     MMM    TT   GG    GG        C
+C        BB    BB RR    RR   TT    MMMM   MMMM    TT   GG              C
+C        BBBBBBB  RR    RR   TT    MM MM MM MM    TT   GG              C
+C        BB    BB RRRRRRR    TT    MM  MMM  MM    TT   GG   GGG        C
+C        BB    BB RR    RR   TT    MM   M   MM    TT   GG    GG        C
+C        BBBBBBB  RR    RR   TT    MM       MM    TT    GGGGGG         C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  BRTMAT MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
+C  BRTMTG MULTIPLIES A MOLECULAR ERI BATCH BY DENSITY ELEMENTS AND     C
 C  ADDS THE CONTRIBUTIONS TO THE OPEN/CLOSED SCF BREIT MATRICES.       C
 C  DEPENDING ON THE COMBINATION OF MQN VALUES, CAN TAKE ADVANTAGE OF   C
 C  INTEGRAL PERMUTATION SYMMETRIES (MINIMISING CALLS TO BII):          C
@@ -19821,8 +19871,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.NE.0) THEN
-        WRITE(6,*) 'In BRTMAT: you probably should be using BRTMATZ.'
-        WRITE(7,*) 'In BRTMAT: you probably should be using BRTMATZ.'
+        WRITE(6,*) 'In BRTMTG: you probably should be using BRTMTZ.'
+        WRITE(7,*) 'In BRTMTG: you probably should be using BRTMTZ.'
       ENDIF
 C
 C**********************************************************************C
@@ -21514,9 +21564,6 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      CHARACTER*80 TITLE
-C
-      DIMENSION INDEX(-(MEL+1):MEL,MKP,2)
       DIMENSION DKAB(MNU,MKP+1,MKP+1),DKCD(MNU,MKP+1,MKP+1)
       DIMENSION RJLLLL(MB2,MNU),RJLLSS(MB2,MNU),
      &          RJSSLL(MB2,MNU),RJSSSS(MB2,MNU)
@@ -21529,9 +21576,6 @@ C
      &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
-      COMPLEX*16 GPLT(MDM,MDM)
-      DIMENSION GTRU(MDM,MDM)
-C
       COMMON/B0IJ/EIJ(MB2,-MTN:MTN),RNIJ(MB2,4),EI(MB2),EJ(MB2),MAXAB
       COMMON/B0KL/EKL(MB2,-MTN:MTN),RNKL(MB2,4),EK(MB2),EL(MB2),MAXCD
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
@@ -21539,8 +21583,9 @@ C
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
-     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/RCFF/T0000,T1000,T0100,T0010,T0001,T1100,T1010,T1001,
@@ -21559,6 +21604,10 @@ C     ANGULAR FACTOR SENSITIVITY PARAMETER
 C
       CALL SYSTEM_CLOCK(ICL1,RATE)
 C
+C     INTEGRAL PERMUTATIONS: FEEL FREE TO PLAY WITH THESE BOOLEANS
+      PRM1IJ = .TRUE.
+      PRM1KL = .TRUE.
+C
 C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       IF(SHAPE.EQ.'ATOMIC') THEN
         ISYM = 2
@@ -21568,31 +21617,11 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
         ISYM = 0
       ENDIF
 C
-      PRM1CT = .FALSE.
-      CDPRM  = .FALSE.
-      PRM1KL = .FALSE.
-C
-C**********************************************************************C
-C     ORDERED INDEX OF (KQN,MQN) COMBINATIONS                          C
-C**********************************************************************C
-C
-C     LOOP OVER KAPPA VALUES FOR THIS NUCLEAR CENTRE
-      ICOUNT = 0
-      DO KN=1,NKAP(IZ)
-C
-C       IMPORT KAPPA, MAXIMUM MQN
-        KAPPA = KAPA(KN,IZ)
-        MJMAX = 2*IABS(KAPPA)-1
-C
-C       LOOP OVER |MQN| VALUES
-        DO MJ=1,MJMAX,2
-C         LOOP OVER MQN SIGNS
-          DO ISGN=1,2
-            ICOUNT               = ICOUNT+1
-            INDEX(KAPPA,MJ,ISGN) = ICOUNT
-          ENDDO
-        ENDDO
-      ENDDO
+C     MANUAL OVERRIDE FOR GENERAL MOLECULES (MIGHT WORK; NEEDS TESTING)
+      IF(ISYM.EQ.0) THEN
+        PRM1IJ = .FALSE.
+        PRM1KL = .FALSE.
+      ENDIF
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 1000)                 C
@@ -21625,17 +21654,11 @@ C
 C       NUMBER OF BASIS FUNCTIONS IN (AB) BLOCK
         MAXAB = NBAS(1)*NBAS(2)
 C
-C      TRIANGLE RULE FOR LA <-> LB
-       IF(PRM1CT) THEN
-         IF(LA.GT.LB) GOTO 1001
-       ENDIF
+C       TRIANGLE RULE FOR LA <-> LB
+        IF(PRM1IJ) THEN
+          IF(LA.GT.LB) GOTO 1001
+        ENDIF
 C
-C       PRM1CT BREAKDOWN
-cc       if(la.ne.0.or.lb.ne.1) goto 1001
-c        if(la.ne.2.or.lb.ne.2) goto 1001
-cc       if(la.NE.lb) goto 1001
-cC       if(la+lb.ne.1) goto 1001
-cC
 C     LOOP OVER LQN(C) VALUES
       DO 1100 LC=0,(NKAP(IZ)-1)/2
 C
@@ -21662,11 +21685,11 @@ C       BASIS EXPONENTS FOR BLOCK D
 C
 C       NUMBER OF BASIS FUNCTIONS IN (CD) BLOCK
         MAXCD = NBAS(3)*NBAS(4)
-cC
-cC       TRIANGLE RULE FOR LC <-> LD
-c        IF(CDPRM) THEN
-c          IF(LC.GT.LD) GOTO 1101
-c        ENDIF
+C
+C       TRIANGLE RULE FOR LC <-> LD
+        IF(PRM1KL) THEN
+          IF(LC.GT.LD) GOTO 1101
+        ENDIF
 C
 C       DETERMINE THE TENSOR ORDERS REQUIRED FOR THIS LQN BLOCK
         CALL SYSTEM_CLOCK(ICL3,RATE)
@@ -21700,11 +21723,11 @@ C     LOOP OVER KQN(B) VALUES
 C
 C       QUANTUM NUMBERS FOR BLOCK B
         KQN(2) = KAPA(KB,IZ)
-cC
-cC       TRIANGLE RULE FOR KA <-> KB
-c        IF(PRM1CT) THEN
-c          IF(KA.GT.KB) GOTO 2001
-c        ENDIF
+C
+C       TRIANGLE RULE FOR KA <-> KB
+        IF(PRM1IJ) THEN
+          IF(KA.GT.KB) GOTO 2001
+        ENDIF
 C
 C     LOOP OVER KQN(C) VALUES
       DO 2100 NC=1,KRONECK(LC,0),-1
@@ -21721,7 +21744,7 @@ C       QUANTUM NUMBERS FOR BLOCK D
         KQN(4) = KAPA(KD,IZ)
 C
 C       TRIANGLE RULE FOR KC <-> KD
-        IF(CDPRM) THEN
+        IF(PRM1KL) THEN
           IF(KC.GT.KD) GOTO 2101
         ENDIF
 C
@@ -21835,23 +21858,31 @@ C
 C
       DO 4000 MB=1,IABS(KQN(2))
         MQN(2) = 2*MB-1
-C
-C       TRIANGLE RULE FOR MA <-> MB
-C        IF(PRM1CT) THEN
-C          IF(MA.GT.MB) GOTO 4001
-C         if(ma.ne.1.or.mb.ne.1) goto 4001
-C       ENDIF
+CC
+CC       TRIANGLE RULE FOR MA <-> MB
+C        IF(PRM1IJ) THEN
+C          IF(KA.EQ.KB.AND.MA.GT.MB) GOTO 4001
+C        ENDIF
 C
       DO 4100 MC=1,IABS(KQN(3))
         MQN(3) = 2*MC-1
 C
       DO 4100 MD=1,IABS(KQN(4))
         MQN(4) = 2*MD-1
-cC
-cC       TRIANGLE RULE FOR MC <-> MD
-c        IF(CDPRM) THEN
-c          IF(MC.GT.MD) GOTO 4101
-c        ENDIF
+CC
+CC       TRIANGLE RULE FOR MC <-> MD
+C        IF(PRM1KL) THEN
+C          IF(MC.GT.MD) GOTO 4101
+C        ENDIF
+C
+C     SPIN PROJECTION CONSERVED ALONG Z-AXIS FOR LINEAR MOLECULES
+      IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
+        ISELM = 0
+        IF(MQN(1).EQ.MQN(2).AND.MQN(3).EQ.MQN(4)) ISELM = 1
+        IF(MQN(1).EQ.MQN(3).AND.MQN(2).EQ.MQN(4)) ISELM = 1
+        IF(MQN(1).EQ.MQN(4).AND.MQN(2).EQ.MQN(3)) ISELM = 1
+        IF(ISELM.EQ.0) GOTO 4101
+      ENDIF
 C
 C**********************************************************************C
 C     LOOP OVER THE SIGNS OF |MQN| FOR A,B,C,D BLOCKS (USE INDEX 5000) C
@@ -21864,14 +21895,11 @@ C
       DO 5000 MMB=1,2
         MMJB = MQN(2)*((-1)**MMB)
         IMJB = MQN(2)+MMB-1
-cC
-cC       TRIANGLE RULE FOR |MA| <-> |MB|
-c        IF(PRM1CT) THEN
-c          IF(MMA.GT.MMB) GOTO 5001
-c        ENDIF
 C
-C       PRM1CT BREAKDOWN
-c       if(mma.ne.1.or.mmb.ne.1) goto 5001
+C       TRIANGLE RULE FOR |MA| <-> |MB|
+        IF(PRM1IJ) THEN
+          IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.GT.MMB) GOTO 5001
+        ENDIF
 C
       DO 5100 MMC=1,2
         MMJC = MQN(3)*((-1)**MMC)
@@ -21880,60 +21908,44 @@ C
       DO 5100 MMD=1,2
         MMJD = MQN(4)*((-1)**MMD)
         IMJD = MQN(4)+MMD-1
-cC
-cC       TRIANGLE RULE FOR |MC| <-> |MD|
-c        IF(CDPRM) THEN
-c          IF(MMC.GT.MMD) GOTO 5101
-c        ENDIF
 C
-cC       CALCULATE BLOCK INDICES FOR {ABCD} COMBINATIONS
-c        IQ1 = INDEX(KQN(1),MQN(1),MMA)
-c        IQ2 = INDEX(KQN(2),MQN(2),MMB)
-c        IQ3 = INDEX(KQN(3),MQN(3),MMC)
-c        IQ4 = INDEX(KQN(4),MQN(4),MMD)
-cC
-cC     SKIP CONTRIBUTIONS THAT ARISE BY PERMUTATION OF INTEGRALS
-c      IF(PRM1CT.AND.IQ1.LT.IQ2) GOTO 5101
-C      IF(PRM1KL.AND.IQ3.LT.IQ4) GOTO 5101
+C       TRIANGLE RULE FOR |MC| <-> |MD|
+        IF(PRM1KL) THEN
+          IF(KC.EQ.KD.AND.MC.EQ.MD.AND.MMC.GT.MMD) GOTO 5101
+        ENDIF
 C
-cC       PRM1CT BREAKDOWN
-c        if(ka.ne.4.or.kb.ne.4) goto 5001
-cc       if(ka.ne.kb) goto 5001
-cC       if(ka+kb.ne.3) goto 5001
-cc        kthis = 3
-cc        if(ka.ne.kthis.or.kb.ne.kthis) goto 5001
+C     PHASE FACTORS FOR PERMUTATION SWAPS
+      PAB = ISIGN(1,KQN(1)*KQN(2))*DFLOAT((-1)**((MMJA-MMJB)/2))
+      PCD = ISIGN(1,KQN(3)*KQN(4))*DFLOAT((-1)**((MMJC-MMJD)/2))
 C
 C     STARTING FOCK ADDRESS FOR EACH BASIS LIST
-      NAL = LRGE(IZ,KA,IMJA)
-      NBL = LRGE(IZ,KB,IMJB)
-      NCL = LRGE(IZ,KC,IMJC)
-      NDL = LRGE(IZ,KD,IMJD)
+      NAL = LRGE(IZ,KA,2*MA-2+MMA)
+      NBL = LRGE(IZ,KB,2*MB-2+MMB)
+      NCL = LRGE(IZ,KC,2*MC-2+MMC)
+      NDL = LRGE(IZ,KD,2*MD-2+MMD)
 C
-      NAS = LRGE(IZ,KA,IMJA)+NSKP
-      NBS = LRGE(IZ,KB,IMJB)+NSKP
-      NCS = LRGE(IZ,KC,IMJC)+NSKP
-      NDS = LRGE(IZ,KD,IMJD)+NSKP
+      NAS = NAL+NSKP
+      NBS = NBL+NSKP
+      NCS = NCL+NSKP
+      NDS = NDL+NSKP
 C
-CC     ONLY WANT THE UPPER TRIANGULAR MATRIX
-C      IF(PRM1CT) THEN
-C        IF(NAL.GT.NBL) GOTO 5101
-C      ENDIF
+C     STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS
+      KAL = LRGE(IZ,KA,2*MA+1-MMA)
+      KBL = LRGE(IZ,KB,2*MB+1-MMB)
+      KCL = LRGE(IZ,KC,2*MC+1-MMC)
+      KDL = LRGE(IZ,KD,2*MD+1-MMD)
 C
-cC     ONLY WANT THE UPPER TRIANGULAR MATRIX
-c      IF(CDPRM) THEN
-c        IF(NCL.GT.NDL) GOTO 5101
-c      ENDIF
+      KAS = KAL+NSKP
+      KBS = KBL+NSKP
+      KCS = KCL+NSKP
+      KDS = KDL+NSKP
 C
-C     APPLY ANGULAR MQN SELECTION RULE
-      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 5101
+C     APPLY MORE MQN SELECTION RULES
       IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-c       remember to carry through index swaps here
-        IF(MMA.EQ.MMB.AND.MMC.EQ.MMD) GOTO 5102
-        IF(MMA.EQ.MMD.AND.MMC.EQ.MMB) GOTO 5102
-C       IF(MMB.NE.MMD.AND.MMC.NE.MMA) GOTO 5102
-        GOTO 5101
+        ISELM = 0
+        IF(MMJA-MMJB.EQ.MMJD-MMJC) ISELM = 1
+        IF(ISELM.EQ.0) GOTO 5101
       ENDIF
-5102  CONTINUE
 C
 C     INITIALISE EFFECTIVE INTERACTION STRENGTH VALUES
       CALL SYSTEM_CLOCK(ICL3,RATE)
@@ -21997,9 +22009,9 @@ C
 C
 C     MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
       IF(ISYM.EQ.0) THEN
-        CALL CLMMAT1(XLLLL,XSSLL,XLLSS,XSSSS)
+        CALL CLMMT1G(XLLLL,XSSLL,XLLSS,XSSSS)
       ELSE
-        CALL CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS)
+        CALL CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS)
       ENDIF
 C
 C     MATRIX MULTIPLICATION STEP COMPLETE
@@ -22047,6 +22059,17 @@ C     EARLY EXIT FOR LQN TRIANGLE RULE
 C     END LOOP OVER LQN(AB)
 1000  CONTINUE
 C
+C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
+      CALL SYSTEM_CLOCK(ICL2)
+      IF(HMLT.EQ.'NORL') THEN
+        T2ES(1,1) = T2ES(1,1) +        DFLOAT(ICL2-ICL1)/RATE
+      ELSE
+        T2ES(1,1) = T2ES(1,1) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,2) = T2ES(1,2) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,3) = T2ES(1,3) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+        T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
+      ENDIF
+C
 C     MATRIX HERMITICITY (CLOSED-SHELL)
       CALL SYSTEM_CLOCK(ICL3,RATE)
       DO I=1,NDIM
@@ -22068,84 +22091,29 @@ C     MATRIX HERMITICITY (OPEN-SHELL)
       CALL SYSTEM_CLOCK(ICL4)
       TC1M = TC1M + DFLOAT(ICL4-ICL3)/RATE
 C
-C     RECORD CPU TIME AT END OF BATCH AND ADD TO APPROPRIATE COUNTER
-      CALL SYSTEM_CLOCK(ICL2)
-      IF(HMLT.EQ.'NORL') THEN
-        T2ES(1,1) = T2ES(1,1) +        DFLOAT(ICL2-ICL1)/RATE
-      ELSE
-        T2ES(1,1) = T2ES(1,1) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
-        T2ES(1,2) = T2ES(1,2) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
-        T2ES(1,3) = T2ES(1,3) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
-        T2ES(1,4) = T2ES(1,4) + 0.25D0*DFLOAT(ICL2-ICL1)/RATE
-      ENDIF
-      
-      return
-C
-C     READ IN 'SOURCE OF TRUTH'
-      OPEN(UNIT=8,FILE="plots/GXCH-LL-TRUTH_r.dat",STATUS='UNKNOWN')
-      REWIND(UNIT=8)
-      DO I=1,470
-        READ(8, *) (GTRU(I,J),J=1,470)
-      ENDDO
-      CLOSE(UNIT=8)
-C
-      TITLE = 'GXCH'
-      CALL ZGNUMAP(GXCH,TITLE,470)
-C
-C     CALCULATE DIFFERENCE BETWEEN TRUTH AND WHAT WE HAVE
-      DO I=203,232
-        DO J=203,232
-          GPLT(I-202,J-202) = GXCH(I,J)-DCMPLX(GTRU(I,J),0.0D0)
-c         GPLT(I,J) = GXCH(I,J)
-        ENDDO
-      ENDDO
-C
-C     LARGEST ELEMENT AND LOCATION
-      GBIG = 0.0D0
-      IBIG = 0
-      JBIG = 0
-      DO I=1,250
-        DO J=1,250
-          IF(ABS(GPLT(I,J)).GT.GBIG) THEN
-            GBIG = ABS(GPLT(I,J))
-            IBIG = I
-            JBIG = J
-          ENDIF
-        ENDDO
-      ENDDO
-      WRITE(*,*) 'BIGGEST IS ',GBIG,' AT I,J=',IBIG,JBIG
-C
-      TITLE = 'GXCH-DIFF'
-      CALL ZGNUMAP(GPLT,TITLE,30)
-      
-      do i=1,30
-        write(*,*) i,dreal(gplt(i,i))
-      enddo
-C
       RETURN
       END
 C
 C
-      SUBROUTINE CLMMAT1Z(XLLLL,XSSLL,XLLSS,XSSSS)
+      SUBROUTINE CLMMT1Z(XLLLL,XSSLL,XLLSS,XSSSS)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C  CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT 11  ZZZZZZZZ C
-C CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT   111       ZZ  C
-C CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT    11      ZZ   C
-C CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT    11     ZZ    C
-C CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT    11    ZZ     C
-C CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT    11   ZZ      C
-C  CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT   1111 ZZZZZZZZ C
+C    CCCCCC  LL       MM       MM MM       MM TTTTTTTT 11  ZZZZZZZZ    C
+C   CC    CC LL       MMM     MMM MMM     MMM    TT   111       ZZ     C
+C   CC       LL       MMMM   MMMM MMMM   MMMM    TT    11      ZZ      C
+C   CC       LL       MM MM MM MM MM MM MM MM    TT    11     ZZ       C
+C   CC       LL       MM  MMM  MM MM  MMM  MM    TT    11    ZZ        C
+C   CC    CC LL       MM   M   MM MM   M   MM    TT    11   ZZ         C
+C    CCCCCC  LLLLLLLL MM       MM MM       MM    TT   1111 ZZZZZZZZ    C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  CLMMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  CLMMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
 C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      DIMENSION ISCF(11,6),IFLG(11)
       DIMENSION XLLLL(MB2),XSSLL(MB2),XLLSS(MB2),XSSSS(MB2)
 C
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -22157,20 +22125,16 @@ C
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/BDIM/NDIM,NSKP,NOCC,NVRT
+      COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
+     &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
-     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
-C
-C     ISCF TELLS WHICH INTEGRALS TO INCLUDE BASED ON OVERLAP COMBINATION
-      DATA ISCF/1,1,1,1,1,1,1,1,0,0,0,
-     &          1,1,0,0,1,1,1,0,0,0,0,
-     &          1,0,1,1,1,0,1,0,0,0,0,
-     &          1,1,1,0,1,1,0,0,0,0,0,
-     &          1,0,1,0,1,0,0,0,0,0,0,
-     &          1,0,0,0,1,0,0,0,0,0,0/
 C
 C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       IF(SHAPE.EQ.'ATOMIC') THEN
@@ -22183,21 +22147,25 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.EQ.0) THEN
-        WRITE(6,*) 'In CLMMAT1Z: you probably should be using CLMMAT1.'
-        WRITE(7,*) 'In CLMMAT1Z: you probably should be using CLMMAT1.'
+        WRITE(6,*) 'In CLMMT1Z: you probably should be using CLMMT1G.'
+        WRITE(7,*) 'In CLMMT1Z: you probably should be using CLMMT1G.'
       ENDIF
+C
+C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
+      MMJA = MQN(1)*((-1)**MMA)
+      MMJB = MQN(2)*((-1)**MMB)
+      MMJC = MQN(3)*((-1)**MMC)
+      MMJD = MQN(4)*((-1)**MMD)
 C
 C**********************************************************************C
 C     ASSEMBLE THE CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)           C
 C**********************************************************************C
 C
-cC       PRM1CT BREAKDOWN
-c        GOTO 999
-C
 C     NON-RELATIVISTIC HAMILTONIAN
       IF(HMLT.EQ.'NORL') THEN
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
+        IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 101
         IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 101
         IF(NAL.LE.NBL) THEN
           M = 0
@@ -22214,7 +22182,11 @@ C
 C     RELATIVISTIC HAMILTONIAN
       ELSE
 C
-C       MQN SIGN SELECTION RULE
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: NO PERMUTATION SYMMETRY EMPLOYED                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+        IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 102
         IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 102
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
@@ -22245,85 +22217,135 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
 C
 102     CONTINUE
 C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1CT) GOTO 150
-        GOTO 150
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: PERMUTATION SYMMETRY I⇄J         ONLY                    C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
-C       PERMUTATION BLOCK  I⇄J
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1IJ) GOTO 103
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KQN(1).EQ.KQN(2)) GOTO 103
 C
 C       MQN SIGN SELECTION RULE
-        IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 103
+        IF(-MMJB-MMJA.NE.-MMJD-MMJC) GOTO 103
+        IF(MMB.EQ.MMA.OR.MMC.EQ.MMD) GOTO 103
 C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
-C       THIS CONDITIONAL WILL NEVER SUCCEED
-        IF(IQ1.GT.IQ2) THEN
-C       IF(NBL.LT.NAL) THEN
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|CD)
+        IF(KBL.LE.KAL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GDIR(NBL+JBAS,NAL+IBAS) = GDIR(NBL+JBAS,NAL+IBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
-     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+              GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &                   +  PAB*XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +  PAB*XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
           ENDDO
         ENDIF
 
-C       THIS CONDITIONAL WILL NEVER SUCCEED
-        IF(NBS.LT.NAS) THEN
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|CD)
+        IF(KBS.LE.KAS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
-              GDIR(NBS+JBAS,NAS+IBAS) = GDIR(NBS+JBAS,NAS+IBAS)
-     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
-     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
+              GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
+     &                   +  PAB*XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+     &                   +  PAB*XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 103     CONTINUE
 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: PERMUTATION SYMMETRY      K⇄L ONLY                       C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1KL) GOTO 104
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KQN(3).EQ.KQN(4)) GOTO 104
 C
 C       MQN SIGN SELECTION RULE
+        IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 104
         IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 104
 C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
-C       THIS CONDITIONAL WILL NEVER SUCCEED
-        IF(IQ3.GT.IQ4.AND.MA.EQ.MB.AND.MC.LT.MD) THEN
-C       IF(NBL.LT.NAL) THEN
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|DC)
+        IF(NAL.LE.NBL) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
               GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
-     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+     &                   +  PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+     &                   +  PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
             ENDDO
           ENDDO
         ENDIF
 
-C       THIS CONDITIONAL WILL NEVER SUCCEED
-        IF(IQ3.GT.IQ4.AND.MA.EQ.MB.AND.MC.LT.MD) THEN
-C       IF(NAS.LT.NBS) THEN
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|DC)
+        IF(NAS.LE.NBS) THEN
           M = 0
           DO KBAS=1,NBAS(3)
             DO LBAS=1,NBAS(4)
               M = M+1
               GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
-     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NCL+KBAS))
-     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NCS+KBAS))
+     &                   +  PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+     &                   +  PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
             ENDDO
           ENDDO
         ENDIF
 C
 104     CONTINUE
 C
-150     CONTINUE
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GDIR: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+        IF(.NOT.PRM1IJ) GOTO 105
+        IF(.NOT.PRM1KL) GOTO 105
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KQN(1).EQ.KQN(2)) GOTO 105
+        IF(KQN(3).EQ.KQN(4)) GOTO 105
+C
+C       MQN SIGN SELECTION RULE
+        IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 105
+        IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 105
+C
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|DC)
+        IF(KBL.LE.KAL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &                + PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+     &                + PAB*PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+
+C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|DC)
+        IF(KBS.LE.KAS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
+     &                + PAB*PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+     &                + PAB*PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+105     CONTINUE
 C
 C     END CONDITIONAL OVER HMLT TYPES
       ENDIF
-999   CONTINUE
 C
 C**********************************************************************C
 C     ASSEMBLE THE CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)         C
@@ -22333,6 +22355,7 @@ C     NON-RELATIVISTIC HAMILTONIAN
       IF(HMLT.EQ.'NORL') THEN
 C
 C       CLOSED-SHELL DIRECT MATRIX BLOCK GXCH(LL)
+        IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 201
         IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 201
         IF(NAL.LE.NDL) THEN
           M = 0
@@ -22349,10 +22372,14 @@ C
 C     RELATIVISTIC HAMILTONIAN
       ELSE
 C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: NO PERMUTATION SYMMETRY EMPLOYED                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
 C       CLOSED-SHELL EXCHANGE MATRIX GXCH
+        IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 202
         IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 202
 C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
         IF(NAL.LE.NDL) THEN
           M = 0
@@ -22365,9 +22392,6 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
           ENDDO
         ENDIF
 C
-cC       PRM1CT BREAKDOWN
-c        GOTO 950
-C
 C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
         IF(NAL.LE.NDS) THEN
           M = 0
@@ -22379,7 +22403,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
             ENDDO
           ENDDO
         ENDIF
-CC
+C
 CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
 C        M = 0
 C        DO KBAS=1,NBAS(3)
@@ -22401,230 +22425,198 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
             ENDDO
           ENDDO
         ENDIF
-950     CONTINUE
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
 202     CONTINUE
 C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1CT) GOTO 250
-        goto 250
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: PERMUTATION SYMMETRY I⇄J         ONLY                    C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
-C       PERMUTATION BLOCK  I⇄J
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1IJ) GOTO 203
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KQN(1).EQ.KQN(2)) GOTO 203
 C
 C       MQN SIGN SELECTION RULE
-        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 203
+        IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
+        IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 203
 C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-C          IF(NBL.LT.NDL) THEN
-c          IF(KA.LT.KB) THEN
-           IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NCL+KBAS,NAL+IBAS))
-              ENDDO
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+        IF(KBL.LE.NDL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
+     &                   +  PAB*XLLLL(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
             ENDDO
-          ENDIF
-cC
-cC       PRM1CT BREAKDOWN
-c        GOTO 960
+          ENDDO
+        ENDIF
 C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-C         IF(NBL.LT.NDL) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
-     &                   +      XLLSS(M)*DREAL(DENT(NCS+KBAS,NAL+IBAS))
-              ENDDO
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
+        IF(KBL.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(KBL+JBAS,NDS+LBAS) = GXCH(KBL+JBAS,NDS+LBAS)
+     &                   +  PAB*XLLSS(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
             ENDDO
-          ENDIF
+          ENDDO
+        ENDIF
 C
-CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C          IF(NBS.LT.NDL) THEN
-C            M = 0
-C            DO KBAS=1,NBAS(3)
-C              DO LBAS=1,NBAS(4)
-C                M = M+1
-C                GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
-C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,NAS+IBAS))
-C              ENDDO
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
+C        IF(KBS.LT.NDL) THEN
+C          M = 0
+C          DO KBAS=1,NBAS(3)
+C            DO LBAS=1,NBAS(4)
+C              M = M+1
+C              GXCH(KBS+JBAS,NDL+LBAS) = GXCH(KBS+JBAS,NDL+LBAS)
+C     &                   +      XSSLL(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
 C            ENDDO
-C          ENDIF
+C          ENDDO
+C        ENDIF
 C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-C         IF(NBS.LT.NDS) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ1.GT.IQ2.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
-     &                   +      XSSSS(M)*DREAL(DENT(NCS+KBAS,NAS+IBAS))
-              ENDDO
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
+        IF(KBS.LE.NDS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(KBS+JBAS,NDS+LBAS) = GXCH(KBS+JBAS,NDS+LBAS)
+     &                   +  PAB*XSSSS(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
             ENDDO
-          ENDIF
+          ENDDO
+        ENDIF
 C
 203     CONTINUE
-250     CONTINUE
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C
-C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.CDPRM) GOTO 260
-        goto 260
-C
-C       PERMUTATION BLOCK  K⇄L
-C
-C       MQN SIGN SELECTION RULE
-        IF(MMA.NE.MMC.OR.MMD.NE.MMB) GOTO 214
-C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-C          IF(NBL.LT.NDL) THEN
-c          IF(KA.LT.KB) THEN
-           IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NAL+IBAS,NCL+KBAS) = GXCH(NAL+IBAS,NCL+KBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NBL+JBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-cC
-cC       PRM1CT BREAKDOWN
-c        GOTO 960
-C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-C         IF(NBL.LT.NDL) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NAL+IBAS,NCS+KBAS) = GXCH(NAL+IBAS,NCS+KBAS)
-     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NBL+JBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-C
-CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C          IF(NBS.LT.NDL) THEN
-C            M = 0
-C            DO KBAS=1,NBAS(3)
-C              DO LBAS=1,NBAS(4)
-C                M = M+1
-C                GXCH(NAS+IBAS,NCL+KBAS) = GXCH(NAS+IBAS,NCL+KBAS)
-C     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NBS+JBAS))
-C              ENDDO
-C            ENDDO
-C          ENDIF
-C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-C         IF(NBS.LT.NDS) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ3.GT.IQ4.AND.MA.EQ.MC.AND.MD.LT.MB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NAS+IBAS,NCS+KBAS) = GXCH(NAS+IBAS,NCS+KBAS)
-     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NBS+JBAS))
-              ENDDO
-            ENDDO
-          ENDIF
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C
-214     CONTINUE
-260     CONTINUE
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: PERMUTATION SYMMETRY         K⇄L ONLY                    C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.CDPRM.OR..NOT.PRM1CT) GOTO 270
-        goto 270
+        IF(.NOT.PRM1KL) GOTO 204
 C
-C       PERMUTATION BLOCK  I⇄J AND K⇄L
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KQN(3).EQ.KQN(4)) GOTO 204
 C
 C       MQN SIGN SELECTION RULE
-        IF(MMB.NE.MMD.OR.MMC.NE.MMA) GOTO 205
+        IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 204
+        IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 204
 C
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-C          IF(NBL.LT.NDL) THEN
-c          IF(KA.LT.KB) THEN
-           IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
-C          IF(KA.EQ.KB.AND.MA.LT.MB.AND.MMA.LT.MMB) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NCL+KBAS) = GXCH(NBL+JBAS,NCL+KBAS)
-     &                   +      XLLLL(M)*DREAL(DENT(NDL+LBAS,NAL+IBAS))
-              ENDDO
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AC|DB)
+        IF(NAL.LE.KCL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,KCL+KBAS) = GXCH(NAL+IBAS,KCL+KBAS)
+     &                   +  PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
             ENDDO
-          ENDIF
-cC
-cC       PRM1CT BREAKDOWN
-c        GOTO 960
+          ENDDO
+        ENDIF
 C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-C         IF(NBL.LT.NDL) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NCS+KBAS) = GXCH(NBL+JBAS,NCS+KBAS)
-     &                   +      XLLSS(M)*DREAL(DENT(NDS+LBAS,NAL+IBAS))
-              ENDDO
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AC|DB)
+        IF(NAL.LE.KCS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAL+IBAS,KCS+KBAS) = GXCH(NAL+IBAS,KCS+KBAS)
+     &                   +  PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
             ENDDO
-          ENDIF
+          ENDDO
+        ENDIF
 C
-CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C          IF(NBS.LT.NDL) THEN
-C            M = 0
-C            DO KBAS=1,NBAS(3)
-C              DO LBAS=1,NBAS(4)
-C                M = M+1
-C                GXCH(NBS+JBAS,NCL+KBAS) = GXCH(NBS+JBAS,NCL+KBAS)
-C     &                   +      XSSLL(M)*DREAL(DENT(NDL+LBAS,NAS+IBAS))
-C              ENDDO
-C            ENDDO
-C          ENDIF
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AC|DB)
+C        M = 0
+C        DO KBAS=1,NBAS(3)
+C          DO LBAS=1,NBAS(4)
+C            M = M+1
+C            GXCH(NAS+IBAS,KCL+KBAS) = GXCH(NAS+IBAS,KCL+KBAS)
+C     &                   +  PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS)
+C          ENDDO
+C        ENDDO
 C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-C         IF(NBS.LT.NDS) THEN
-C         IF(KA.LT.KB) THEN
-          IF(IQ1.GT.IQ2.AND.IQ3.GT.IQ4.AND.MB.EQ.MC.AND.MD.LT.MA) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBS+JBAS,NCS+KBAS) = GXCH(NBS+JBAS,NCS+KBAS)
-     &                   +      XSSSS(M)*DREAL(DENT(NDS+LBAS,NAS+IBAS))
-              ENDDO
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AC|DB)
+        IF(NAS.LE.KCS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(NAS+IBAS,KCS+KBAS) = GXCH(NAS+IBAS,KCS+KBAS)
+     &                   +  PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
             ENDDO
-          ENDIF
-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+          ENDDO
+        ENDIF
 C
-960       CONTINUE
+204     CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C       GXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+        IF(.NOT.PRM1IJ) GOTO 205
+        IF(.NOT.PRM1KL) GOTO 205
+C
+C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+        IF(KQN(1).EQ.KQN(2)) GOTO 205
+        IF(KQN(3).EQ.KQN(4)) GOTO 205
+C
+C       MQN SIGN SELECTION RULE
+        IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 205
+        IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 205
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (BC|DA)
+        IF(KBL.LE.KCL) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(KBL+JBAS,KCL+KBAS) = GXCH(KBL+JBAS,KCL+KBAS)
+     &                + PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (BC|DA)
+        IF(KBL.LE.KCS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(KBL+JBAS,KCS+KBAS) = GXCH(KBL+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KAL+IBAS))
+            ENDDO
+          ENDDO
+        ENDIF
+C
+CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (BC|DA)
+C        M = 0
+C        DO KBAS=1,NBAS(3)
+C          DO LBAS=1,NBAS(4)
+C            M = M+1
+C            GXCH(KBS+JBAS,KCL+KBAS) = GXCH(KBS+JBAS,KCL+KBAS)
+C     &                 + PAB*PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,KAS+IBAS)
+C          ENDDO
+C        ENDDO
+C
+C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (BC|DA)
+        IF(KBS.LE.KCS) THEN
+          M = 0
+          DO KBAS=1,NBAS(3)
+            DO LBAS=1,NBAS(4)
+              M = M+1
+              GXCH(KBS+JBAS,KCS+KBAS) = GXCH(KBS+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
+            ENDDO
+          ENDDO
+        ENDIF
 C
 205     CONTINUE
-C
-270     CONTINUE
 C
 C     END CONDITIONAL OVER HMLT TYPES
       ENDIF
@@ -22777,20 +22769,20 @@ C
       END
 C
 C
-      SUBROUTINE CLMMAT1(XLLLL,XSSLL,XLLSS,XSSSS)
+      SUBROUTINE CLMMT1G(XLLLL,XSSLL,XLLSS,XSSSS)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C     CCCCCC  LL       MM       MM MM       MM    AA   TTTTTTTT 11     C
-C    CC    CC LL       MMM     MMM MMM     MMM   AAAA     TT   111     C
-C    CC       LL       MMMM   MMMM MMMM   MMMM  AA  AA    TT    11     C
-C    CC       LL       MM MM MM MM MM MM MM MM AA    AA   TT    11     C
-C    CC       LL       MM  MMM  MM MM  MMM  MM AAAAAAAA   TT    11     C
-C    CC    CC LL       MM   M   MM MM   M   MM AA    AA   TT    11     C
-C     CCCCCC  LLLLLLLL MM       MM MM       MM AA    AA   TT   1111    C
+C     CCCCCC  LL       MM       MM MM       MM TTTTTTTT 11  GGGGGG     C
+C    CC    CC LL       MMM     MMM MMM     MMM    TT   111 GG    GG    C
+C    CC       LL       MMMM   MMMM MMMM   MMMM    TT    11 GG          C
+C    CC       LL       MM MM MM MM MM MM MM MM    TT    11 GG          C
+C    CC       LL       MM  MMM  MM MM  MMM  MM    TT    11 GG   GGG    C
+C    CC    CC LL       MM   M   MM MM   M   MM    TT    11 GG    GG    C
+C     CCCCCC  LLLLLLLL MM       MM MM       MM    TT   1111 GGGGGG     C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  CLMMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  CLMMT1G ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
 C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
 C**********************************************************************C
       INCLUDE 'parameters.h'
@@ -22809,8 +22801,9 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
-     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
@@ -22834,8 +22827,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.NE.0) THEN
-        WRITE(6,*) 'In CLMMAT1: you probably should be using CLMMAT1Z.'
-        WRITE(7,*) 'In CLMMAT1: you probably should be using CLMMAT1Z.'
+        WRITE(6,*) 'In CLMMT1G: you probably should be using CLMMT1Z.'
+        WRITE(7,*) 'In CLMMT1G: you probably should be using CLMMT1Z.'
       ENDIF
 C
 C     NON-RELATIVISTIC HAMILTONIAN
@@ -22894,7 +22887,7 @@ C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
           ENDDO
         ENDIF
 C
-        IF(.NOT.PRM1CT) GOTO 6900
+        IF(.NOT.PRM1IJ) GOTO 6900
         GOTO 6900
 C
 C       PERMUTATION BLOCK  A <-> B
@@ -22981,7 +22974,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
           ENDDO
         ENDIF
 C
-        IF(.NOT.PRM1CT) GOTO 6901
+        IF(.NOT.PRM1IJ) GOTO 6901
 C       GOTO 6901
 C
 C       PERMUTATION BLOCK  A <-> B
@@ -23814,11 +23807,12 @@ C  BREIT1 CONSTRUCTS A ONE-CENTRE CONTRIBUTION TO THE MOLECULAR        C
 C  MEAN-FIELD BREIT MATRIX WITH RACAH ALGEBRA AND BETA INTEGRALS.      C
 C  THIS ROUTINE IS SIMILAR TO THE IN-LINE CONSTRUCTION OF MEAN-FIELD   C
 C  ATOMIC BREIT MATRIX IN HFSCF0, BUT WITH MQN STRUCTURE AS WELL.      C
+C -------------------------------------------------------------------- C
+C  NOTE: THE INDEX PERMUTATION FEATURES SHOULD BE ENABLED AT YOUR OWN  C
+C        PERIL! THEY DON'T YET ACCOUNT FOR THE FULL INTERACTION.       C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
-C
-      CHARACTER*16 HMS
 C
       DIMENSION ANGFAC(8)
       DIMENSION BCOF(MNU,8,MKP+1,MKP+1,MKP+1,MKP+1)
@@ -23840,8 +23834,9 @@ C
       COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
      &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/GAMA/GAMLOG(300),GAMHLF(300)
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
-     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/RCFF/T0000,T1000,T0100,T0010,T0001,T1100,T1010,T1001,
@@ -23860,6 +23855,10 @@ C     ANGULAR FACTOR SENSITIVITY PARAMETER
 C
       CALL SYSTEM_CLOCK(IBCH1,RATE)
 C
+C     INTEGRAL PERMUTATIONS: FEEL FREE TO PLAY WITH THESE BOOLEANS
+      PRM1IJ = .TRUE.
+      PRM1KL = .TRUE.
+C
 C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       IF(SHAPE.EQ.'ATOMIC') THEN
         ISYM = 2
@@ -23867,6 +23866,12 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
         ISYM = 1
       ELSE
         ISYM = 0
+      ENDIF
+C
+C     MANUAL OVERRIDE FOR GENERAL MOLECULES (MIGHT WORK; NEEDS TESTING)
+      IF(ISYM.EQ.0) THEN
+        PRM1IJ = .FALSE.
+        PRM1KL = .FALSE.
       ENDIF
 C
 C**********************************************************************C
@@ -23900,8 +23905,13 @@ C
 C       NUMBER OF BASIS FUNCTIONS IN (AB) BLOCK
         MAXAB = NBAS(1)*NBAS(2)
 C
+C       TRIANGLE RULE FOR LA <-> LB
+        IF(PRM1IJ) THEN
+          IF(LA.GT.LB) GOTO 1001
+        ENDIF
+C
 C     LOOP OVER LQN(C) VALUES
-      DO 1000 LC=0,(NKAP(IZ)-1)/2
+      DO 1100 LC=0,(NKAP(IZ)-1)/2
 C
 C       QUANTUM NUMBERS FOR BLOCK C
         LQN(3) = LC
@@ -23913,7 +23923,7 @@ C       BASIS EXPONENTS FOR BLOCK C
         ENDDO
 C
 C     LOOP OVER LQN(D) VALUES
-      DO 1000 LD=0,(NKAP(IZ)-1)/2
+      DO 1100 LD=0,(NKAP(IZ)-1)/2
 C
 C       QUANTUM NUMBERS FOR BLOCK D
         LQN(4) = LD
@@ -23927,13 +23937,18 @@ C
 C       NUMBER OF BASIS FUNCTIONS IN (CD) BLOCK
         MAXCD = NBAS(3)*NBAS(4)
 C
+C       TRIANGLE RULE FOR LC <-> LD
+        IF(PRM1KL) THEN
+          IF(LC.GT.LD) GOTO 1101
+        ENDIF
+C
 C       DETERMINE THE TENSOR ORDERS REQUIRED FOR THIS LQN BLOCK
         CALL SYSTEM_CLOCK(ICL1)
         CALL TNSBRT1(LQN,ISEL)
         CALL SYSTEM_CLOCK(ICL2)
         TB1A = TB1A + DFLOAT(ICL2-ICL1)/RATE
 C
-        IF(ISEL.EQ.0) GOTO 1001
+        IF(ISEL.EQ.0) GOTO 1101
 C
 C       BASIS SET INTERMEDIATES FOR THE DENSITY PAIRS
         CALL SYSTEM_CLOCK(ICL1)
@@ -23960,19 +23975,29 @@ C
 C       QUANTUM NUMBERS FOR BLOCK B
         KQN(2) = KAPA(KB,IZ)
 C
+C       TRIANGLE RULE FOR KA <-> KB
+        IF(PRM1IJ) THEN
+          IF(KA.GT.KB) GOTO 2001
+        ENDIF
+C
 C     LOOP OVER KQN(C) VALUES
-      DO 2000 NC=1,KRONECK(LC,0),-1
+      DO 2100 NC=1,KRONECK(LC,0),-1
         KC = 2*LC+NC
 C
 C       QUANTUM NUMBERS FOR BLOCK C
         KQN(3) = KAPA(KC,IZ)
 C
 C     LOOP OVER KQN(D) VALUES
-      DO 2000 ND=1,KRONECK(LD,0),-1
+      DO 2100 ND=1,KRONECK(LD,0),-1
         KD = 2*LD+ND
 C
 C       QUANTUM NUMBERS FOR BLOCK D
         KQN(4) = KAPA(KD,IZ)
+C
+C       TRIANGLE RULE FOR KC <-> KD
+        IF(PRM1KL) THEN
+          IF(KC.GT.KD) GOTO 2101
+        ENDIF
 C
 C     UNIQUE ADDRESS FOR THIS KQN COMBINATION WITHIN THE LQN BLOCK
       K4AD = 16 - (8*NA + 4*NB + 2*NC + ND)
@@ -24023,7 +24048,7 @@ C     ANGULAR COEFFICIENTS
       TB1A = TB1A + DFLOAT(ICL2-ICL1)/RATE
 C
 C     EXIT THIS COMBINATION IF IT VIOLATES A SELECTION RULE
-      IF(ISEL.EQ.0) GOTO 2001
+      IF(ISEL.EQ.0) GOTO 2101
 C
 C**********************************************************************C
 C     LOOP OVER BASIS FUNCTIONS IN BLOCKS A AND B (INDEX 3000)         C
@@ -24067,12 +24092,31 @@ C
 C
       DO 4000 MB=1,IABS(KQN(2))
         MQN(2) = 2*MB-1
+CC
+CC       TRIANGLE RULE FOR MA <-> MB
+C        IF(PRM1IJ) THEN
+C          IF(KA.EQ.KB.AND.MA.GT.MB) GOTO 4001
+C        ENDIF
 C
-      DO 4000 MC=1,IABS(KQN(3))
+      DO 4100 MC=1,IABS(KQN(3))
         MQN(3) = 2*MC-1
 C
-      DO 4000 MD=1,IABS(KQN(4))
+      DO 4100 MD=1,IABS(KQN(4))
         MQN(4) = 2*MD-1
+CC
+CC       TRIANGLE RULE FOR MC <-> MD
+C        IF(PRM1KL) THEN
+C          IF(KC.EQ.KD.AND.MC.GT.MD) GOTO 4101
+C        ENDIF
+C
+C     SPIN PROJECTION CONSERVED ALONG Z-AXIS FOR LINEAR MOLECULES
+      IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
+        ISELM = 0
+        IF(MQN(1).EQ.MQN(2).AND.MQN(3).EQ.MQN(4).AND.NOPN.EQ.0) ISELM=1
+        IF(MQN(1).EQ.MQN(3).AND.MQN(2).EQ.MQN(4)) ISELM = 1
+        IF(MQN(1).EQ.MQN(4).AND.MQN(2).EQ.MQN(3)) ISELM = 1
+        IF(ISELM.EQ.0) GOTO 4101
+      ENDIF
 C
 C**********************************************************************C
 C     LOOP OVER THE SIGNS OF |MQN| FOR A,B,C,D BLOCKS (USE INDEX 5000) C
@@ -24086,39 +24130,62 @@ C
         MMJB = MQN(2)*((-1)**MMB)
         IMJB = MQN(2)+MMB-1
 C
-      DO 5000 MMC=1,2
+C       TRIANGLE RULE FOR |MA| <-> |MB|
+        IF(PRM1IJ) THEN
+          IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.GT.MMB) GOTO 5001
+        ENDIF
+C
+      DO 5100 MMC=1,2
         MMJC = MQN(3)*((-1)**MMC)
         IMJC = MQN(3)+MMC-1
 C
-      DO 5000 MMD=1,2
+      DO 5100 MMD=1,2
         MMJD = MQN(4)*((-1)**MMD)
         IMJD = MQN(4)+MMD-1
 C
+C       TRIANGLE RULE FOR |MC| <-> |MD|
+        IF(PRM1KL) THEN
+          IF(KC.EQ.KD.AND.MC.EQ.MD.AND.MMC.GT.MMD) GOTO 5101
+        ENDIF
+C
+C     PHASE FACTORS FOR PERMUTATION SWAPS
+      PAB =-ISIGN(1,KQN(1)*KQN(2))*DFLOAT((-1)**((MMJA-MMJB)/2))
+      PCD =-ISIGN(1,KQN(3)*KQN(4))*DFLOAT((-1)**((MMJC-MMJD)/2))
+C
 C     STARTING FOCK ADDRESS FOR EACH BASIS LIST
-      NAL = LRGE(IZ,KA,IMJA)
-      NBL = LRGE(IZ,KB,IMJB)
-      NCL = LRGE(IZ,KC,IMJC)
-      NDL = LRGE(IZ,KD,IMJD)
+      NAL = LRGE(IZ,KA,2*MA-2+MMA)
+      NBL = LRGE(IZ,KB,2*MB-2+MMB)
+      NCL = LRGE(IZ,KC,2*MC-2+MMC)
+      NDL = LRGE(IZ,KD,2*MD-2+MMD)
 C
-      NAS = LRGE(IZ,KA,IMJA) + NSKP
-      NBS = LRGE(IZ,KB,IMJB) + NSKP
-      NCS = LRGE(IZ,KC,IMJC) + NSKP
-      NDS = LRGE(IZ,KD,IMJD) + NSKP
+      NAS = NAL+NSKP
+      NBS = NBL+NSKP
+      NCS = NCL+NSKP
+      NDS = NDL+NSKP
 C
-C     APPLY ANGULAR MQN SELECTION RULE
-      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 5001
+C     STARTING FOCK ADDRESS FOR KRAMERS COMPLEMENTS
+      KAL = LRGE(IZ,KA,2*MA+1-MMA)
+      KBL = LRGE(IZ,KB,2*MB+1-MMB)
+      KCL = LRGE(IZ,KC,2*MC+1-MMC)
+      KDL = LRGE(IZ,KD,2*MD+1-MMD)
+C
+      KAS = KAL+NSKP
+      KBS = KBL+NSKP
+      KCS = KCL+NSKP
+      KDS = KDL+NSKP
+C
+C     APPLY MORE MQN SELECTION RULES
       IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-        IF(MMA.EQ.MMB.AND.MMC.EQ.MMD.AND.NOPN.NE.0) GOTO 5002
-        IF(MMA.EQ.MMD.AND.MMC.EQ.MMB) GOTO 5002
-        GOTO 5001
+        ISELM = 0
+        IF(MMJA-MMJB.EQ.MMJD-MMJC) ISELM = 1
+        IF(ISELM.EQ.0) GOTO 5101
       ENDIF
-5002  CONTINUE
 C
-      CALL SYSTEM_CLOCK(ICL1)
 C     RESET CONTRACTED RADIAL ARRAYS
+      CALL SYSTEM_CLOCK(ICL1)
       DO M=1,MAXCD
         XLSLS(M) = 0.0D0
-C       XSLSL(M) = 0.0D0
+        XSLSL(M) = 0.0D0
         XLSSL(M) = 0.0D0
         XSLLS(M) = 0.0D0
       ENDDO
@@ -24141,35 +24208,17 @@ C       SCREENING OF INTEGRAL BASED ON ANGULAR COEFFICIENT
         ENDDO
         IF(DABS(ANGSUM).LE.SENS) GOTO 5003
 C
-C       FACTORS LEADING TO BXCH(LS)
+C       PRODUCT OF ANGULAR AND RADIAL INTEGRAL
         DO M=1,MAXCD
           XLSLS(M) = XLSLS(M) + ANGFAC(1)*RJLSLS(M,LTEN,1)
      &                        + ANGFAC(2)*RJLSLS(M,LTEN,2)
+          XSLSL(M) = XSLSL(M) + ANGFAC(3)*RJSLSL(M,LTEN,1)
+     &                        + ANGFAC(4)*RJSLSL(M,LTEN,2)
+          XLSSL(M) = XLSSL(M) + ANGFAC(5)*RJLSSL(M,LTEN,1)
+     &                        + ANGFAC(6)*RJLSSL(M,LTEN,2)
+          XSLLS(M) = XSLLS(M) + ANGFAC(7)*RJSLLS(M,LTEN,1)
+     &                        + ANGFAC(8)*RJSLLS(M,LTEN,2)
         ENDDO
-C
-C       FACTORS LEADING TO BXCH(SL)
-C        IF(NOPN.NE.0) THEN
-C          DO M=1,MAXCD
-C            XSLSL(M) = XSLSL(M) + ANGFAC(3)*RJSLSL(M,LTEN,1)
-C     &                          + ANGFAC(4)*RJSLSL(M,LTEN,2)
-C          ENDDO
-C        ENDIF
-C
-C       FACTORS LEADING TO BXCH(LL)
-        IF(NAL.LE.NDL) THEN
-          DO M=1,MAXCD
-            XLSSL(M) = XLSSL(M) + ANGFAC(5)*RJLSSL(M,LTEN,1)
-     &                          + ANGFAC(6)*RJLSSL(M,LTEN,2)
-          ENDDO
-        ENDIF
-C
-C       FACTORS LEADING TO BXCH(SS)
-        IF(NAS.LE.NDS) THEN
-          DO M=1,MAXCD
-            XSLLS(M) = XSLLS(M) + ANGFAC(7)*RJSLLS(M,LTEN,1)
-     &                          + ANGFAC(8)*RJSLLS(M,LTEN,2)
-          ENDDO
-        ENDIF
 C
 C       SKIP POINT FOR ANGULAR SCREENING
 5003    CONTINUE
@@ -24188,9 +24237,9 @@ C
 C
 C     MULTIPLY BY DENSITY ELEMENTS AND ADD TO GMAT/QMAT
       IF(ISYM.EQ.0) THEN
-        CALL BRTMAT1(XLSLS,XSLSL,XLSSL,XSLLS)
+        CALL BRTMT1G(XLSLS,XSLSL,XLSSL,XSLLS)
       ELSE
-        CALL BRTMAT1Z(XLSLS,XSLSL,XLSSL,XSLLS)
+        CALL BRTMT1Z(XLSLS,XSLSL,XLSSL,XSLLS)
       ENDIF
 C
 6100  CONTINUE
@@ -24204,20 +24253,40 @@ C     COMPLETE CONSTRUCTION OF ALL ONE-CENTRE CONTRIBUTIONS.           C
 C**********************************************************************C
 C
 C     EARLY EXIT FOR MQN SELECTION RULES
+5101  CONTINUE
+C     END LOOP OVER ALL |MQN|(CD) SIGNS
+5100  CONTINUE
+C     EARLY EXIT FOR MQN TRIANGLE RULES
 5001  CONTINUE
-C     END LOOP OVER ALL |MQN| SIGNS
+C     END LOOP OVER ALL |MQN|(AB) SIGNS
 5000  CONTINUE
-C     END LOOP OVER ALL |MQN| MAGNITUDES
+C     EARLY EXIT FOR MQN TRIANGLE RULE
+4101  CONTINUE
+C     END LOOP OVER |MQN|(CD) MAGNITUDES
+4100  CONTINUE
+C     EARLY EXIT FOR MQN TRIANGLE RULE
+4001  CONTINUE
+C     END LOOP OVER |MQN|(AB) MAGNITUDES
 4000  CONTINUE
+C     EARLY EXIT FOR DIAGONAL LQN(AB)
+3001  CONTINUE
 C     END LOOP OVER IBAS AND JBAS
 3000  CONTINUE
-C     EARLY EXIT FOR KQN SELECTION RULES
+C     EARLY EXIT FOR KQN SELECTION RULES/TRIANGLE RULE
+2101  CONTINUE
+C     END LOOP OVER KQN(CD)
+2100  CONTINUE
+C     EARLY EXIT FOR KQN TRIANGLE RULE
 2001  CONTINUE
-C     END LOOP OVER ALL KQNS
+C     END LOOP OVER KQN(AB)
 2000  CONTINUE
-C     EARLY EXIT FOR LQN SELECTION RULES
+C     EARLY EXIT FOR LQN SELECTION RULES/TRIANGLE RULE
+1101  CONTINUE
+C     END LOOP OVER LQN(CD)
+1100  CONTINUE
+C     EARLY EXIT FOR LQN TRIANGLE RULE
 1001  CONTINUE
-C     END LOOP OVER ALL LQNS
+C     END LOOP OVER LQN(AB)
 1000  CONTINUE
 C
 C     MATRIX HERMITICITY (CLOSED-SHELL)
@@ -24256,26 +24325,446 @@ C
       END
 C
 C
-      SUBROUTINE BRTMAT1(XLSLS,XSLSL,XLSSL,XSLLS)
+      SUBROUTINE BRTMT1Z(XLSLS,XSLSL,XLSSL,XSLLS)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
-C      BBBBBBB  RRRRRRR TTTTTTTT MM       MM    AA   TTTTTTTT 11       C
-C      BB    BB RR    RR   TT    MMM     MMM   AAAA     TT   111       C
-C      BB    BB RR    RR   TT    MMMM   MMMM  AA  AA    TT    11       C
-C      BBBBBBB  RR    RR   TT    MM MM MM MM AA    AA   TT    11       C
-C      BB    BB RRRRRRR    TT    MM  MMM  MM AAAAAAAA   TT    11       C
-C      BB    BB RR    RR   TT    MM   M   MM AA    AA   TT    11       C
-C      BBBBBBB  RR    RR   TT    MM       MM AA    AA   TT   1111      C
+C     BBBBBBB  RRRRRRR TTTTTTTT MM       MM TTTTTTTT 11  ZZZZZZZZ      C
+C     BB    BB RR    RR   TT    MMM     MMM    TT   111       ZZ       C
+C     BB    BB RR    RR   TT    MMMM   MMMM    TT    11      ZZ        C
+C     BBBBBBB  RR    RR   TT    MM MM MM MM    TT    11     ZZ         C
+C     BB    BB RRRRRRR    TT    MM  MMM  MM    TT    11    ZZ          C
+C     BB    BB RR    RR   TT    MM   M   MM    TT    11   ZZ           C
+C     BBBBBBB  RR    RR   TT    MM       MM    TT   1111 ZZZZZZZZ      C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  BRTMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  BRTMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
 C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      DIMENSION ISCF(11,6),IFLG(11)
+      DIMENSION XLSLS(MB2),XSLSL(MB2),XLSSL(MB2),XSLLS(MB2)
+C
+      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
+      COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
+     &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
+     &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
+     &           VSLF(MDM,MDM),VUEH(MDM,MDM),VWKR(MDM,MDM),
+     &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
+     &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
+C
+      COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/BDIM/NDIM,NSKP,NOCC,NVRT
+      COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
+     &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
+      COMMON/DENS/DENC,DENO,DENT
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
+      COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
+     &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
+      COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
+C
+C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
+      IF(SHAPE.EQ.'ATOMIC') THEN
+        ISYM = 2
+      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
+        ISYM = 1
+      ELSE
+        ISYM = 0
+      ENDIF
+C
+C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
+      IF(ISYM.EQ.0) THEN
+        WRITE(6,*) 'In BRTMT1Z: you probably should be using BRTMT1G.'
+        WRITE(7,*) 'In BRTMT1Z: you probably should be using BRTMT1G.'
+      ENDIF
+C
+C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
+      MMJA = MQN(1)*((-1)**MMA)
+      MMJB = MQN(2)*((-1)**MMB)
+      MMJC = MQN(3)*((-1)**MMC)
+      MMJD = MQN(4)*((-1)**MMD)
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C     BXCH: NO PERMUTATION SYMMETRY EMPLOYED                           C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BXCH
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 202
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 202
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (AD|CB)
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAL+IBAS,NDL+LBAS) = BXCH(NAL+IBAS,NDL+LBAS)
+     &                +         XLSSL(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (AD|CB)
+      IF(NAL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAL+IBAS,NDS+LBAS) = BXCH(NAL+IBAS,NDS+LBAS)
+     &                +         XLSLS(M)*DREAL(DENT(NCL+KBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (AD|CB)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          BXCH(NAS+IBAS,NDL+LBAS) = BXCH(NAS+IBAS,NDL+LBAS)
+C     &               +         XSLSL(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
+C        ENDDO
+C      ENDDO
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (AD|CB)
+      IF(NAS.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAS+IBAS,NDS+LBAS) = BXCH(NAS+IBAS,NDS+LBAS)
+     &                +         XSLLS(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+202   CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C     BXCH: PERMUTATION SYMMETRY I⇄J         ONLY                      C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 203
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 203
+C
+C     MQN SIGN SELECTION RULE
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
+      IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 203
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBL+JBAS,NDL+LBAS) = BXCH(KBL+JBAS,NDL+LBAS)
+     &                + PAB*    XSLSL(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (AD|CB)
+      IF(KBL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBL+JBAS,NDS+LBAS) = BXCH(KBL+JBAS,NDS+LBAS)
+     &                + PAB*    XSLLS(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (AD|CB)
+C      IF(KBS.LT.NDL) THEN
+C        M = 0
+C        DO KBAS=1,NBAS(3)
+C          DO LBAS=1,NBAS(4)
+C            M = M+1
+C            BXCH(KBS+JBAS,NDL+LBAS) = BXCH(KBS+JBAS,NDL+LBAS)
+C     &                   +      XLSSL(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
+C          ENDDO
+C        ENDDO
+C      ENDIF
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (AD|CB)
+      IF(KBS.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBS+JBAS,NDS+LBAS) = BXCH(KBS+JBAS,NDS+LBAS)
+     &                + PAB*    XLSLS(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+203   CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C     BXCH: PERMUTATION SYMMETRY         K⇄L ONLY                      C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 204
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 204
+C
+C     MQN SIGN SELECTION RULE
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 204
+      IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 204
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (AC|DB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAL+IBAS,KCL+KBAS) = BXCH(NAL+IBAS,KCL+KBAS)
+     &                +     PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (AC|DB)
+      IF(NAL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAL+IBAS,KCS+KBAS) = BXCH(NAL+IBAS,KCS+KBAS)
+     &                +     PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (AC|DB)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          BXCH(NAS+IBAS,KCL+KBAS) = BXCH(NAS+IBAS,KCL+KBAS)
+C     &                +     PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
+C        ENDDO
+C      ENDDO
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (AC|DB)
+      IF(NAS.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAS+IBAS,KCS+KBAS) = BXCH(NAS+IBAS,KCS+KBAS)
+     &                +     PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+204   CONTINUE
+C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C     BXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
+C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 205
+      IF(.NOT.PRM1KL) GOTO 205
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 205
+      IF(KQN(3).EQ.KQN(4)) GOTO 205
+C
+C     MQN SIGN SELECTION RULE
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 205
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 205
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (BC|DA)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBL+JBAS,KCL+KBAS) = BXCH(KBL+JBAS,KCL+KBAS)
+     &                + PAB*PCD*XSLLS(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (BC|DA)
+      IF(KBL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBL+JBAS,KCS+KBAS) = BXCH(KBL+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XSLSL(M)*DREAL(DENT(KDS+LBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (BC|DA)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          BXCH(KBS+JBAS,KCL+KBAS) = BXCH(KBS+JBAS,KCL+KBAS)
+C     &                 + PAB*PCD*XLSLS(M)*DREAL(DENT(KDL+LBAS,KAS+IBAS))
+C        ENDDO
+C      ENDDO
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (BC|DA)
+      IF(KBS.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBS+JBAS,KCS+KBAS) = BXCH(KBS+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XLSSL(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+205   CONTINUE
+C
+C**********************************************************************C
+C     ADD THIS BATCH OF R-INTEGRALS TO OPEN-SHELL BREIT MATRIX.        C
+C     THIS ALSO REQUIRES THE CLOSED-SHELL DIRECT MATRIX ELEMENTS.      C
+C**********************************************************************C
+C
+      IF(NOPN.EQ.0) GOTO 6100
+C
+C     CLOSED-SHELL DIRECT MATRIX BDIR
+      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 6002
+C
+C     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(LS)
+      M = 0
+      DO KBAS=1,NBAS(3)
+        DO LBAS=1,NBAS(4)
+          M = M+1
+          BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
+     &                   +      XLSLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
+     &                   +      XLSSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
+C
+        ENDDO
+      ENDDO
+CC
+CC     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(SL)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          BDIR(NAS+IBAS,NBL+JBAS) = BDIR(NAS+IBAS,NBL+JBAS)
+C     &                  +      XSLSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
+C     &                  +      XSLLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
+C        ENDDO
+C      ENDDO
+C
+C     OPEN-SHELL DIRECT MATRIX WDIR
+C
+C     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(LS)
+      M = 0
+      DO KBAS=1,NBAS(3)
+        DO LBAS=1,NBAS(4)
+          M = M+1
+          WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
+     &                   + ACFF*XLSLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
+     &                   + ACFF*XLSSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
+        ENDDO
+      ENDDO
+CC
+CC     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(SL)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          WDIR(NAS+IBAS,NBL+JBAS) = WDIR(NAS+IBAS,NBL+JBAS)
+C     &                  + ACFF*XSLSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
+C     &                  + ACFF*XSLLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
+C        ENDDO
+C      ENDDO
+C
+6002  CONTINUE
+C
+C     OPEN-SHELL DIRECT MATRIX WXCH
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 6003
+C
+C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LL)
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NAL+IBAS,NDL+LBAS) = WXCH(NAL+IBAS,NDL+LBAS)
+     &                   + BCFF*XLSSL(M)*DREAL(DENO(NBS+JBAS,NCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LS)
+      M = 0
+      DO KBAS=1,NBAS(3)
+        DO LBAS=1,NBAS(4)
+          M = M+1
+          WXCH(NAL+IBAS,NDS+LBAS) = WXCH(NAL+IBAS,NDS+LBAS)
+     &                   + BCFF*XLSLS(M)*DREAL(DENO(NBS+JBAS,NCL+KBAS))
+        ENDDO
+      ENDDO
+CC
+CC     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SL)
+C      M = 0
+C      DO KBAS=1,NBAS(3)
+C        DO LBAS=1,NBAS(4)
+C          M = M+1
+C          WXCH(NAS+IBAS,NDL+LBAS) = WXCH(NAS+IBAS,NDL+LBAS)
+C     &                  + BCFF*XSLSL(M)*DREAL(DENO(NBL+JBAS,NCS+KBAS))
+C        ENDDO
+C      ENDDO
+C
+C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SS)
+      IF(NAS.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NAS+IBAS,NDS+LBAS) = WXCH(NAS+IBAS,NDS+LBAS)
+     &                   + BCFF*XSLLS(M)*DREAL(DENO(NBL+JBAS,NCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+6003  CONTINUE
+C
+6100  CONTINUE
+C
+      RETURN
+      END
+C
+C
+      SUBROUTINE BRTMT1G(XLSLS,XSLSL,XLSSL,XSLLS)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+C**********************************************************************C
+C                                                                      C
+C     BBBBBBB  RRRRRRR TTTTTTTT MM       MM TTTTTTTT 11   GGGGGG       C
+C     BB    BB RR    RR   TT    MMM     MMM    TT   111  GG    GG      C
+C     BB    BB RR    RR   TT    MMMM   MMMM    TT    11  GG            C
+C     BBBBBBB  RR    RR   TT    MM MM MM MM    TT    11  GG            C
+C     BB    BB RRRRRRR    TT    MM  MMM  MM    TT    11  GG   GGG      C
+C     BB    BB RR    RR   TT    MM   M   MM    TT    11  GG    GG      C
+C     BBBBBBB  RR    RR   TT    MM       MM    TT   1111  GGGGGG       C
+C                                                                      C
+C -------------------------------------------------------------------- C
+C  BRTMT1G ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
+C**********************************************************************C
+      INCLUDE 'parameters.h'
+      INCLUDE 'scfoptions.h'
+C
       DIMENSION XLSLS(MB2),XSLSL(MB2),XLSSL(MB2),XSLLS(MB2)
 C
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -24288,19 +24777,12 @@ C
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
       COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
-     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
+      COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
+     &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
+     &            KAL,KBL,KCL,KDL,KAS,KBS,KCS,KDS
       COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
-C
-C     ISCF TELLS WHICH INTEGRALS TO INCLUDE BASED ON OVERLAP COMBINATION
-      DATA ISCF/1,1,1,1,1,1,1,1,0,0,0,
-     &          1,1,0,0,1,1,1,0,0,0,0,
-     &          1,0,1,1,1,0,1,0,0,0,0,
-     &          1,1,1,0,1,1,0,0,0,0,0,
-     &          1,0,1,0,1,0,0,0,0,0,0,
-     &          1,0,0,0,1,0,0,0,0,0,0/
 C
 C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       IF(SHAPE.EQ.'ATOMIC') THEN
@@ -24313,8 +24795,8 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
 C
 C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
       IF(ISYM.NE.0) THEN
-        WRITE(6,*) 'In BRTMAT1: you probably should be using BRTMAT1Z.'
-        WRITE(7,*) 'In BRTMAT1: you probably should be using BRTMAT1Z.'
+        WRITE(6,*) 'In BRTMT1G: you probably should be using BRTMT1Z.'
+        WRITE(7,*) 'In BRTMT1G: you probably should be using BRTMT1Z.'
       ENDIF
 C
 C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)
@@ -24462,228 +24944,6 @@ C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SS)
           ENDDO
         ENDDO
       ENDIF
-C
-6100  CONTINUE
-C
-      RETURN
-      END
-C
-C
-      SUBROUTINE BRTMAT1Z(XLSLS,XSLSL,XLSSL,XSLLS)
-      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-C**********************************************************************C
-C                                                                      C
-C BBBBBBB  RRRRRRR TTTTTTTT MM       MM    AA   TTTTTTTT 11  ZZZZZZZZ  C
-C BB    BB RR    RR   TT    MMM     MMM   AAAA     TT   111       ZZ   C
-C BB    BB RR    RR   TT    MMMM   MMMM  AA  AA    TT    11      ZZ    C
-C BBBBBBB  RR    RR   TT    MM MM MM MM AA    AA   TT    11     ZZ     C
-C BB    BB RRRRRRR    TT    MM  MMM  MM AAAAAAAA   TT    11    ZZ      C
-C BB    BB RR    RR   TT    MM   M   MM AA    AA   TT    11   ZZ       C
-C BBBBBBB  RR    RR   TT    MM       MM AA    AA   TT   1111 ZZZZZZZZ  C
-C                                                                      C
-C -------------------------------------------------------------------- C
-C  BRTMAT1 ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
-C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
-C**********************************************************************C
-      INCLUDE 'parameters.h'
-      INCLUDE 'scfoptions.h'
-C
-      DIMENSION ISCF(11,6),IFLG(11)
-      DIMENSION XLSLS(MB2),XSLSL(MB2),XLSSL(MB2),XSLLS(MB2)
-C
-      COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
-      COMPLEX*16 FOCK(MDM,MDM),OVLP(MDM,MDM),HNUC(MDM,MDM),
-     &           HKIN(MDM,MDM),GDIR(MDM,MDM),GXCH(MDM,MDM),
-     &           BDIR(MDM,MDM),BXCH(MDM,MDM),VANM(MDM,MDM),
-     &           VSLF(MDM,MDM),VUEH(MDM,MDM),VWKR(MDM,MDM),
-     &           VKSB(MDM,MDM),QDIR(MDM,MDM),QXCH(MDM,MDM),
-     &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
-C
-      COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
-      COMMON/DENS/DENC,DENO,DENT
-      COMMON/MT1A/NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,IQ1,IQ2,
-     &            KA,KB,KC,KD,MA,MB,MC,MD,MMA,MMB,MMC,MMD
-      COMMON/MTRX/FOCK,OVLP,HNUC,HKIN,GDIR,GXCH,BDIR,BXCH,VANM,VSLF,
-     &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
-      COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
-C
-C     ISCF TELLS WHICH INTEGRALS TO INCLUDE BASED ON OVERLAP COMBINATION
-      DATA ISCF/1,1,1,1,1,1,1,1,0,0,0,
-     &          1,1,0,0,1,1,1,0,0,0,0,
-     &          1,0,1,1,1,0,1,0,0,0,0,
-     &          1,1,1,0,1,1,0,0,0,0,0,
-     &          1,0,1,0,1,0,0,0,0,0,0,
-     &          1,0,0,0,1,0,0,0,0,0,0/
-C
-C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
-      IF(SHAPE.EQ.'ATOMIC') THEN
-        ISYM = 2
-      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
-        ISYM = 1
-      ELSE
-        ISYM = 0
-      ENDIF
-C
-C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
-      IF(ISYM.EQ.0) THEN
-        WRITE(6,*) 'In BRTMAT1Z: you probably should be using BRTMAT1.'
-        WRITE(7,*) 'In BRTMAT1Z: you probably should be using BRTMAT1.'
-      ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BXCH
-      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 6001
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)
-      IF(NAL.LE.NDL) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(NAL+IBAS,NDL+LBAS) = BXCH(NAL+IBAS,NDL+LBAS)
-     &                   +      XLSSL(M)*DREAL(DENT(NBS+JBAS,NCS+KBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          BXCH(NAL+IBAS,NDS+LBAS) = BXCH(NAL+IBAS,NDS+LBAS)
-     &                   +      XLSLS(M)*DREAL(DENT(NBS+JBAS,NCL+KBAS))
-        ENDDO
-      ENDDO
-C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          BXCH(NAS+IBAS,NDL+LBAS) = BXCH(NAS+IBAS,NDL+LBAS)
-C     &                  +      XSLSL(M)*DREAL(DENT(NBL+JBAS,NCS+KBAS))
-C        ENDDO
-C      ENDDO
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)
-      IF(NAS.LE.NDS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(NAS+IBAS,NDS+LBAS) = BXCH(NAS+IBAS,NDS+LBAS)
-     &                   +      XSLLS(M)*DREAL(DENT(NBL+JBAS,NCL+KBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-6001  CONTINUE
-C
-C**********************************************************************C
-C     ADD THIS BATCH OF R-INTEGRALS TO OPEN-SHELL BREIT MATRIX.        C
-C     THIS ALSO REQUIRES THE CLOSED-SHELL DIRECT MATRIX ELEMENTS.      C
-C**********************************************************************C
-C
-      IF(NOPN.EQ.0) GOTO 6100
-C
-C     CLOSED-SHELL DIRECT MATRIX BDIR
-      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 6002
-C
-C     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
-     &                   +      XLSLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
-     &                   +      XLSSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
-C
-        ENDDO
-      ENDDO
-CC
-CC     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          BDIR(NAS+IBAS,NBL+JBAS) = BDIR(NAS+IBAS,NBL+JBAS)
-C     &                  +      XSLSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
-C     &                  +      XSLLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
-C        ENDDO
-C      ENDDO
-C
-C     OPEN-SHELL DIRECT MATRIX WDIR
-C
-C     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
-     &                   + ACFF*XLSLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
-     &                   + ACFF*XLSSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
-        ENDDO
-      ENDDO
-CC
-CC     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          WDIR(NAS+IBAS,NBL+JBAS) = WDIR(NAS+IBAS,NBL+JBAS)
-C     &                  + ACFF*XSLSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
-C     &                  + ACFF*XSLLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
-C        ENDDO
-C      ENDDO
-C
-6002  CONTINUE
-C
-C     OPEN-SHELL DIRECT MATRIX WXCH
-      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 6003
-C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LL)
-      IF(NAL.LE.NDL) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            WXCH(NAL+IBAS,NDL+LBAS) = WXCH(NAL+IBAS,NDL+LBAS)
-     &                   + BCFF*XLSSL(M)*DREAL(DENO(NBS+JBAS,NCS+KBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          WXCH(NAL+IBAS,NDS+LBAS) = WXCH(NAL+IBAS,NDS+LBAS)
-     &                   + BCFF*XLSLS(M)*DREAL(DENO(NBS+JBAS,NCL+KBAS))
-        ENDDO
-      ENDDO
-CC
-CC     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          WXCH(NAS+IBAS,NDL+LBAS) = WXCH(NAS+IBAS,NDL+LBAS)
-C     &                  + BCFF*XSLSL(M)*DREAL(DENO(NBL+JBAS,NCS+KBAS))
-C        ENDDO
-C      ENDDO
-C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SS)
-      IF(NAS.LE.NDS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            WXCH(NAS+IBAS,NDS+LBAS) = WXCH(NAS+IBAS,NDS+LBAS)
-     &                   + BCFF*XSLLS(M)*DREAL(DENO(NBL+JBAS,NCL+KBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-6003  CONTINUE
 C
 6100  CONTINUE
 C
@@ -24909,7 +25169,7 @@ C     EMPTY COUNTER ARRAYS FOR DIRECT AND EXCHANGE INTEGRALS
         DO LTEN=1,NUNUM
           DO IUL=1,2
             RJLSLS(M,LTEN,IUL) = 0.0D0
-C           RJSLSL(M,LTEN,IUL) = 0.0D0
+            RJSLSL(M,LTEN,IUL) = 0.0D0
             RJLSSL(M,LTEN,IUL) = 0.0D0
             RJSLLS(M,LTEN,IUL) = 0.0D0
           ENDDO
@@ -24967,15 +25227,15 @@ C
           RJLSLS(M,LTEN,2) 
      &         = V4*T0000*E0101*C7*B43L - V2*T0001*E0100*C5*B23L
      &         - V2*T0100*E0001*C5*B41L + V1*T0101*E0000*C3*B21L
-CC
-CC         EFFECTIVE INTERACTION STRENGTH RJSLSL(M,LTEN)
-C          RJSLSL(M,LTEN,1)
-C     &         = V4*T0000*E1010*C7*B43U - V2*T0010*E1000*C5*B41U
-C     &         - V2*T1000*E0010*C5*B23U + V1*T1010*E0000*C3*B21U
-CC
-C          RJSLSL(M,LTEN,2)
-C     &         = V4*T0000*E1010*C7*B43L - V2*T0010*E1000*C5*B23L
-C     &         - V2*T1000*E0010*C5*B41L + V1*T1010*E0000*C3*B21L
+C
+C         EFFECTIVE INTERACTION STRENGTH RJSLSL(M,LTEN)
+          RJSLSL(M,LTEN,1)
+     &         = V4*T0000*E1010*C7*B43U - V2*T0010*E1000*C5*B41U
+     &         - V2*T1000*E0010*C5*B23U + V1*T1010*E0000*C3*B21U
+C
+          RJSLSL(M,LTEN,2)
+     &         = V4*T0000*E1010*C7*B43L - V2*T0010*E1000*C5*B23L
+     &         - V2*T1000*E0010*C5*B41L + V1*T1010*E0000*C3*B21L
 C
 C         EFFECTIVE INTERACTION STRENGTH RJLSSL(M,LTEN)
           RJLSSL(M,LTEN,1) 
@@ -25009,14 +25269,14 @@ C**********************************************************************C
 C
       DO M=1,MAXCD
         RNLSLS = RNIJ(IJ,2)*RNKL(M,2)
-C       RNSLSL = RNIJ(IJ,3)*RNKL(M,3)
+        RNSLSL = RNIJ(IJ,3)*RNKL(M,3)
         RNSLLS = RNIJ(IJ,3)*RNKL(M,2)
         RNLSSL = RNIJ(IJ,2)*RNKL(M,3)
         DO LTEN=1,NUNUM
           IF(INU(LTEN,K4AD).NE.0) THEN
             DO IUL=1,2
               RJLSLS(M,LTEN,IUL) = RNLSLS*RJLSLS(M,LTEN,IUL)
-C             RJSLSL(M,LTEN,IUL) = RNSLSL*RJSLSL(M,LTEN,IUL)
+              RJSLSL(M,LTEN,IUL) = RNSLSL*RJSLSL(M,LTEN,IUL)
               RJLSSL(M,LTEN,IUL) = RNLSSL*RJLSSL(M,LTEN,IUL)
               RJSLLS(M,LTEN,IUL) = RNSLLS*RJSLLS(M,LTEN,IUL)
             ENDDO
@@ -25846,9 +26106,6 @@ C**********************************************************************C
 C
       DIMENSION XJ(MB2,2),IAA(2),IBB(2)
       DIMENSION BETA(MB2),BTA1(MB2),XROOT(MB2),BIN(MB2),TRM(MB2)
-C
-      DIMENSION RJLSLS(MB2,MNU,2),RJSLSL(MB2,MNU,2),
-     &          RJLSSL(MB2,MNU,2),RJSLLS(MB2,MNU,2)
 C
       COMMON/B0IJ/EIJ(MB2,-MTN:MTN),RNIJ(MB2,4),EI(MB2),EJ(MB2),MAXAB
       COMMON/B0KL/EKL(MB2,-MTN:MTN),RNKL(MB2,4),EK(MB2),EL(MB2),MAXCD
