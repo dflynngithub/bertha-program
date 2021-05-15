@@ -12521,6 +12521,8 @@ C     AUXILLIARY DATA FOR RMAKE ROUTINE
           PQ(M,2) = QY-PY
           PQ(M,3) = QZ-PZ
           APH(M)  = EIJ*EKL/(EIJ+EKL)
+          EMX     = DSQRT(EIJ+EKL)*EIJ*EKL
+          PRE(M)  = 2.0D0*PI52/EMX
         ENDDO
       ENDDO
 C
@@ -12572,7 +12574,7 @@ C     COPY THIS BATCH OF INTEGRALS TO A SAVED LIST
       DO IABCDFL=1,NTUVABCDFL
         IAD = IADRTT + MAXCD*(IABCDFL-1)
         DO M=1,MAXCD
-          RCTTFL(IAD+M) = RC(M,IABCDFL)
+          RCTTFL(IAD+M) = PRE(M)*RC(M,IABCDFL)
         ENDDO
       ENDDO
 C
@@ -13059,42 +13061,6 @@ C
 C**********************************************************************C
 C     COULOMB INTEGRAL BATCH NOW FULLY CONSTRUCTED                     C
 C**********************************************************************C
-C
-C     CALCULATE THE R-INTEGRAL NORMALISATION FACTOR
-      CALL SYSTEM_CLOCK(ICL1,RATE)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          EKL = EXL(KBAS,3)+EXL(LBAS,4)
-          EMX = DSQRT(EIJ+EKL)*EIJ*EKL
-          PRE(M) = 2.0D0*PI52/EMX
-        ENDDO
-      ENDDO
-C
-C     INCLUDE THE R-INTEGRAL NORMALISATION FACTOR
-      IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-C       SPECIAL CASE: LINEAR MOLECULE OR ATOM
-        DO M=1,MAXCD
-          RR(M, 1) = PRE(M)*RR(M, 1)
-          RR(M,13) = PRE(M)*RR(M,13)
-          RR(M,16) = PRE(M)*RR(M,16)
-          RR(M, 4) = PRE(M)*RR(M, 4)
-          RR(M,11) = PRE(M)*RR(M,11)
-          RR(M, 7) = PRE(M)*RR(M, 7)
-          RR(M, 6) = PRE(M)*RR(M, 6)
-          RR(M,10) = PRE(M)*RR(M,10)
-        ENDDO
-      ELSEIF(ISYM.EQ.0) THEN
-C       GENERAL CASE
-        DO M=1,MAXCD
-          DO ITG=1,16
-            RR(M,ITG) = PRE(M)*RR(M,ITG)
-          ENDDO
-        ENDDO
-      ENDIF
-      CALL SYSTEM_CLOCK(ICL2)
-      TCAX = TCAX + DFLOAT(ICL2-ICL1)/RATE
 C
       RETURN
       END
@@ -18491,8 +18457,17 @@ C     AUXILLIARY DATA FOR RMAKE ROUTINE
           PQ(M,2) = QY-PY
           PQ(M,3) = QZ-PZ
           APH(M)  = EIJ*EKL/(EIJ+EKL)
+          EMX = DSQRT(EIJ+EKL)*EIJ*EKL
+          PRE(M) = 2.0D0*PI52/EMX
         ENDDO
       ENDDO
+C
+C     MULTIPLICATIVE FACTOR DEPENDING ON GAUNT/BREIT
+      IF(BGAUNT) THEN
+        BFAC =-1.0D0
+      ELSE
+        BFAC =-0.5D0
+      ENDIF
 C
 C     SKIP IF INTEGRAL BATCH EXISTS IN FILE
       IF(IRIJ(IBAS,JBAS).EQ.0) GOTO 300
@@ -18546,7 +18521,7 @@ C     COPY THIS BATCH OF INTEGRALS TO A SAVED LIST
       DO IABCD=1,NTUVABCD
         IAD = IADRTT + MAXCD*(IABCD-1)
         DO M=1,MAXCD
-          RCTTFL(IAD+M) = RC(M,IABCD)
+          RCTTFL(IAD+M) = BFAC*PRE(M)*RC(M,IABCD)
         ENDDO
       ENDDO
 C
