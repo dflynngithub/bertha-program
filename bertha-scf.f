@@ -24069,7 +24069,7 @@ C     RESET CONTRACTED RADIAL ARRAYS
       CALL SYSTEM_CLOCK(ICL1)
       DO M=1,MAXCD
         XLSLS(M) = 0.0D0
-        XSLSL(M) = 0.0D0
+C       XSLSL(M) = 0.0D0
         XLSSL(M) = 0.0D0
         XSLLS(M) = 0.0D0
       ENDDO
@@ -24096,8 +24096,8 @@ C       PRODUCT OF ANGULAR AND RADIAL INTEGRAL
         DO M=1,MAXCD
           XLSLS(M) = XLSLS(M) + ANGFAC(1)*RJLSLS(M,LTEN,1)
      &                        + ANGFAC(2)*RJLSLS(M,LTEN,2)
-          XSLSL(M) = XSLSL(M) + ANGFAC(3)*RJSLSL(M,LTEN,1)
-     &                        + ANGFAC(4)*RJSLSL(M,LTEN,2)
+C         XSLSL(M) = XSLSL(M) + ANGFAC(3)*RJSLSL(M,LTEN,1)
+C    &                        + ANGFAC(4)*RJSLSL(M,LTEN,2)
           XLSSL(M) = XLSSL(M) + ANGFAC(5)*RJLSSL(M,LTEN,1)
      &                        + ANGFAC(6)*RJLSSL(M,LTEN,2)
           XSLLS(M) = XSLLS(M) + ANGFAC(7)*RJSLLS(M,LTEN,1)
@@ -25055,7 +25055,7 @@ C     EMPTY COUNTER ARRAYS FOR DIRECT AND EXCHANGE INTEGRALS
         DO LTEN=1,NUNUM
           DO IUL=1,2
             RJLSLS(M,LTEN,IUL) = 0.0D0
-            RJSLSL(M,LTEN,IUL) = 0.0D0
+C           RJSLSL(M,LTEN,IUL) = 0.0D0
             RJLSSL(M,LTEN,IUL) = 0.0D0
             RJSLLS(M,LTEN,IUL) = 0.0D0
           ENDDO
@@ -25113,15 +25113,15 @@ C
           RJLSLS(M,LTEN,2) 
      &         = V4*T0000*E0101*C7*B43L - V2*T0001*E0100*C5*B23L
      &         - V2*T0100*E0001*C5*B41L + V1*T0101*E0000*C3*B21L
-C
-C         EFFECTIVE INTERACTION STRENGTH RJSLSL(M,LTEN)
-          RJSLSL(M,LTEN,1)
-     &         = V4*T0000*E1010*C7*B43U - V2*T0010*E1000*C5*B41U
-     &         - V2*T1000*E0010*C5*B23U + V1*T1010*E0000*C3*B21U
-C
-          RJSLSL(M,LTEN,2)
-     &         = V4*T0000*E1010*C7*B43L - V2*T0010*E1000*C5*B23L
-     &         - V2*T1000*E0010*C5*B41L + V1*T1010*E0000*C3*B21L
+CC
+CC         EFFECTIVE INTERACTION STRENGTH RJSLSL(M,LTEN)
+C          RJSLSL(M,LTEN,1)
+C     &         = V4*T0000*E1010*C7*B43U - V2*T0010*E1000*C5*B41U
+C     &         - V2*T1000*E0010*C5*B23U + V1*T1010*E0000*C3*B21U
+CC
+C          RJSLSL(M,LTEN,2)
+C     &         = V4*T0000*E1010*C7*B43L - V2*T0010*E1000*C5*B23L
+C     &         - V2*T1000*E0010*C5*B41L + V1*T1010*E0000*C3*B21L
 C
 C         EFFECTIVE INTERACTION STRENGTH RJLSSL(M,LTEN)
           RJLSSL(M,LTEN,1) 
@@ -25155,14 +25155,14 @@ C**********************************************************************C
 C
       DO M=1,MAXCD
         RNLSLS = RNIJ(IJ,2)*RNKL(M,2)
-        RNSLSL = RNIJ(IJ,3)*RNKL(M,3)
+C       RNSLSL = RNIJ(IJ,3)*RNKL(M,3)
         RNSLLS = RNIJ(IJ,3)*RNKL(M,2)
         RNLSSL = RNIJ(IJ,2)*RNKL(M,3)
         DO LTEN=1,NUNUM
           IF(INU(LTEN,K4AD).NE.0) THEN
             DO IUL=1,2
               RJLSLS(M,LTEN,IUL) = RNLSLS*RJLSLS(M,LTEN,IUL)
-              RJSLSL(M,LTEN,IUL) = RNSLSL*RJSLSL(M,LTEN,IUL)
+C             RJSLSL(M,LTEN,IUL) = RNSLSL*RJSLSL(M,LTEN,IUL)
               RJLSSL(M,LTEN,IUL) = RNLSSL*RJLSSL(M,LTEN,IUL)
               RJSLLS(M,LTEN,IUL) = RNSLLS*RJSLLS(M,LTEN,IUL)
             ENDDO
