@@ -22333,7 +22333,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
             DO LBAS=1,NBAS(4)
               M = M+1
               GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
-     &                   +  PAB*XLLLL(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
+     &                + PAB*    XLLLL(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22345,7 +22345,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
             DO LBAS=1,NBAS(4)
               M = M+1
               GXCH(KBL+JBAS,NDS+LBAS) = GXCH(KBL+JBAS,NDS+LBAS)
-     &                   +  PAB*XLLSS(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
+     &                + PAB*    XLLSS(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22369,7 +22369,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
             DO LBAS=1,NBAS(4)
               M = M+1
               GXCH(KBS+JBAS,NDS+LBAS) = GXCH(KBS+JBAS,NDS+LBAS)
-     &                   +  PAB*XSSSS(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
+     &                + PAB*    XSSSS(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22397,7 +22397,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AC|DB)
             DO LBAS=1,NBAS(4)
               M = M+1
               GXCH(NAL+IBAS,KCL+KBAS) = GXCH(NAL+IBAS,KCL+KBAS)
-     &                   +  PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
+     &                +     PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22409,7 +22409,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AC|DB)
             DO LBAS=1,NBAS(4)
               M = M+1
               GXCH(NAL+IBAS,KCS+KBAS) = GXCH(NAL+IBAS,KCS+KBAS)
-     &                   +  PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
+     &                +     PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
             ENDDO
           ENDDO
         ENDIF
@@ -22420,7 +22420,7 @@ C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
 C            GXCH(NAS+IBAS,KCL+KBAS) = GXCH(NAS+IBAS,KCL+KBAS)
-C     &                   +  PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS)
+C     &                +     PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS)
 C          ENDDO
 C        ENDDO
 C
@@ -22431,7 +22431,7 @@ C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AC|DB)
             DO LBAS=1,NBAS(4)
               M = M+1
               GXCH(NAS+IBAS,KCS+KBAS) = GXCH(NAS+IBAS,KCS+KBAS)
-     &                   +  PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
+     &                +     PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
             ENDDO
           ENDDO
         ENDIF
