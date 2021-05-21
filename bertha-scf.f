@@ -6002,7 +6002,7 @@ C
 C       TEST FOR CONVERGENCE OR INTEGRAL CLASS UPDATE
 40      FORMAT(29X,'Stage 1: (LL|LL)')
 41      FORMAT(23X,'Stage 2: (LL|SS) and (SS|LL)')
-42      FORMAT(23X,'Stage 3: (SL|LS) and (SS|SS)')
+42      FORMAT(23X,'Stage 3: (SS|SS) and (LS|LS)')
 43      FORMAT(29X,'Stage 3: (SS|SS)')
 C
 C       FIVE-STRIKE RULE: IF ENERGY DIFFERENCE KEEPS INCREASING, EXIT
@@ -6096,7 +6096,7 @@ C         IF STAGE 2 HAS CONVERGED, PROCEED TO STAGE 3
             WRITE(7, *) ' '
           ENDIF
 C
-C       CURRENTLY AT STAGE 3: (SS|SS), (SL|LS)
+C       CURRENTLY AT STAGE 3: (SS|SS), (LS|LS)
         ELSEIF(ILEV.EQ.3) THEN
 C
 C         SATISFIES ALL CRITERIA - SUCCESSFUL CONVERGENCE
@@ -6302,8 +6302,8 @@ C        WRITE(6, *) REPEAT(' ',19),'Two-electron calculation breakdown'
 C        WRITE(7, *) REPEAT(' ',19),'Two-electron calculation breakdown'
 C        WRITE(6, *) REPEAT('=',72)
 C        WRITE(7, *) REPEAT('=',72)
-C        WRITE(6,23) '(SL|LS)     '
-C        WRITE(7,23) '(SL|LS)     '
+C        WRITE(6,23) '(LS|LS)     '
+C        WRITE(7,23) '(LS|LS)     '
 C        WRITE(6, *) REPEAT('-',72)
 C        WRITE(7, *) REPEAT('-',72)
 C        WRITE(6,24) 'Integrals(#)',(N2EI(MCNT,5),MCNT=1,5)
@@ -6437,8 +6437,8 @@ C     EQ-COEFFICIENT AND R-INTEGRAL ANALYSIS
       WRITE(6,55)                  '(SS|SS)            ',HMS(TRSS)
       WRITE(7,55)                  '(SS|SS)            ',HMS(TRSS)
       IF(HMLT.EQ.'BARE'.OR.HMLT.EQ.'DHFR') GOTO 420
-      WRITE(6,54) 'EILS',HMS(TELS),'(SL|LS)            ',HMS(TRBR)
-      WRITE(7,54) 'EILS',HMS(TELS),'(SL|LS)            ',HMS(TRBR)
+      WRITE(6,54) 'EILS',HMS(TELS),'(LS|LS)            ',HMS(TRBR)
+      WRITE(7,54) 'EILS',HMS(TELS),'(LS|LS)            ',HMS(TRBR)
       WRITE(6,64) 'EISL',HMS(TESL)
       WRITE(7,64) 'EISL',HMS(TESL)
 420   CONTINUE
@@ -6476,20 +6476,18 @@ C     CONVERGENCE ANALYSIS
       WRITE(6,60) 1,'(LL|LL)             ',SHLEV(1),NMLEV(1),HMS(T1)
       WRITE(7,60) 1,'(LL|LL)             ',SHLEV(1),NMLEV(1),HMS(T1)
       IF(HMLT.EQ.'NORL') GOTO 440
+      WRITE(6,60) 2,'(LL|SS) and (SS|LL) ',SHLEV(2),NMLEV(2),HMS(T2)
+      WRITE(7,60) 2,'(LL|SS) and (SS|LL) ',SHLEV(2),NMLEV(2),HMS(T2)
       IF(HMLT.EQ.'DHFB'.OR.HMLT.EQ.'DHFQ') THEN
-        WRITE(6,61) 2,'(LL|SS) and (SS|LL),'
-        WRITE(7,61) 2,'(LL|SS) and (SS|LL),'
-        WRITE(6,62)   '(SL|LS)             ',SHLEV(2),NMLEV(2),HMS(T2)
-        WRITE(7,62)   '(SL|LS)             ',SHLEV(2),NMLEV(2),HMS(T2)
+        WRITE(6,60) 3,'(SS|SS)             ',SHLEV(3),NMLEV(3),HMS(T3)
+        WRITE(7,60) 3,'(SS|SS)             ',SHLEV(3),NMLEV(3),HMS(T3)
       ELSE
-        WRITE(6,60) 2,'(LL|SS) and (SS|LL) ',SHLEV(2),NMLEV(2),HMS(T2)
-        WRITE(7,60) 2,'(LL|SS) and (SS|LL) ',SHLEV(2),NMLEV(2),HMS(T2)
+        WRITE(6,61) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
+        WRITE(7,61) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
       ENDIF
-      WRITE(6,60) 3,'(SS|SS)             ',SHLEV(3),NMLEV(3),HMS(T3)
-      WRITE(7,60) 3,'(SS|SS)             ',SHLEV(3),NMLEV(3),HMS(T3)
       IF(HMLT.EQ.'DHFP') THEN
-        WRITE(6,60) 4,'(SL|LS)             ',SHLEV(4),NMLEV(4),HMS(T4)
-        WRITE(7,60) 4,'(SL|LS)             ',SHLEV(4),NMLEV(4),HMS(T4)
+        WRITE(6,60) 4,'(LS|LS)             ',SHLEV(4),NMLEV(4),HMS(T4)
+        WRITE(7,60) 4,'(LS|LS)             ',SHLEV(4),NMLEV(4),HMS(T4)
       ENDIF
       WRITE(6, *) REPEAT('-',72)
       WRITE(7, *) REPEAT('-',72)
