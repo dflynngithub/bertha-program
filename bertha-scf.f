@@ -6482,8 +6482,8 @@ C     CONVERGENCE ANALYSIS
         WRITE(6,60) 3,'(SS|SS)             ',SHLEV(3),NMLEV(3),HMS(T3)
         WRITE(7,60) 3,'(SS|SS)             ',SHLEV(3),NMLEV(3),HMS(T3)
       ELSE
-        WRITE(6,61) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
-        WRITE(7,61) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
+        WRITE(6,60) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
+        WRITE(7,60) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
       ENDIF
       IF(HMLT.EQ.'DHFP') THEN
         WRITE(6,60) 4,'(LS|LS)             ',SHLEV(4),NMLEV(4),HMS(T4)
@@ -10590,7 +10590,7 @@ C
      &            TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
-      DATA SENS/1.0D-10/
+      DATA SENS/1.0D-16/
 C
 C     ILLEGAL COMPONENT OVERLAP CHECKER
       DO IT=1,2
@@ -12279,7 +12279,7 @@ C
      &            TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
-      DATA SENS/1.0D-10/
+      DATA EPSAB,EPSRR/1.0D-16,1.0D-10/
 C
 C     ILLEGAL COMPONENT OVERLAP CHECKER
       DO IT=1,2
@@ -12389,7 +12389,7 @@ C         RELATIVE EQ(AB) LIST STARTING ADDRESS
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MAB+M,1)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MAB+M,1)).GT.EPSAB) THEN
               IABR11(M,IAB,ITN(1)) = 1
             ELSE
               IABR11(M,IAB,ITN(1)) = 0
@@ -12398,7 +12398,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MAB+M,2)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MAB+M,2)).GT.EPSAB) THEN
               IABI11(M,IAB,ITN(1)) = 1
             ELSE
               IABI11(M,IAB,ITN(1)) = 0
@@ -12407,7 +12407,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MAB+M,3)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MAB+M,3)).GT.EPSAB) THEN
               IABR21(M,IAB,ITN(1)) = 1
             ELSE
               IABR21(M,IAB,ITN(1)) = 0
@@ -12416,7 +12416,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0LLFL(MAB+M,4)).GT.SENS) THEN
+            IF(DABS(E0LLFL(MAB+M,4)).GT.EPSAB) THEN
               IABI21(M,IAB,ITN(1)) = 1
             ELSE
               IABI21(M,IAB,ITN(1)) = 0
@@ -12434,7 +12434,7 @@ C         RELATIVE EQ(AB) LIST STARTING ADDRESS
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MAB+M,1)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MAB+M,1)).GT.EPSAB) THEN
               IABR11(M,IAB,ITN(1)) = 1
             ELSE
               IABR11(M,IAB,ITN(1)) = 0
@@ -12443,7 +12443,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MAB+M,2)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MAB+M,2)).GT.EPSAB) THEN
               IABI11(M,IAB,ITN(1)) = 1
             ELSE
               IABI11(M,IAB,ITN(1)) = 0
@@ -12452,7 +12452,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MAB+M,3)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MAB+M,3)).GT.EPSAB) THEN
               IABR21(M,IAB,ITN(1)) = 1
             ELSE
               IABR21(M,IAB,ITN(1)) = 0
@@ -12461,7 +12461,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(E0SSFL(MAB+M,4)).GT.SENS) THEN
+            IF(DABS(E0SSFL(MAB+M,4)).GT.EPSAB) THEN
               IABI21(M,IAB,ITN(1)) = 1
             ELSE
               IABI21(M,IAB,ITN(1)) = 0
@@ -12535,7 +12535,7 @@ C       SUM OF RC(AB|CD) MAGNITUDES
         SUM = 0.0D0
         DO N=1,MBCH
           SUM = SUM + DABS(RC(N,IABCD))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSRR) THEN
             IRC(IABCD) = 1
             GOTO 302
           ENDIF
@@ -15976,7 +15976,7 @@ C
      &            TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
-      DATA SENS/1.0D-10/
+      DATA SENS/1.0D-16/
 C
 C     ILLEGAL COMPONENT OVERLAP CHECKER
       DO IT=1,2
@@ -17618,7 +17618,7 @@ C
      &            TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
-      DATA SENS/1.0D-10/
+      DATA EPSCD/1.0D-10/
 C
 C     NUMBER OF BASIS FUNCTION OVERLAPS
       MAXCD = NBAS(3)*NBAS(4)
@@ -17672,7 +17672,7 @@ C       Re{E(CD|--)} COEFFICIENTS
         SUM = 0.0D0
         DO M=1,MAXCD
           SUM = SUM + DABS(E0LLFL(MCD+M,1))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSCD) THEN
             ICDR11KM(NCD,MC,MD,ICD,1) = 1
             GOTO 201
           ENDIF
@@ -17685,7 +17685,7 @@ C       Im{E(CD|--)} COEFFICIENTS
         SUM = 0.0D0
         DO M=1,MAXCD
           SUM = SUM + DABS(E0LLFL(MCD+M,2))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSCD) THEN
             ICDI11KM(NCD,MC,MD,ICD,1) = 1
             GOTO 202
           ENDIF
@@ -17698,7 +17698,7 @@ C       Re{E(CD|+-)} COEFFICIENTS
         SUM = 0.0D0
         DO M=1,MAXCD
           SUM = SUM + DABS(E0LLFL(MCD+M,3))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSCD) THEN
             ICDR21KM(NCD,MC,MD,ICD,1) = 1
             GOTO 203
           ENDIF
@@ -17711,7 +17711,7 @@ C       Im{E(CD|+-)} COEFFICIENTS
         SUM = 0.0D0
         DO M=1,MAXCD
           SUM = SUM + DABS(E0LLFL(MCD+M,4))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSCD) THEN
             ICDI21KM(NCD,MC,MD,ICD,1) = 1
             GOTO 204
           ENDIF
@@ -17776,7 +17776,7 @@ C
      &            TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
-      DATA SENS/1.0D-10/
+      DATA EPSCD/1.0D-10/
 C
 C     NUMBER OF BASIS FUNCTION OVERLAPS
       MAXCD = NBAS(3)*NBAS(4)
@@ -17830,7 +17830,7 @@ C       Re{E(CD|--)} COEFFICIENTS
         SUM = 0.0D0
         DO M=1,MAXCD
           SUM = SUM + DABS(E0SSFL(MCD+M,1))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSCD) THEN
             ICDR11KM(NCD,MC,MD,ICD,4) = 1
             GOTO 201
           ENDIF
@@ -17843,7 +17843,7 @@ C       Im{E(CD|--)} COEFFICIENTS
         SUM = 0.0D0
         DO M=1,MAXCD
           SUM = SUM + DABS(E0SSFL(MCD+M,2))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSCD) THEN
             ICDI11KM(NCD,MC,MD,ICD,4) = 1
             GOTO 202
           ENDIF
@@ -17856,7 +17856,7 @@ C       Re{E(CD|+-)} COEFFICIENTS
         SUM = 0.0D0
         DO M=1,MAXCD
           SUM = SUM + DABS(E0SSFL(MCD+M,3))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSCD) THEN
             ICDR21KM(NCD,MC,MD,ICD,4) = 1
             GOTO 203
           ENDIF
@@ -17869,7 +17869,7 @@ C       Im{E(CD|+-)} COEFFICIENTS
         SUM = 0.0D0
         DO M=1,MAXCD
           SUM = SUM + DABS(E0SSFL(MCD+M,4))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSCD) THEN
             ICDI21KM(NCD,MC,MD,ICD,4) = 1
             GOTO 204
           ENDIF
@@ -17938,7 +17938,7 @@ C
      &            TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
-      DATA SENS/1.0D-10/
+      DATA EPSCD/1.0D-10/
 C
 C     NUMBER OF BASIS FUNCTION OVERLAPS
       MAXCD = NBAS(3)*NBAS(4)
@@ -17995,7 +17995,7 @@ C         Re{E(CD|--)} COEFFICIENTS
           SUM = 0.0D0
           DO M=1,MAXCD
             SUM = SUM + DABS(EILSFL(MCD+M,4*(IX-1)+1))
-            IF(SUM.GT.SENS) THEN
+            IF(SUM.GT.EPSCD) THEN
               ICDR11KM(NCD,MC,MD,ICD,IX,2) = 1
               GOTO 201
             ENDIF
@@ -18009,7 +18009,7 @@ C         Im{E(CD|--)} COEFFICIENTS
           SUM = 0.0D0
           DO M=1,MAXCD
             SUM = SUM + DABS(EILSFL(MCD+M,4*(IX-1)+2))
-            IF(SUM.GT.SENS) THEN
+            IF(SUM.GT.EPSCD) THEN
               ICDI11KM(NCD,MC,MD,ICD,IX,2) = 1
               GOTO 202
             ENDIF
@@ -18023,7 +18023,7 @@ C         Re{E(CD|+-)} COEFFICIENTS
           SUM = 0.0D0
           DO M=1,MAXCD
             SUM = SUM + DABS(EILSFL(MCD+M,4*(IX-1)+3))
-            IF(SUM.GT.SENS) THEN
+            IF(SUM.GT.EPSCD) THEN
               ICDR21KM(NCD,MC,MD,ICD,IX,2) = 1
               GOTO 203
             ENDIF
@@ -18037,7 +18037,7 @@ C         Im{E(CD|+-)} COEFFICIENTS
           SUM = 0.0D0
           DO M=1,MAXCD
             SUM = SUM + DABS(EILSFL(MCD+M,4*(IX-1)+4))
-            IF(SUM.GT.SENS) THEN
+            IF(SUM.GT.EPSCD) THEN
               ICDI21KM(NCD,MC,MD,ICD,IX,2) = 1
               GOTO 204
             ENDIF
@@ -18108,7 +18108,7 @@ C
      &            TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
-      DATA SENS/1.0D-10/
+      DATA EPSCD/1.0D-10/
 C
 C     NUMBER OF BASIS FUNCTION OVERLAPS
       MAXCD = NBAS(3)*NBAS(4)
@@ -18165,7 +18165,7 @@ C         Re{E(CD|--)} COEFFICIENTS
           SUM = 0.0D0
           DO M=1,MAXCD
             SUM = SUM + DABS(EISLFL(MCD+M,4*(IX-1)+1))
-            IF(SUM.GT.SENS) THEN
+            IF(SUM.GT.EPSCD) THEN
               ICDR11KM(NCD,MC,MD,ICD,IX,3) = 1
               GOTO 201
             ENDIF
@@ -18179,7 +18179,7 @@ C         Im{E(CD|--)} COEFFICIENTS
           SUM = 0.0D0
           DO M=1,MAXCD
             SUM = SUM + DABS(EISLFL(MCD+M,4*(IX-1)+2))
-            IF(SUM.GT.SENS) THEN
+            IF(SUM.GT.EPSCD) THEN
               ICDI11KM(NCD,MC,MD,ICD,IX,3) = 1
               GOTO 202
             ENDIF
@@ -18193,7 +18193,7 @@ C         Re{E(CD|+-)} COEFFICIENTS
           SUM = 0.0D0
           DO M=1,MAXCD
             SUM = SUM + DABS(EISLFL(MCD+M,4*(IX-1)+3))
-            IF(SUM.GT.SENS) THEN
+            IF(SUM.GT.EPSCD) THEN
               ICDR21KM(NCD,MC,MD,ICD,IX,3) = 1
               GOTO 203
             ENDIF
@@ -18207,7 +18207,7 @@ C         Im{E(CD|+-)} COEFFICIENTS
           SUM = 0.0D0
           DO M=1,MAXCD
             SUM = SUM + DABS(EISLFL(MCD+M,4*(IX-1)+4))
-            IF(SUM.GT.SENS) THEN
+            IF(SUM.GT.EPSCD) THEN
               ICDI21KM(NCD,MC,MD,ICD,IX,3) = 1
               GOTO 204
             ENDIF
@@ -18304,7 +18304,7 @@ C
      &            TB2S
 C
 C     EQ-COEFFICIENT SENSITIVITY PARAMETER
-      DATA SENS/1.0D-10/
+      DATA EPSAB,EPSRR/1.0D-16,1.0D-10/
 C
 C     ILLEGAL COMPONENT OVERLAP CHECKER
       DO IT=1,2
@@ -18376,7 +18376,7 @@ C     SCREENING PROCEDURE: NORM SUM OF EQ-COEFFICIENT LIST FOR EACH IAB
 C
 C         Re{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MAB+M,4*(IX-1)+1)).GT.SENS) THEN
+            IF(DABS(EILSFL(MAB+M,4*(IX-1)+1)).GT.EPSAB) THEN
               IABR11(M,IAB,IX) = 1
             ELSE
               IABR11(M,IAB,IX) = 0
@@ -18385,7 +18385,7 @@ C         Re{E(AB|--)} COEFFICIENTS
 C
 C         Im{E(AB|--)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MAB+M,4*(IX-1)+2)).GT.SENS) THEN
+            IF(DABS(EILSFL(MAB+M,4*(IX-1)+2)).GT.EPSAB) THEN
               IABI11(M,IAB,IX) = 1
             ELSE
               IABI11(M,IAB,IX) = 0
@@ -18394,7 +18394,7 @@ C         Im{E(AB|--)} COEFFICIENTS
 C
 C         Re{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MAB+M,4*(IX-1)+3)).GT.SENS) THEN
+            IF(DABS(EILSFL(MAB+M,4*(IX-1)+3)).GT.EPSAB) THEN
               IABR21(M,IAB,IX) = 1
             ELSE
               IABR21(M,IAB,IX) = 0
@@ -18403,7 +18403,7 @@ C         Re{E(AB|+-)} COEFFICIENTS
 C
 C         Im{E(AB|+-)} COEFFICIENTS
           DO M=1,MAXAB
-            IF(DABS(EILSFL(MAB+M,4*(IX-1)+4)).GT.SENS) THEN
+            IF(DABS(EILSFL(MAB+M,4*(IX-1)+4)).GT.EPSAB) THEN
               IABI21(M,IAB,IX) = 1
             ELSE
               IABI21(M,IAB,IX) = 0
@@ -18482,7 +18482,7 @@ C       SUM OF RC(AB|CD) MAGNITUDES
         SUM = 0.0D0
         DO N=1,MBCH
           SUM = SUM + DABS(RC(N,IABCD))
-          IF(SUM.GT.SENS) THEN
+          IF(SUM.GT.EPSRR) THEN
             IRC(IABCD) = 1
             GOTO 301
           ENDIF
