@@ -3,8 +3,9 @@ NAME=${1?Error: no name given}
 ulimit -s unlimited
 #./bertha-budget < input/$NAME
 #./bertha-nuclear < input/$NAME
-#./bertha-atomic < input/$NAME
-gfortran -mcmodel=large -O4 bertha-scf-09-04-2021.f -o bertha-scf -llapack -lblas
+# gfortran -O4 bertha-atomic.f -o bertha-atomic -llapack -lblas
+./bertha-atomic < input/$NAME
+gfortran -O4 bertha-scf.f -o bertha-scf -llapack -lblas
 ./bertha-scf < input/$NAME
 #./bertha-mbpt < input/$NAME
 #./bertha-rspt < input/$NAME
@@ -52,5 +53,3 @@ gfortran -mcmodel=large -O4 bertha-scf-09-04-2021.f -o bertha-scf -llapack -lbla
 #    fftw3     : Fourier transform software
 #    mpi       : OpenMPI library
 # -fopenmp     : link the OpenMP parallelisation option
-
-TlF_set4c/TlF_-4c_396G.inp
