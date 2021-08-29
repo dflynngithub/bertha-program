@@ -6482,8 +6482,8 @@ C     CONVERGENCE ANALYSIS
         WRITE(6,60) 3,'(SS|SS)             ',SHLEV(3),NMLEV(3),HMS(T3)
         WRITE(7,60) 3,'(SS|SS)             ',SHLEV(3),NMLEV(3),HMS(T3)
       ELSE
-        WRITE(6,61) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
-        WRITE(7,61) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
+        WRITE(6,60) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
+        WRITE(7,60) 3,'(SS|SS) and (LS|LS) ',SHLEV(3),NMLEV(3),HMS(T3)
       ENDIF
       IF(HMLT.EQ.'DHFP') THEN
         WRITE(6,60) 4,'(LS|LS)             ',SHLEV(4),NMLEV(4),HMS(T4)
