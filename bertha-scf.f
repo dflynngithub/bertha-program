@@ -17063,7 +17063,6 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      CHARACTER*2 KLAB
       CHARACTER*80 TITLE
 C
       DIMENSION EXL(MBS,4),XYZ(3,4)
@@ -18550,7 +18549,7 @@ C     MULTIPLICATIVE FACTOR DEPENDING ON GAUNT/BREIT
       ENDIF
 C
 C     SKIP IF INTEGRAL BATCH EXISTS IN FILE
-c      IF(IRIJ(IBAS,JBAS).EQ.0) GOTO 300
+      IF(IRIJ(IBAS,JBAS).EQ.0) GOTO 300
 C
       CALL SYSTEM_CLOCK(ICL3)
 C
@@ -24102,9 +24101,9 @@ C
         IMJB = MQN(2)+MMB-1
 C
 C       TRIANGLE RULE FOR |MA| <-> |MB|
-        IF(PRM1IJ) THEN
-          IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.GT.MMB) GOTO 5001
-        ENDIF
+c        IF(PRM1IJ) THEN
+c          IF(KA.EQ.KB.AND.MA.EQ.MB.AND.MMA.GT.MMB) GOTO 5100
+c        ENDIF
 C
       DO 5101 MMC=1,2
         MMJC = MQN(3)*((-1)**MMC)
@@ -24154,18 +24153,11 @@ C
       KCS = KCL+NSKP
       KDS = KDL+NSKP
 C
-C     APPLY MORE MQN SELECTION RULES
-      IF(ISYM.EQ.1.OR.ISYM.EQ.2) THEN
-        ISELM = 0
-        IF(MMJA-MMJB.EQ.MMJD-MMJC) ISELM = 1
-        IF(ISELM.EQ.0) GOTO 5101
-      ENDIF
-C
 C     RESET CONTRACTED RADIAL ARRAYS
       CALL SYSTEM_CLOCK(ICL1)
       DO M=1,MAXCD
         XLSLS(M) = 0.0D0
-C       XSLSL(M) = 0.0D0
+        XSLSL(M) = 0.0D0
         XLSSL(M) = 0.0D0
         XSLLS(M) = 0.0D0
       ENDDO
@@ -24186,14 +24178,14 @@ C       SCREENING OF INTEGRAL BASED ON ANGULAR COEFFICIENT
         DO IMU=1,8
           ANGSUM = ANGSUM + DABS(ANGFAC(IMU))
         ENDDO
-        IF(DABS(ANGSUM).LE.SENS) GOTO 5003
+        IF(DABS(ANGSUM).LE.SENS) GOTO 5201
 C
 C       PRODUCT OF ANGULAR AND RADIAL INTEGRAL
         DO M=1,MAXCD
           XLSLS(M) = XLSLS(M) + ANGFAC(1)*RJLSLS(M,LTEN,1)
      &                        + ANGFAC(2)*RJLSLS(M,LTEN,2)
-C         XSLSL(M) = XSLSL(M) + ANGFAC(3)*RJSLSL(M,LTEN,1)
-C    &                        + ANGFAC(4)*RJSLSL(M,LTEN,2)
+          XSLSL(M) = XSLSL(M) + ANGFAC(3)*RJSLSL(M,LTEN,1)
+     &                        + ANGFAC(4)*RJSLSL(M,LTEN,2)
           XLSSL(M) = XLSSL(M) + ANGFAC(5)*RJLSSL(M,LTEN,1)
      &                        + ANGFAC(6)*RJLSSL(M,LTEN,2)
           XSLLS(M) = XSLLS(M) + ANGFAC(7)*RJSLLS(M,LTEN,1)
@@ -25214,15 +25206,15 @@ C
           RJLSLS(M,LTEN,2) 
      &         = V4*T0000*E0101*C7*B43L - V2*T0001*E0100*C5*B23L
      &         - V2*T0100*E0001*C5*B41L + V1*T0101*E0000*C3*B21L
-CC
-CC         EFFECTIVE INTERACTION STRENGTH RJSLSL(M,LTEN)
-C          RJSLSL(M,LTEN,1)
-C     &         = V4*T0000*E1010*C7*B43U - V2*T0010*E1000*C5*B41U
-C     &         - V2*T1000*E0010*C5*B23U + V1*T1010*E0000*C3*B21U
-CC
-C          RJSLSL(M,LTEN,2)
-C     &         = V4*T0000*E1010*C7*B43L - V2*T0010*E1000*C5*B23L
-C     &         - V2*T1000*E0010*C5*B41L + V1*T1010*E0000*C3*B21L
+C
+C         EFFECTIVE INTERACTION STRENGTH RJSLSL(M,LTEN)
+          RJSLSL(M,LTEN,1)
+     &         = V4*T0000*E1010*C7*B43U - V2*T0010*E1000*C5*B41U
+     &         - V2*T1000*E0010*C5*B23U + V1*T1010*E0000*C3*B21U
+C
+          RJSLSL(M,LTEN,2)
+     &         = V4*T0000*E1010*C7*B43L - V2*T0010*E1000*C5*B23L
+     &         - V2*T1000*E0010*C5*B41L + V1*T1010*E0000*C3*B21L
 C
 C         EFFECTIVE INTERACTION STRENGTH RJLSSL(M,LTEN)
           RJLSSL(M,LTEN,1) 
@@ -25256,14 +25248,14 @@ C**********************************************************************C
 C
       DO M=1,MAXCD
         RNLSLS = RNIJ(IJ,2)*RNKL(M,2)
-C       RNSLSL = RNIJ(IJ,3)*RNKL(M,3)
+        RNSLSL = RNIJ(IJ,3)*RNKL(M,3)
         RNSLLS = RNIJ(IJ,3)*RNKL(M,2)
         RNLSSL = RNIJ(IJ,2)*RNKL(M,3)
         DO LTEN=1,NUNUM
           IF(INU(LTEN,K4AD).NE.0) THEN
             DO IUL=1,2
               RJLSLS(M,LTEN,IUL) = RNLSLS*RJLSLS(M,LTEN,IUL)
-C             RJSLSL(M,LTEN,IUL) = RNSLSL*RJSLSL(M,LTEN,IUL)
+              RJSLSL(M,LTEN,IUL) = RNSLSL*RJSLSL(M,LTEN,IUL)
               RJLSSL(M,LTEN,IUL) = RNLSSL*RJLSSL(M,LTEN,IUL)
               RJSLLS(M,LTEN,IUL) = RNSLLS*RJSLLS(M,LTEN,IUL)
             ENDDO
