@@ -18682,14 +18682,11 @@ C             CALCULATE RC ADDRESS FOR THIS PARTICULAR AB/CD OVERLAP
                 IADR3 = 0
               ENDIF
 C
-C             SKIP THIS STEP IF RC(AB|CD) FAILS SCREENING CONDITION
-              IA1 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR1-1)
-              IA2 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR2-1)
-              IA3 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR3-1)
+C             SKIP THIS STEP IF THE RC(AB|CD) FAILS SCREENING CONDITION
               IF(IADR3.NE.0) THEN
-                IF(IA1+IA2+IA3.EQ.0) GOTO 403
+                IF(IRC(IADR1)+IRC(IADR2)+IRC(IADR3).EQ.0) GOTO 403
               ELSE
-                IF(IA1+IA2.EQ.0) GOTO 403
+                IF(IRC(IADR1)+IRC(IADR2).EQ.0) GOTO 403
               ENDIF
 C
 C             PRE-FACTORS FOR THE UPCOMING CONTRACTION
@@ -23222,7 +23219,7 @@ C        TT    NN   NNN SS    SS CC    CC LL       MM   M   MM  11     C
 C        TT    NN    NN  SSSSSS   CCCCCC  LLLLLLLL MM       MM 1111    C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  TNSBRT1 PERFORMS THE TENSOR EXPANSION ANALYSIS FOR THE ONE-CENTRE   C
+C  TNSCLM1 PERFORMS THE TENSOR EXPANSION ANALYSIS FOR THE ONE-CENTRE   C
 C  BREIT INTERACTION, FOR A GIVEN LQN COMBINATION BLOCK.               C
 C**********************************************************************C
       INCLUDE 'parameters.h'
