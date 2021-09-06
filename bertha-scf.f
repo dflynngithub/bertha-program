@@ -23685,7 +23685,6 @@ C
 C     IF NO NU VALUES WERE ALLOWED DURING THIS RUN, EXIT PROCEDURE
       IF(NULNG.EQ.0) THEN
         ISEL = 0
-        WRITE(*,*) 'Got three!',LQN(1),LQN(2),LQN(3),LQN(4)
         RETURN
       ELSE
         ISEL = 1
