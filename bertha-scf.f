@@ -18771,6 +18771,9 @@ C             SKIP THIS STEP IF THE RC(AB|CD) FAILS SCREENING CONDITION
               ENDIF
 C
 C             PRE-FACTORS FOR THE UPCOMING CONTRACTION
+              IA1 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR1-1)
+              IA2 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR2-1)
+              IA3 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR3-1)
               DO N=1,MAXN
                 T1 = RCTTFL(IA1+IMAP(N))*0.5D0/APH(IMAP(N))
                 T2 = RCTTFL(IA2+IMAP(N))*PQ(IMAP(N),JX)
