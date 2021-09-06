@@ -5120,7 +5120,6 @@ C
       CHARACTER*16 HMS
       CHARACTER*20 STAMP
       CHARACTER*40 MOLCL,WFNFL,OUTFL
-      CHARACTER*80 TITLE
 C
       DIMENSION RK(3*MDM),ESAV(0:MIT),DNRM(MIT),WEDN(0:MIT)
       DIMENSION NMLEV(5),TMLEV(5)
@@ -17063,8 +17062,6 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      CHARACTER*80 TITLE
-C
       DIMENSION EXL(MBS,4),XYZ(3,4)
       DIMENSION ICNT(4),LQN(4),KQN(4),JQN(4),MQN(4),NBAS(4)
       DIMENSION INDEX(MCT,-(MEL+1):MEL,MKP),ITN(2)
@@ -18774,6 +18771,9 @@ C             SKIP THIS STEP IF THE RC(AB|CD) FAILS SCREENING CONDITION
               ENDIF
 C
 C             PRE-FACTORS FOR THE UPCOMING CONTRACTION
+              IA1 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR1-1)
+              IA2 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR2-1)
+              IA3 = (IJ-1)*MAXCD*NTUVABCD + MAXCD*(IADR3-1)
               DO N=1,MAXN
                 T1 = RCTTFL(IA1+IMAP(N))*0.5D0/APH(IMAP(N))
                 T2 = RCTTFL(IA2+IMAP(N))*PQ(IMAP(N),JX)
@@ -23826,8 +23826,8 @@ C
       CALL SYSTEM_CLOCK(IBCH1,RATE)
 C
 C     INTEGRAL PERMUTATIONS: FEEL FREE TO PLAY WITH THESE BOOLEANS
-      PRM1IJ = .FALSE.
-      PRM1KL = .FALSE.
+      PRM1IJ = .TRUE.
+      PRM1KL = .TRUE.
 C
 C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       IF(SHAPE.EQ.'ATOMIC') THEN
@@ -23838,11 +23838,11 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
         ISYM = 0
       ENDIF
 C
-C     MANUAL OVERRIDE FOR GENERAL MOLECULES (MIGHT WORK; NEEDS TESTING)
-      IF(ISYM.EQ.0) THEN
-        PRM1IJ = .FALSE.
-        PRM1KL = .FALSE.
-      ENDIF
+CC     MANUAL OVERRIDE FOR GENERAL MOLECULES (MIGHT WORK; NEEDS TESTING)
+C      IF(ISYM.EQ.0) THEN
+C        PRM1IJ = .FALSE.
+C        PRM1KL = .FALSE.
+C      ENDIF
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 1000)                 C
@@ -24123,7 +24123,7 @@ C     APPLY MORE MQN SELECTION RULES
         IF(MMJA-MMJB.EQ.MMJD-MMJC) then
           ISELM = 1
         ENDIF
-        IF(ISELM.EQ.0) GOTO 5101
+        IF(ISELM.EQ.0) GOTO 5200
       ENDIF
 C
 C     PHASE FACTORS FOR PERMUTATION SWAPS
@@ -34720,8 +34720,6 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      CHARACTER*80 TITLE
-C
       DIMENSION EXL(MBS,4),XYZ(3,4)
       DIMENSION ICNT(4),KQN(4),MQN(4),NBAS(4),LQN(4),ITN(2)
       DIMENSION MAPTTTT(4,4)
@@ -35043,8 +35041,6 @@ C  USE IN THE SCHWARZ INEQUALITY IN SCREENING PROCEDURES.              C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
-C
-      CHARACTER*80 TITLE
 C
       DIMENSION EXL(MBS,4),XYZ(3,4)
       DIMENSION ICNT(4),KQN(4),MQN(4),NBAS(4),LQN(4),ITN(2)
