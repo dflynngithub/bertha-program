@@ -5120,7 +5120,6 @@ C
       CHARACTER*16 HMS
       CHARACTER*20 STAMP
       CHARACTER*40 MOLCL,WFNFL,OUTFL
-      CHARACTER*80 TITLE
 C
       DIMENSION RK(3*MDM),ESAV(0:MIT),DNRM(MIT),WEDN(0:MIT)
       DIMENSION NMLEV(5),TMLEV(5)
@@ -17062,8 +17061,6 @@ C  TODO: THIS ROUTINE COULD BENEFIT FROM PARALLELISATION -- OPENMP.    C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
-C
-      CHARACTER*80 TITLE
 C
       DIMENSION EXL(MBS,4),XYZ(3,4)
       DIMENSION ICNT(4),LQN(4),KQN(4),JQN(4),MQN(4),NBAS(4)
@@ -34720,8 +34717,6 @@ C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      CHARACTER*80 TITLE
-C
       DIMENSION EXL(MBS,4),XYZ(3,4)
       DIMENSION ICNT(4),KQN(4),MQN(4),NBAS(4),LQN(4),ITN(2)
       DIMENSION MAPTTTT(4,4)
@@ -35043,8 +35038,6 @@ C  USE IN THE SCHWARZ INEQUALITY IN SCREENING PROCEDURES.              C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
-C
-      CHARACTER*80 TITLE
 C
       DIMENSION EXL(MBS,4),XYZ(3,4)
       DIMENSION ICNT(4),KQN(4),MQN(4),NBAS(4),LQN(4),ITN(2)
