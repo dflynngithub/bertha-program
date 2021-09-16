@@ -21577,16 +21577,9 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       ENDIF
 C
 C     TAKE ADVANTAGE OF VARIOUS INTEGRAL SYMMETRIES
-C     REMOVABLE AFTER THE GENERAL MATRIX CONTRACTION ROUTINE IS UPDATED
-      IF(ISYM.EQ.0) THEN
-        PRM1IJ = .FALSE.
-        PRM1KL = .FALSE.
-        PRM1HC = .FALSE.
-      ELSE
-        PRM1IJ = .TRUE.
-        PRM1KL = .TRUE.
-        PRM1HC = .TRUE.
-      ENDIF
+      PRM1IJ = .false.
+      PRM1KL = .false.
+      PRM1HC = .false.
 C
 C**********************************************************************C
 C     KQN+MQN COMBINATIONS OF INDICES (FOR INTEGRAL SYMMETRIES)        C
@@ -22084,11 +22077,8 @@ C    CCCCCC  LLLLLLLL MM       MM MM       MM    TT   1111 ZZZZZZZZ    C
 C                                                                      C
 C -------------------------------------------------------------------- C
 C  CLMMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
-C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
-C -------------------------------------------------------------------- C
-C  INTEGRAL PERMUTATION BOOLEANS (TRIGGERED IN COULOMB1) ARE HANDLED   C
-C  FOR CLOSED-SHELL SYSTEMS ONLY. THE EXTENSION TO OPEN-SHELL ATOMS    C
-C  BASED ON THIS IS STRAIGHTFORWARD ENOUGH TO INVOKE.                  C
+C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN AN AXIAL MOLECULE.      C
+C  THIS SHOULD NOT BE CALLED UNLESS THE MOLECULE HAS C\INF SYMMETRY.   C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
@@ -22115,21 +22105,6 @@ C
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
 C
-C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
-      IF(SHAPE.EQ.'ATOMIC') THEN
-        ISYM = 2
-      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
-        ISYM = 1
-      ELSE
-        ISYM = 0
-      ENDIF
-C
-C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
-      IF(ISYM.EQ.0) THEN
-        WRITE(6,*) 'In CLMMT1Z: you probably should be using CLMMT1G.'
-        WRITE(7,*) 'In CLMMT1Z: you probably should be using CLMMT1G.'
-      ENDIF
-C
 C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
       MMJA = MQN(1)*((-1)**MMA)
       MMJB = MQN(2)*((-1)**MMB)
@@ -22137,897 +22112,1561 @@ C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
       MMJD = MQN(4)*((-1)**MMD)
 C
 C**********************************************************************C
-C     ASSEMBLE THE CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)           C
+C     SPECIAL CODE: NON-RELATIVISTIC HAMILTONIAN                       C
+C -------------------------------------------------------------------- C
+C     CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)                        C
 C**********************************************************************C
 C
 C     NON-RELATIVISTIC HAMILTONIAN
-      IF(HMLT.EQ.'NORL') THEN
+      IF(HMLT.NE.'NORL') GOTO 1000
 C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
-        IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 101
-        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 101
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+C     CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
+      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 101
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 101
+C
+C     GDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
      &           +              XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
-            ENDDO
           ENDDO
-        ENDIF
-101     CONTINUE
+        ENDDO
+      ENDIF
 C
-C     RELATIVISTIC HAMILTONIAN
-      ELSE
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 101
 C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GDIR: NO PERMUTATION SYMMETRY EMPLOYED                         C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C     GDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
+     &           +              XLLLL(M)*DREAL(DENT(NAL+IBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
 C
-C       MQN MAGNITUDE SELECTION RULE
-        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 102
+101   CONTINUE
 C
-C       MQN SIGN SELECTION RULE
-        IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 102
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 102
 C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 102
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 102
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 112
+C
+C     GDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+112   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 102
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 102
+C
+C     GDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)*DREAL(DENT(KBL+JBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+102   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 103
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 103
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 103
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 113
+C
+C     GDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+113   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 103
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 103
+C
+C     GDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)*DREAL(DENT(NAL+IBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+103   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 104
+      IF(.NOT.PRM1KL) GOTO 104
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 104
+      IF(KQN(3).EQ.KQN(4)) GOTO 104
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 104
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 104
+C
+C     GDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 104
+C
+C     GDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KBL+JBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+104   CONTINUE
+C
+C**********************************************************************C
+C     CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)                      C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 201
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 201
+C
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS) 
+     &           +              XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 201
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (CB|AD)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,NBL+JBAS) = GXCH(NCL+KBAS,NBL+JBAS)
+     &           +              XLLLL(M)*DREAL(DENT(NAL+IBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+201   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 202
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 202
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 202
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 202
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 202
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (CA|BD)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,KAL+IBAS) = GXCH(NCL+KBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)*DREAL(DENT(KBL+JBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+202   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 203
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 203
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 203
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 203
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AC|DB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,KCL+KBAS) = GXCH(NAL+IBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 203
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (DB|AC)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,NBL+JBAS) = GXCH(KDL+LBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)*DREAL(DENT(NAL+IBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+203   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 204
+      IF(.NOT.PRM1KL) GOTO 204
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 204
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 204
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 204
+      IF(KQN(3).EQ.KQN(4)) GOTO 204
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (BC|DA)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,KCL+KBAS) = GXCH(KBL+JBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 204
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (DA|BC)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,KAL+IBAS) = GXCH(KDL+LBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KBL+JBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+204   CONTINUE
+C
+      IF(NOPN.NE.0) RETURN
+C
+C**********************************************************************C
+C     OPEN-SHELL DIRECT COULOMB MATRIX (QDIR)                          C
+C**********************************************************************C
+C
+C     CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
+      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 301
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 301
+C
+C     GDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*        XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 301
+C
+C     QDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NCL+KBAS,NDL+LBAS) = QDIR(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*        XLLLL(M)*DREAL(DENO(NAL+IBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+301   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 302
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 302
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 302
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 312
+C
+C     QDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KBL+JBAS,KAL+IBAS) = QDIR(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*    XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+312   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 302
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 302
+C
+C     QDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NCL+KBAS,NDL+LBAS) = QDIR(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*PAB*    XLLLL(M)*DREAL(DENO(KBL+JBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+302   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 303
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 303
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 303
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 303
+C
+C     QDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*    PCD*XLLLL(M)*DREAL(DENO(KDL+LBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 303
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 303
+C
+C     QDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KDL+LBAS,KCL+KBAS) = QDIR(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*    PCD*XLLLL(M)*DREAL(DENO(NAL+IBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+303   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 304
+      IF(.NOT.PRM1KL) GOTO 304
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 304
+      IF(KQN(3).EQ.KQN(4)) GOTO 304
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 304
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 304
+C
+C     QDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KBL+JBAS,KAL+IBAS) = QDIR(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*PCD*XLLLL(M)*DREAL(DENO(KDL+LBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 304
+C
+C     QDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KDL+LBAS,KCL+KBAS) = QDIR(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*PAB*PCD*XLLLL(M)*DREAL(DENO(KBL+JBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+304   CONTINUE
+C
+C**********************************************************************C
+C     OPEN-SHELL EXCHANGE COULOMB MATRIX (QXCH)                        C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 401
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 401
+C
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS) 
+     &           +              XLLLL(M)*DREAL(DENO(NCL+KBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 401
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (CB|AD)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,NBL+JBAS) = QXCH(NCL+KBAS,NBL+JBAS)
+     &           +              XLLLL(M)*DREAL(DENO(NAL+IBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+401   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 402
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 402
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 402
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 402
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,NDL+LBAS) = QXCH(KBL+JBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)*DREAL(DENO(NCL+KBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 402
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (CA|BD)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,KAL+IBAS) = QXCH(NCL+KBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)*DREAL(DENO(KBL+JBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+402   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 403
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 403
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 403
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 403
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (AC|DB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,KCL+KBAS) = QXCH(NAL+IBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)*DREAL(DENO(KDL+LBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 403
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (DB|AC)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,NBL+JBAS) = QXCH(KDL+LBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)*DREAL(DENO(NAL+IBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+403   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 404
+      IF(.NOT.PRM1KL) GOTO 404
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 404
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 404
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 404
+      IF(KQN(3).EQ.KQN(4)) GOTO 404
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (BC|DA)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,KCL+KBAS) = QXCH(KBL+JBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)*DREAL(DENO(KDL+LBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 404
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (DA|BC)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,KAL+IBAS) = QXCH(KDL+LBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)*DREAL(DENO(KBL+JBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+404   CONTINUE
+C
+C     NON-RELATIVISTIC MATRIX CONTRIBUTIONS COMPLETE
+      RETURN
+C
+C     SKIP POINT FOR RELATIVISTIC HAMILTONIANS
+1000  CONTINUE
+C
+C**********************************************************************C
+C     REGULAR CODE: RELATIVISTIC HAMILTONIAN                           C
+C -------------------------------------------------------------------- C
+C     CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)                        C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 501
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 501
+C
+C     GDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
      &           +              XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
      &           +              XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
-        IF(NAS.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+            GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
      &           +              XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
      &           +              XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
-            ENDDO
           ENDDO
-        ENDIF
+        ENDDO
+      ENDIF
 C
-112     CONTINUE
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 501
 C
-C       INTEGRALS BY VARIABLE SWAP
-        IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 122
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (CD|AB)
-        IF(NCL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
+C     GDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
      &           +              XLLLL(M)*DREAL(DENT(NAL+IBAS,NBL+JBAS))
      &           +              XSSLL(M)*DREAL(DENT(NAS+IBAS,NBS+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (CD|AB)
-        IF(NCS.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NCS+KBAS,NDS+LBAS) = GDIR(NCS+KBAS,NDS+LBAS)
+            GDIR(NCS+KBAS,NDS+LBAS) = GDIR(NCS+KBAS,NDS+LBAS)
      &           +              XLLSS(M)*DREAL(DENT(NAL+IBAS,NBL+JBAS))
      &           +              XSSSS(M)*DREAL(DENT(NAS+IBAS,NBS+JBAS))
-            ENDDO
           ENDDO
-        ENDIF
+        ENDDO
+      ENDIF
 C
-122     CONTINUE
+501   CONTINUE
 C
-102     CONTINUE
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 502
 C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GDIR: PERMUTATION SYMMETRY I⇄J         ONLY                    C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 502
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 502
 C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1IJ) GOTO 103
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 512
 C
-C       MQN MAGNITUDE SELECTION RULE
-        IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 103
-C
-C       MQN SIGN SELECTION RULE
-        IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 103
-C
-C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KQN(1).EQ.KQN(2)) GOTO 113
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|CD)
-        IF(KBL.LE.KAL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+C     GDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
      &           +      PAB*    XLLLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
      &           +      PAB*    XLLSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|CD)
-        IF(KBS.LE.KAS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
+            GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
      &           +      PAB*    XSSLL(M)*DREAL(DENT(NCL+KBAS,NDL+LBAS))
      &           +      PAB*    XSSSS(M)*DREAL(DENT(NCS+KBAS,NDS+LBAS))
-            ENDDO
           ENDDO
-        ENDIF
+        ENDDO
+      ENDIF
 C
-113     CONTINUE
+512   CONTINUE
 C
-C       INTEGRALS BY VARIABLE SWAP
-        IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 123
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 502
 C
-C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KQN(3).EQ.KQN(4)) GOTO 123
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 502
 C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (CD|BA)
-        IF(NCL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
+C     GDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
      &           +      PAB*    XLLLL(M)*DREAL(DENT(KBL+JBAS,KAL+IBAS))
      &           +      PAB*    XSSLL(M)*DREAL(DENT(KBS+JBAS,KAS+IBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (CD|BA)
-        IF(NCS.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NCS+KBAS,NDS+LBAS) = GDIR(NCS+KBAS,NDS+LBAS)
+            GDIR(NCS+KBAS,NDS+LBAS) = GDIR(NCS+KBAS,NDS+LBAS)
      &           +      PAB*    XLLSS(M)*DREAL(DENT(KBL+JBAS,KAL+IBAS))
      &           +      PAB*    XSSSS(M)*DREAL(DENT(KBS+JBAS,KAS+IBAS))
-            ENDDO
           ENDDO
-        ENDIF
+        ENDDO
+      ENDIF
 C
-123     CONTINUE
+502   CONTINUE
 C
-103     CONTINUE
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 503
 C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GDIR: PERMUTATION SYMMETRY      K⇄L ONLY                       C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 503
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 503
 C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1KL) GOTO 104
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 513
 C
-C       MQN MAGNITUDE SELECTION RULE
-        IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 104
-C
-C       MQN SIGN SELECTION RULE
-        IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 104
-C
-C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KQN(3).EQ.KQN(4)) GOTO 114
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|DC)
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+C     GDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
      &           +          PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
      &           +          PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|DC)
-        IF(NAS.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+            GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
      &           +          PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
      &           +          PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
-            ENDDO
           ENDDO
-        ENDIF
+        ENDDO
+      ENDIF
 C
-114     CONTINUE
+513   CONTINUE
 C
-C       INTEGRALS BY VARIABLE SWAP
-        IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 124
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 503
 C
-C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KQN(1).EQ.KQN(2)) GOTO 124
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 503
 C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (DC|AB)
-        IF(KDL.LE.KCL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
+C     GDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
      &           +          PCD*XLLLL(M)*DREAL(DENT(NAL+IBAS,NBL+JBAS))
      &           +          PCD*XSSLL(M)*DREAL(DENT(NAS+IBAS,NBS+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (DC|AB)
-        IF(KDS.LE.KCS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(KDS+LBAS,KCS+KBAS) = GDIR(KDS+LBAS,KCS+KBAS)
+            GDIR(KDS+LBAS,KCS+KBAS) = GDIR(KDS+LBAS,KCS+KBAS)
      &           +          PCD*XLLSS(M)*DREAL(DENT(NAL+IBAS,NBL+JBAS))
      &           +          PCD*XSSSS(M)*DREAL(DENT(NAS+IBAS,NBS+JBAS))
-            ENDDO
           ENDDO
-        ENDIF
+        ENDDO
+      ENDIF
 C
-124     CONTINUE
+503   CONTINUE
 C
-104     CONTINUE
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 504
+      IF(.NOT.PRM1KL) GOTO 504
 C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GDIR: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 504
+      IF(KQN(3).EQ.KQN(4)) GOTO 504
 C
-        IF(.NOT.PRM1IJ) GOTO 105
-        IF(.NOT.PRM1KL) GOTO 105
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 504
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 504
 C
-C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KQN(1).EQ.KQN(2)) GOTO 105
-        IF(KQN(3).EQ.KQN(4)) GOTO 105
-C
-C       MQN MAGNITUDE SELECTION RULE
-        IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 105
-C
-C       MQN SIGN SELECTION RULE
-        IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 105
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (BA|DC)
-        IF(KBL.LE.KAL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+C     GDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
      &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
      &           +      PAB*PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (BA|DC)
-        IF(KBS.LE.KAS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
+            GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
      &           +      PAB*PCD*XSSLL(M)*DREAL(DENT(KDL+LBAS,KCL+KBAS))
      &           +      PAB*PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KCS+KBAS))
-            ENDDO
           ENDDO
-        ENDIF
+        ENDDO
+      ENDIF
 C
-115     CONTINUE
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 504
 C
-C       INTEGRALS BY VARIABLE SWAP
-        IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 125
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (DC|BA)
-        IF(KDL.LE.KCL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
+C     GDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
      &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KBL+JBAS,KAL+IBAS))
      &           +      PAB*PCD*XSSLL(M)*DREAL(DENT(KBS+JBAS,KAS+IBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (DC|BA)
-        IF(KDS.LE.KCS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(KDS+LBAS,KCS+KBAS) = GDIR(KDS+LBAS,KCS+KBAS)
+            GDIR(KDS+LBAS,KCS+KBAS) = GDIR(KDS+LBAS,KCS+KBAS)
      &           +      PAB*PCD*XLLSS(M)*DREAL(DENT(KBL+JBAS,KAL+IBAS))
      &           +      PAB*PCD*XSSSS(M)*DREAL(DENT(KBS+JBAS,KAS+IBAS))
-            ENDDO
           ENDDO
-        ENDIF
-C
-125     CONTINUE
-C
-105     CONTINUE
-C
-C     END CONDITIONAL OVER HMLT TYPES
+        ENDDO
       ENDIF
 C
+504   CONTINUE
+C
 C**********************************************************************C
-C     ASSEMBLE THE CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)         C
+C     CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)                      C
 C**********************************************************************C
 C
-C     NON-RELATIVISTIC HAMILTONIAN
-      IF(HMLT.EQ.'NORL') THEN
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 601
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 601
 C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GXCH(LL)
-        IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 201
-        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 201
-        IF(NAL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS) 
+C     GXCH: (AD|CB) =         (AD|CB)
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS)
      &           +              XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-201     CONTINUE
-C
-C     RELATIVISTIC HAMILTONIAN
-      ELSE
-C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GXCH: NO PERMUTATION SYMMETRY EMPLOYED                         C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C
-C       MQN MAGNITUDE SELECTION RULE
-        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 202
-C
-C       MQN SIGN SELECTION RULE
-        IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 202
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-        IF(NAL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS)
-     &           +              XLLLL(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-        IF(NAL.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAL+IBAS,NDS+LBAS) = GXCH(NAL+IBAS,NDS+LBAS)
-     &           +              XLLSS(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-        IF(NAS.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAS+IBAS,NDS+LBAS) = GXCH(NAS+IBAS,NDS+LBAS)
+            GXCH(NAS+IBAS,NDS+LBAS) = GXCH(NAS+IBAS,NDS+LBAS)
      &           +              XSSSS(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
-            ENDDO
           ENDDO
-        ENDIF
-C
-212     CONTINUE
-C
-C       INTEGRALS BY VARIABLE SWAP
-        IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 222
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (CB|AD)
-        IF(NCL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NCL+KBAS,NBL+JBAS) = GXCH(NCL+KBAS,NBL+JBAS)
-     &           +              XLLLL(M)*DREAL(DENT(NAL+IBAS,NDL+LBAS))
-            ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,NDS+LBAS) = GXCH(NAL+IBAS,NDS+LBAS)
+     &           +              XLLSS(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
           ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (CB|AD)
-        IF(NCL.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NCL+KBAS,NBS+JBAS) = GXCH(NCL+KBAS,NBS+JBAS)
-     &           +              XSSLL(M)*DREAL(DENT(NAS+IBAS,NDL+LBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (CB|AD)
-        IF(NCS.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NCS+KBAS,NBS+JBAS) = GXCH(NCS+KBAS,NBS+JBAS)
-     &           +              XSSSS(M)*DREAL(DENT(NAS+IBAS,NDS+LBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-222     CONTINUE
-C
-202     CONTINUE
-C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GXCH: PERMUTATION SYMMETRY I⇄J         ONLY                    C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1IJ) GOTO 203
-C
-C       MQN MAGNITUDE SELECTION RULE
-        IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 203
-C
-C       MQN SIGN SELECTION RULE
-        IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
-C
-C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KQN(1).EQ.KQN(2)) GOTO 203
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-        IF(KBL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
-     &           +      PAB*    XLLLL(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-        IF(KBL.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KBL+JBAS,NDS+LBAS) = GXCH(KBL+JBAS,NDS+LBAS)
-     &           +      PAB*    XLLSS(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-        IF(KBS.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KBS+JBAS,NDS+LBAS) = GXCH(KBS+JBAS,NDS+LBAS)
-     &           +      PAB*    XSSSS(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-213     CONTINUE
-C
-C       INTEGRALS BY VARIABLE SWAP
-        IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 223
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (CA|BD)
-        IF(NCL.LE.KAL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NCL+KBAS,KAL+IBAS) = GXCH(NCL+KBAS,KAL+IBAS)
-     &           +      PAB*    XLLLL(M)*DREAL(DENT(KBL+JBAS,NDL+LBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (CA|BD)
-        IF(NCL.LT.KAS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NCL+KBAS,KAS+IBAS) = GXCH(NCL+KBAS,KAS+IBAS)
-     &           +      PAB*    XSSLL(M)*DREAL(DENT(KBS+JBAS,NDL+LBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (CA|BD)
-        IF(NCS.LE.KAS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NCS+KBAS,KAS+IBAS) = GXCH(NCS+KBAS,KAS+IBAS)
-     &           +      PAB*    XSSSS(M)*DREAL(DENT(KBS+JBAS,NDS+LBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-223     CONTINUE
-C
-203     CONTINUE
-C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GXCH: PERMUTATION SYMMETRY         K⇄L ONLY                    C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1KL) GOTO 204
-C
-C       MQN MAGNITUDE SELECTION RULE
-        IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 204
-C
-C       MQN SIGN SELECTION RULE
-        IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 204
-C
-C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KQN(3).EQ.KQN(4)) GOTO 204
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AC|DB)
-        IF(NAL.LE.KCL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAL+IBAS,KCL+KBAS) = GXCH(NAL+IBAS,KCL+KBAS)
-     &           +          PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AC|DB)
-        IF(NAL.LE.KCS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAL+IBAS,KCS+KBAS) = GXCH(NAL+IBAS,KCS+KBAS)
-     &           +          PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AC|DB)
-        IF(NAS.LE.KCS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAS+IBAS,KCS+KBAS) = GXCH(NAS+IBAS,KCS+KBAS)
-     &           +          PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-214     CONTINUE
-C
-C       INTEGRALS BY VARIABLE SWAP
-        IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 224
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (DB|AC)
-        IF(KDL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KDL+LBAS,NBL+JBAS) = GXCH(KDL+LBAS,NBL+JBAS)
-     &           +          PCD*XLLLL(M)*DREAL(DENT(NAL+IBAS,KCL+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (DB|AC)
-        IF(KDL.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KDL+LBAS,NBS+JBAS) = GXCH(KDL+LBAS,NBS+JBAS)
-     &           +          PCD*XSSLL(M)*DREAL(DENT(NAS+IBAS,KCL+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (DB|AC)
-        IF(KDS.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KDS+LBAS,NBS+JBAS) = GXCH(KDS+LBAS,NBS+JBAS)
-     &           +          PCD*XSSSS(M)*DREAL(DENT(NAS+IBAS,KCS+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-224     CONTINUE
-C
-204     CONTINUE
-C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C       GXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C
-C       MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-        IF(.NOT.PRM1IJ) GOTO 205
-        IF(.NOT.PRM1KL) GOTO 205
-C
-C       MQN MAGNITUDE SELECTION RULE
-        IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 205
-C
-C       MQN SIGN SELECTION RULE
-        IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 205
-C
-C       SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-        IF(KQN(1).EQ.KQN(2)) GOTO 205
-        IF(KQN(3).EQ.KQN(4)) GOTO 205
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (BC|DA)
-        IF(KBL.LE.KCL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KBL+JBAS,KCL+KBAS) = GXCH(KBL+JBAS,KCL+KBAS)
-     &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (BC|DA)
-        IF(KBL.LE.KCS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KBL+JBAS,KCS+KBAS) = GXCH(KBL+JBAS,KCS+KBAS)
-     &           +      PAB*PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KAL+IBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (BC|DA)
-        IF(KBS.LE.KCS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KBS+JBAS,KCS+KBAS) = GXCH(KBS+JBAS,KCS+KBAS)
-     &           +      PAB*PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-215     CONTINUE
-C
-C       INTEGRALS BY VARIABLE SWAP
-        IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 225
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (DA|BC)
-        IF(KDL.LE.KAL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KDL+LBAS,KAL+IBAS) = GXCH(KDL+LBAS,KAL+IBAS)
-     &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KBL+JBAS,KCL+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (DA|BC)
-        IF(KDL.LE.KAS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KDL+LBAS,KAS+IBAS) = GXCH(KDL+LBAS,KAS+IBAS)
-     &           +      PAB*PCD*XSSLL(M)*DREAL(DENT(KBS+JBAS,KCL+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (DA|BC)
-        IF(KDS.LE.KAS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(KDS+LBAS,KAS+IBAS) = GXCH(KDS+LBAS,KAS+IBAS)
-     &           +      PAB*PCD*XSSSS(M)*DREAL(DENT(KBS+JBAS,KCS+KBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-225     CONTINUE
-C
-205     CONTINUE
-C
-C     END CONDITIONAL OVER HMLT TYPES
+        ENDDO
       ENDIF
 C
-      IF(NOPN.EQ.0) GOTO 901
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 601
 C
-C**********************************************************************C
-C     ASSEMBLE THE OPEN-SHELL DIRECT COULOMB MATRIX (QDIR)             C
-C**********************************************************************C
-C
-C     NON-RELATIVISTIC HAMILTONIAN
-      IF(HMLT.EQ.'NORL') THEN
-C
-C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
-        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 301
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
-     &           + ACFF*        XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
-            ENDDO
+C     GXCH: (CB|AD) =         (AD|CB)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,NBL+JBAS) = GXCH(NCL+KBAS,NBL+JBAS)
+     &           +              XLLLL(M)*DREAL(DENT(NAL+IBAS,NDL+LBAS))
+            GXCH(NCS+KBAS,NBS+JBAS) = GXCH(NCS+KBAS,NBS+JBAS)
+     &           +              XSSSS(M)*DREAL(DENT(NAS+IBAS,NDS+LBAS))
           ENDDO
-        ENDIF
+        ENDDO
+      ENDIF
+      IF(NCL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,NBS+JBAS) = GXCH(NCL+KBAS,NBS+JBAS)
+     &           +              XSSLL(M)*DREAL(DENT(NAS+IBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
 C
-301     CONTINUE
+601   CONTINUE
 C
-C     RELATIVISTIC HAMILTONIAN
-      ELSE
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 602
 C
-C       OPEN-SHELL DIRECT MATRIX QDIR
-        IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 302
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 602
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 602
 C
-C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 602
+C
+C     GXCH: (BD|CA) = PAB*    (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
+            GXCH(KBS+JBAS,NDS+LBAS) = GXCH(KBS+JBAS,NDS+LBAS)
+     &           +      PAB*    XSSSS(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,NDS+LBAS) = GXCH(KBL+JBAS,NDS+LBAS)
+     &           +      PAB*    XLLSS(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 602
+C
+C     GXCH: (CA|BD) = PAB*    (AD|CB)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,KAL+IBAS) = GXCH(NCL+KBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)*DREAL(DENT(KBL+JBAS,NDL+LBAS))
+            GXCH(NCS+KBAS,KAS+IBAS) = GXCH(NCS+KBAS,KAS+IBAS)
+     &           +      PAB*    XSSSS(M)*DREAL(DENT(KBS+JBAS,NDS+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LT.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,KAS+IBAS) = GXCH(NCL+KBAS,KAS+IBAS)
+     &           +      PAB*    XSSLL(M)*DREAL(DENT(KBS+JBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+602   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 603
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 603
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 603
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 603
+C
+C     GXCH: (AC|DB) =     PCD*(AD|CB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,KCL+KBAS) = GXCH(NAL+IBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
+            GXCH(NAS+IBAS,KCS+KBAS) = GXCH(NAS+IBAS,KCS+KBAS)
+     &           +          PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,KCS+KBAS) = GXCH(NAL+IBAS,KCS+KBAS)
+     &           +          PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 603
+C
+C     GXCH: (DB|AC) =     PCD*(AD|CB)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,NBL+JBAS) = GXCH(KDL+LBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)*DREAL(DENT(NAL+IBAS,KCL+KBAS))
+            GXCH(KDS+LBAS,NBS+JBAS) = GXCH(KDS+LBAS,NBS+JBAS)
+     &           +          PCD*XSSSS(M)*DREAL(DENT(NAS+IBAS,KCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,NBS+JBAS) = GXCH(KDL+LBAS,NBS+JBAS)
+     &           +          PCD*XSSLL(M)*DREAL(DENT(NAS+IBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+603   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 604
+      IF(.NOT.PRM1KL) GOTO 604
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 604
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 604
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 604
+      IF(KQN(3).EQ.KQN(4)) GOTO 604
+C
+C     GXCH: (BC|DA) = PAB*PCD*(AD|CB)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,KCL+KBAS) = GXCH(KBL+JBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
+            GXCH(KBS+JBAS,KCS+KBAS) = GXCH(KBS+JBAS,KCS+KBAS)
+     &           +      PAB*PCD*XSSSS(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,KCS+KBAS) = GXCH(KBL+JBAS,KCS+KBAS)
+     &           +      PAB*PCD*XLLSS(M)*DREAL(DENT(KDS+LBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 604
+C
+C     GXCH: (DA|BC) = PAB*PCD*(AD|CB)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,KAL+IBAS) = GXCH(KDL+LBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)*DREAL(DENT(KBL+JBAS,KCL+KBAS))
+            GXCH(KDS+LBAS,KAS+IBAS) = GXCH(KDS+LBAS,KAS+IBAS)
+     &           +      PAB*PCD*XSSSS(M)*DREAL(DENT(KBS+JBAS,KCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,KAS+IBAS) = GXCH(KDL+LBAS,KAS+IBAS)
+     &           +      PAB*PCD*XSSLL(M)*DREAL(DENT(KBS+JBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+604   CONTINUE
+C
+      IF(NOPN.NE.0) RETURN
+C
+C**********************************************************************C
+C     CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)                        C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 701
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 701
+C
+C     GDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
      &           + ACFF*        XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
      &           + ACFF*        XLLSS(M)*DREAL(DENO(NCS+KBAS,NDS+LBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(SS)
-        IF(NAS.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QDIR(NAS+IBAS,NBS+JBAS) = QDIR(NAS+IBAS,NBS+JBAS)
+            QDIR(NAS+IBAS,NBS+JBAS) = QDIR(NAS+IBAS,NBS+JBAS)
      &           + ACFF*        XSSLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
      &           + ACFF*        XSSSS(M)*DREAL(DENO(NCS+KBAS,NDS+LBAS))
-            ENDDO
           ENDDO
-        ENDIF
-C
-302     CONTINUE
-C
-C     END CONDITIONAL OVER HMLT TYPES
+        ENDDO
       ENDIF
 C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 701
+C
+C     QDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NCL+KBAS,NDL+LBAS) = QDIR(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*        XLLLL(M)*DREAL(DENO(NAL+IBAS,NBL+JBAS))
+     &           + ACFF*        XSSLL(M)*DREAL(DENO(NAS+IBAS,NBS+JBAS))
+            QDIR(NCS+KBAS,NDS+LBAS) = QDIR(NCS+KBAS,NDS+LBAS)
+     &           + ACFF*        XLLSS(M)*DREAL(DENO(NAL+IBAS,NBL+JBAS))
+     &           + ACFF*        XSSSS(M)*DREAL(DENO(NAS+IBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+701   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 702
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 702
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 702
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 712
+C
+C     QDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KBL+JBAS,KAL+IBAS) = QDIR(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*    XLLLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+     &           + ACFF*PAB*    XLLSS(M)*DREAL(DENO(NCS+KBAS,NDS+LBAS))
+            QDIR(KBS+JBAS,KAS+IBAS) = QDIR(KBS+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*    XSSLL(M)*DREAL(DENO(NCL+KBAS,NDL+LBAS))
+     &           + ACFF*PAB*    XSSSS(M)*DREAL(DENO(NCS+KBAS,NDS+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+712   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 702
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 702
+C
+C     QDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NCL+KBAS,NDL+LBAS) = QDIR(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*PAB*    XLLLL(M)*DREAL(DENO(KBL+JBAS,KAL+IBAS))
+     &           + ACFF*PAB*    XSSLL(M)*DREAL(DENO(KBS+JBAS,KAS+IBAS))
+            QDIR(NCS+KBAS,NDS+LBAS) = QDIR(NCS+KBAS,NDS+LBAS)
+     &           + ACFF*PAB*    XLLSS(M)*DREAL(DENO(KBL+JBAS,KAL+IBAS))
+     &           + ACFF*PAB*    XSSSS(M)*DREAL(DENO(KBS+JBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+702   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 703
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 703
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 703
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 713
+C
+C     QDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*    PCD*XLLLL(M)*DREAL(DENO(KDL+LBAS,KCL+KBAS))
+     &           + ACFF*    PCD*XLLSS(M)*DREAL(DENO(KDS+LBAS,KCS+KBAS))
+            QDIR(NAS+IBAS,NBS+JBAS) = QDIR(NAS+IBAS,NBS+JBAS)
+     &           + ACFF*    PCD*XSSLL(M)*DREAL(DENO(KDL+LBAS,KCL+KBAS))
+     &           + ACFF*    PCD*XSSSS(M)*DREAL(DENO(KDS+LBAS,KCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+713   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 703
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 703
+C
+C     QDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KDL+LBAS,KCL+KBAS) = QDIR(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*    PCD*XLLLL(M)*DREAL(DENO(NAL+IBAS,NBL+JBAS))
+     &           + ACFF*    PCD*XSSLL(M)*DREAL(DENO(NAS+IBAS,NBS+JBAS))
+            QDIR(KDS+LBAS,KCS+KBAS) = QDIR(KDS+LBAS,KCS+KBAS)
+     &           + ACFF*    PCD*XLLSS(M)*DREAL(DENO(NAL+IBAS,NBL+JBAS))
+     &           + ACFF*    PCD*XSSSS(M)*DREAL(DENO(NAS+IBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+703   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 704
+      IF(.NOT.PRM1KL) GOTO 704
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 704
+      IF(KQN(3).EQ.KQN(4)) GOTO 704
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 704
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 704
+C
+C     QDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KBL+JBAS,KAL+IBAS) = QDIR(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*PCD*XLLLL(M)*DREAL(DENO(KDL+LBAS,KCL+KBAS))
+     &           + ACFF*PAB*PCD*XLLSS(M)*DREAL(DENO(KDS+LBAS,KCS+KBAS))
+            QDIR(KBS+JBAS,KAS+IBAS) = QDIR(KBS+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*PCD*XSSLL(M)*DREAL(DENO(KDL+LBAS,KCL+KBAS))
+     &           + ACFF*PAB*PCD*XSSSS(M)*DREAL(DENO(KDS+LBAS,KCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 704
+C
+C     QDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KDL+LBAS,KCL+KBAS) = QDIR(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*PAB*PCD*XLLLL(M)*DREAL(DENO(KBL+JBAS,KAL+IBAS))
+     &           + ACFF*PAB*PCD*XSSLL(M)*DREAL(DENO(KBS+JBAS,KAS+IBAS))
+            QDIR(KDS+LBAS,KCS+KBAS) = QDIR(KDS+LBAS,KCS+KBAS)
+     &           + ACFF*PAB*PCD*XLLSS(M)*DREAL(DENO(KBL+JBAS,KAL+IBAS))
+     &           + ACFF*PAB*PCD*XSSSS(M)*DREAL(DENO(KBS+JBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+704   CONTINUE
+C
 C**********************************************************************C
-C     ASSEMBLE THE OPEN-SHELL EXCHANGE COULOMB MATRIX (QXCH)           C
+C     OPEN-SHELL EXCHANGE COULOMB MATRIX (QXCH)                        C
 C**********************************************************************C
 C
-C     NON-RELATIVISTIC HAMILTONIAN
-      IF(HMLT.EQ.'NORL') THEN
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 801
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 801
 C
-C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
-        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 401
-        IF(NAL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
+C     QXCH: (AD|CB) =         (AD|CB)
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
      &           + BCFF*        XLLLL(M)*DREAL(DENO(NCL+KBAS,NBL+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-401     CONTINUE
-C
-C     RELATIVISTIC HAMILTONIAN
-      ELSE
-C
-C       OPEN-SHELL EXCHANGE MATRIX GXCH
-        IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 402
-C
-C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
-        IF(NAL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
-     &           + BCFF*        XLLLL(M)*DREAL(DENO(NCL+KBAS,NBL+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LS)
-        IF(NAL.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QXCH(NAL+IBAS,NDS+LBAS) = QXCH(NAL+IBAS,NDS+LBAS)
-     &           + BCFF*        XLLSS(M)*DREAL(DENO(NCS+KBAS,NBL+JBAS))
-            ENDDO
-          ENDDO
-        ENDIF
-CC
-CC       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SL)
-C        IF(NAS.LE.NDL) THEN
-C          M = 0
-C          DO KBAS=1,NBAS(3)
-C            DO LBAS=1,NBAS(4)
-C              M = M+1
-C              QXCH(NAS+IBAS,NDL+LBAS) = QXCH(NAS+IBAS,NDL+LBAS)
-C     &           + BCFF*        XSSLL(M)*DREAL(DENO(NCL+KBAS,NBS+JBAS))
-C            ENDDO
-C          ENDDO
-C        ENDIF
-CC
-C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SS)
-        IF(NAS.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QXCH(NAS+IBAS,NDS+LBAS) = QXCH(NAS+IBAS,NDS+LBAS)
+            QXCH(NAS+IBAS,NDS+LBAS) = QXCH(NAS+IBAS,NDS+LBAS)
      &           + BCFF*        XSSSS(M)*DREAL(DENO(NCS+KBAS,NBS+JBAS))
-            ENDDO
           ENDDO
-        ENDIF
-C
-402     CONTINUE
-C
-C     END CONDITIONAL OVER HMLT TYPES
+        ENDDO
+      ENDIF
+      IF(NAL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,NDS+LBAS) = QXCH(NAL+IBAS,NDS+LBAS)
+     &           + BCFF*        XLLSS(M)*DREAL(DENO(NCS+KBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
       ENDIF
 C
-C     END CONDITIONAL FOR OPEN-SHELL SYSTEM
-901   CONTINUE
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 801
+C
+C     QXCH: (CB|AD) =         (AD|CB)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,NBL+JBAS) = QXCH(NCL+KBAS,NBL+JBAS)
+     &           + BCFF*        XLLLL(M)*DREAL(DENO(NAL+IBAS,NDL+LBAS))
+            QXCH(NCS+KBAS,NBS+JBAS) = QXCH(NCS+KBAS,NBS+JBAS)
+     &           + BCFF*        XSSSS(M)*DREAL(DENO(NAS+IBAS,NDS+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,NBS+JBAS) = QXCH(NCL+KBAS,NBS+JBAS)
+     &           + BCFF*        XSSLL(M)*DREAL(DENO(NAS+IBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+801   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 802
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 802
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 802
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 802
+C
+C     QXCH: (BD|CA) = PAB*    (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,NDL+LBAS) = QXCH(KBL+JBAS,NDL+LBAS)
+     &           + BCFF*PAB*    XLLLL(M)*DREAL(DENO(NCL+KBAS,KAL+IBAS))
+            QXCH(KBS+JBAS,NDS+LBAS) = QXCH(KBS+JBAS,NDS+LBAS)
+     &           + BCFF*PAB*    XSSSS(M)*DREAL(DENO(NCS+KBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,NDS+LBAS) = QXCH(KBL+JBAS,NDS+LBAS)
+     &           + BCFF*PAB*    XLLSS(M)*DREAL(DENO(NCS+KBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 802
+C
+C     QXCH: (CA|BD) = PAB*    (AD|CB)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,KAL+IBAS) = QXCH(NCL+KBAS,KAL+IBAS)
+     &           + BCFF*PAB*    XLLLL(M)*DREAL(DENO(KBL+JBAS,NDL+LBAS))
+            QXCH(NCS+KBAS,KAS+IBAS) = QXCH(NCS+KBAS,KAS+IBAS)
+     &           + BCFF*PAB*    XSSSS(M)*DREAL(DENO(KBS+JBAS,NDS+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LT.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,KAS+IBAS) = QXCH(NCL+KBAS,KAS+IBAS)
+     &           + BCFF*PAB*    XSSLL(M)*DREAL(DENO(KBS+JBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+802   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 803
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 803
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 803
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 803
+C
+C     QXCH: (AC|DB) =     PCD*(AD|CB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,KCL+KBAS) = QXCH(NAL+IBAS,KCL+KBAS)
+     &           + BCFF*    PCD*XLLLL(M)*DREAL(DENO(KDL+LBAS,NBL+JBAS))
+            QXCH(NAS+IBAS,KCS+KBAS) = QXCH(NAS+IBAS,KCS+KBAS)
+     &           + BCFF*    PCD*XSSSS(M)*DREAL(DENO(KDS+LBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,KCS+KBAS) = QXCH(NAL+IBAS,KCS+KBAS)
+     &           + BCFF*    PCD*XLLSS(M)*DREAL(DENO(KDS+LBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 803
+C
+C     QXCH: (DB|AC) =     PCD*(AD|CB)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,NBL+JBAS) = QXCH(KDL+LBAS,NBL+JBAS)
+     &           + BCFF*    PCD*XLLLL(M)*DREAL(DENO(NAL+IBAS,KCL+KBAS))
+            QXCH(KDS+LBAS,NBS+JBAS) = QXCH(KDS+LBAS,NBS+JBAS)
+     &           + BCFF*    PCD*XSSSS(M)*DREAL(DENO(NAS+IBAS,KCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,NBS+JBAS) = QXCH(KDL+LBAS,NBS+JBAS)
+     &           + BCFF*    PCD*XSSLL(M)*DREAL(DENO(NAS+IBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+803   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 804
+      IF(.NOT.PRM1KL) GOTO 804
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 804
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 804
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 804
+      IF(KQN(3).EQ.KQN(4)) GOTO 804
+C
+C     QXCH: (BC|DA) = PAB*PCD*(AD|CB)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,KCL+KBAS) = QXCH(KBL+JBAS,KCL+KBAS)
+     &           + BCFF*PAB*PCD*XLLLL(M)*DREAL(DENO(KDL+LBAS,KAL+IBAS))
+            QXCH(KBS+JBAS,KCS+KBAS) = QXCH(KBS+JBAS,KCS+KBAS)
+     &           + BCFF*PAB*PCD*XSSSS(M)*DREAL(DENO(KDS+LBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,KCS+KBAS) = QXCH(KBL+JBAS,KCS+KBAS)
+     &           + BCFF*PAB*PCD*XLLSS(M)*DREAL(DENO(KDS+LBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 804
+C
+C     QXCH: (DA|BC) = PAB*PCD*(AD|CB)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,KAL+IBAS) = QXCH(KDL+LBAS,KAL+IBAS)
+     &           + BCFF*PAB*PCD*XLLLL(M)*DREAL(DENO(KBL+JBAS,KCL+KBAS))
+            QXCH(KDS+LBAS,KAS+IBAS) = QXCH(KDS+LBAS,KAS+IBAS)
+     &           + BCFF*PAB*PCD*XSSSS(M)*DREAL(DENO(KBS+JBAS,KCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,KAS+IBAS) = QXCH(KDL+LBAS,KAS+IBAS)
+     &           + BCFF*PAB*PCD*XSSLL(M)*DREAL(DENO(KBS+JBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+804   CONTINUE
 C
       RETURN
       END
@@ -23048,17 +23687,10 @@ C                                                                      C
 C -------------------------------------------------------------------- C
 C  CLMMT1G ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
 C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
-C -------------------------------------------------------------------- C
-C  INTEGRAL PERMUTATION BOOLEANS (TRIGGERED IN COULOMB1) CANNOT YET    C
-C  BE HANDLED BY THIS ROUTINE, SO MAKE SURE THEY'RE ALL SET TO FALSE   C
-C  IF YOU'RE HANDLING A NON-AXIAL MOLECULE. BETTER YET, YOU COULD GO   C
-C  AND IMPLEMENT THE PERMUTATION HANDLING IN CLMMT1Z FOR THIS ROUTINE  C
-C  -- SHOULD BE EASY ENOUGH TO DO, IF YOU KEEP YOUR WITS ABOUT YOU.    C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
 C
-      DIMENSION ISCF(11,6),IFLG(11)
       DIMENSION XLLLL(MB2),XSSLL(MB2),XLLSS(MB2),XSSSS(MB2)
 C
       COMPLEX*16 DENC(MDM,MDM),DENO(MDM,MDM),DENT(MDM,MDM)
@@ -23070,6 +23702,9 @@ C
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/BDIM/NDIM,NSKP,NOCC,NVRT
+      COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
+     &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/DENS/DENC,DENO,DENT
       COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
      &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
@@ -23078,349 +23713,1568 @@ C
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
 C
-C     ISCF TELLS WHICH INTEGRALS TO INCLUDE BASED ON OVERLAP COMBINATION
-      DATA ISCF/1,1,1,1,1,1,1,1,0,0,0,
-     &          1,1,0,0,1,1,1,0,0,0,0,
-     &          1,0,1,1,1,0,1,0,0,0,0,
-     &          1,1,1,0,1,1,0,0,0,0,0,
-     &          1,0,1,0,1,0,0,0,0,0,0,
-     &          1,0,0,0,1,0,0,0,0,0,0/
-C
-C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
-      IF(SHAPE.EQ.'ATOMIC') THEN
-        ISYM = 2
-      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
-        ISYM = 1
-      ELSE
-        ISYM = 0
-      ENDIF
-C
-C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
-      IF(ISYM.NE.0) THEN
-        WRITE(6,*) 'In CLMMT1G: you probably should be using CLMMT1Z.'
-        WRITE(7,*) 'In CLMMT1G: you probably should be using CLMMT1Z.'
-      ENDIF
-C
-C     NON-RELATIVISTIC HAMILTONIAN
-      IF(HMLT.EQ.'NORL') THEN
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
-     &                          +      XLLLL(M)*DENT(NCL+KBAS,NDL+LBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GXCH(LL)
-        IF(NAL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS) 
-     &                          +      XLLLL(M)*DENT(NCL+KBAS,NBL+JBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C     RELATIVISTIC HAMILTONIAN
-      ELSE
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)  --  (AB|CD)
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
-     &                          +      XLLLL(M)*DENT(NCL+KBAS,NDL+LBAS)
-     &                          +      XLLSS(M)*DENT(NCS+KBAS,NDS+LBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(SS)  --  (AB|CD)
-        IF(NAS.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
-     &                          +      XSSLL(M)*DENT(NCL+KBAS,NDL+LBAS)
-     &                          +      XSSSS(M)*DENT(NCS+KBAS,NDS+LBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-        IF(.NOT.PRM1IJ) GOTO 6900
-        GOTO 6900
-C
-C       PERMUTATION BLOCK  A <-> B
-        IF(KA.GT.KB.AND.IQ1.GT.IQ2) THEN
-        
-C          IF(IBAS.EQ.1.AND.JBAS.EQ.1) THEN
-C            WRITE(*,*) 'TRIGGER'
-C          ENDIF
-C
-          IF(NBL.LT.NAL) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GDIR(NBL+JBAS,NAL+IBAS) = GDIR(NBL+JBAS,NAL+IBAS)
-     &                          +      XLLLL(M)*DENT(NCL+KBAS,NDL+LBAS)
-     &                          +      XLLSS(M)*DENT(NCS+KBAS,NDS+LBAS)
-              ENDDO
-            ENDDO
-          ENDIF
-
-          IF(NBS.LT.NAS) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GDIR(NBS+JBAS,NAS+IBAS) = GDIR(NBS+JBAS,NAS+IBAS)
-     &                          +      XSSLL(M)*DENT(NCL+KBAS,NDL+LBAS)
-     &                          +      XSSSS(M)*DENT(NCS+KBAS,NDS+LBAS)
-              ENDDO
-            ENDDO
-          ENDIF
-        
-        ENDIF
-6900    CONTINUE
-C
-C       CLOSED-SHELL EXCHANGE MATRIX GXCH
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-        IF(NAL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS)
-     &                          +      XLLLL(M)*DENT(NCL+KBAS,NBL+JBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-        IF(NAL.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAL+IBAS,NDS+LBAS) = GXCH(NAL+IBAS,NDS+LBAS)
-     &                          +      XLLSS(M)*DENT(NCS+KBAS,NBL+JBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-CC
-CC       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C        IF(NAS.LE.NDL) THEN
-C          M = 0
-C          DO KBAS=1,NBAS(3)
-C            DO LBAS=1,NBAS(4)
-C              M = M+1
-C              GXCH(NAS+IBAS,NDL+LBAS) = GXCH(NAS+IBAS,NDL+LBAS)
-C     &                          +      XSSLL(M)*DENT(NCL+KBAS,NBS+JBAS)
-C            ENDDO
-C          ENDDO
-C        ENDIF
-C
-C       CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-        IF(NAS.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              GXCH(NAS+IBAS,NDS+LBAS) = GXCH(NAS+IBAS,NDS+LBAS)
-     &                          +      XSSSS(M)*DENT(NCS+KBAS,NBS+JBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-        IF(.NOT.PRM1IJ) GOTO 6901
-C       GOTO 6901
-C
-C       PERMUTATION BLOCK  A <-> B
-C        IF(IQ1.GT.IQ2) THEN
-C          WRITE(*,*) 'HERE?'
-C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
-          IF(NBL.LT.NDL) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NDL+LBAS) = GXCH(NBL+JBAS,NDL+LBAS)
-     &                          +      XLLLL(M)*DENT(NCL+KBAS,NAL+IBAS)
-              ENDDO
-            ENDDO
-          ENDIF
-C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LS)  --  (AD|CB)
-          IF(NBL.LT.NDS) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBL+JBAS,NDS+LBAS) = GXCH(NBL+JBAS,NDS+LBAS)
-     &                          +      XLLSS(M)*DENT(NCS+KBAS,NAL+IBAS)
-              ENDDO
-            ENDDO
-          ENDIF
-CC
-CC         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SL)  --  (AD|CB)
-C          IF(NBS.LT.NDL) THEN
-C            M = 0
-C            DO KBAS=1,NBAS(3)
-C              DO LBAS=1,NBAS(4)
-C                M = M+1
-C                GXCH(NBS+JBAS,NDL+LBAS) = GXCH(NBS+JBAS,NDL+LBAS)
-C     &                          +      XSSLL(M)*DENT(NCL+KBAS,NAS+IBAS)
-C              ENDDO
-C            ENDDO
-C          ENDIF
-C
-C         CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(SS)  --  (AD|CB)
-          IF(NBS.LT.NDS) THEN
-            M = 0
-            DO KBAS=1,NBAS(3)
-              DO LBAS=1,NBAS(4)
-                M = M+1
-                GXCH(NBS+JBAS,NDS+LBAS) = GXCH(NBS+JBAS,NDS+LBAS)
-     &                          +      XSSSS(M)*DENT(NCS+KBAS,NAS+IBAS)
-              ENDDO
-            ENDDO
-          ENDIF
-        
-C        ENDIF
-6901    CONTINUE
-C
-      ENDIF
+C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
+      MMJA = MQN(1)*((-1)**MMA)
+      MMJB = MQN(2)*((-1)**MMB)
+      MMJC = MQN(3)*((-1)**MMC)
+      MMJD = MQN(4)*((-1)**MMD)
 C
 C**********************************************************************C
-C     ADD THIS BATCH OF R-INTEGRALS TO OPEN-SHELL COULOMB MATRIX       C
+C     SPECIAL CODE: NON-RELATIVISTIC HAMILTONIAN                       C
+C -------------------------------------------------------------------- C
+C     CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)                        C
 C**********************************************************************C
 C
-      IF(NOPN.EQ.0) GOTO 6100
-C
 C     NON-RELATIVISTIC HAMILTONIAN
-      IF(HMLT.EQ.'NORL') THEN
+      IF(HMLT.NE.'NORL') GOTO 1000
 C
-C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
-     &                          + ACFF*XLLLL(M)*DENO(NCL+KBAS,NDL+LBAS)
-            ENDDO
+C     CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
+C     IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 101
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 101
+C
+C     GDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &           +              XLLLL(M)      *DENT(NCL+KBAS,NDL+LBAS)
           ENDDO
-        ENDIF
-C
-C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
-        IF(NAL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
-     &                          + BCFF*XLLLL(M)*DENO(NCL+KBAS,NBL+JBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C     RELATIVISTIC HAMILTONIAN
-      ELSE
-C
-C       OPEN-SHELL DIRECT MATRIX QDIR
-C
-C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(LL)
-        IF(NAL.LE.NBL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
-     &                          + ACFF*XLLLL(M)*DENO(NCL+KBAS,NDL+LBAS)
-     &                          + ACFF*XLLSS(M)*DENO(NCS+KBAS,NDS+LBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       OPEN-SHELL DIRECT MATRIX BLOCK QDIR(SS)
-        IF(NAS.LE.NBS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QDIR(NAS+IBAS,NBS+JBAS) = QDIR(NAS+IBAS,NBS+JBAS)
-     &                          + ACFF*XSSLL(M)*DENO(NCL+KBAS,NDL+LBAS)
-     &                          + ACFF*XSSSS(M)*DENO(NCS+KBAS,NDS+LBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       OPEN-SHELL EXCHANGE MATRIX GXCH
-C
-C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)
-        IF(NAL.LE.NDL) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
-     &                          + BCFF*XLLLL(M)*DENO(NCL+KBAS,NBL+JBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
-C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(LS)
-        IF(NAL.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QXCH(NAL+IBAS,NDS+LBAS) = QXCH(NAL+IBAS,NDS+LBAS)
-     &                          + BCFF*XLLSS(M)*DENO(NCS+KBAS,NBL+JBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-CC
-CC       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SL)
-C        IF(NAS.LE.NDL) THEN
-C          M = 0
-C          DO KBAS=1,NBAS(3)
-C            DO LBAS=1,NBAS(4)
-C              M = M+1
-C              QXCH(NAS+IBAS,NDL+LBAS) = QXCH(NAS+IBAS,NDL+LBAS)
-C     &                          + BCFF*XSSLL(M)*DENO(NCL+KBAS,NBS+JBAS)
-C            ENDDO
-C          ENDDO
-C        ENDIF
-CC
-C       OPEN-SHELL EXCHANGE MATRIX BLOCK QXCH(SS)
-        IF(NAS.LE.NDS) THEN
-          M = 0
-          DO KBAS=1,NBAS(3)
-            DO LBAS=1,NBAS(4)
-              M = M+1
-              QXCH(NAS+IBAS,NDS+LBAS) = QXCH(NAS+IBAS,NDS+LBAS)
-     &                          + BCFF*XSSSS(M)*DENO(NCS+KBAS,NBS+JBAS)
-            ENDDO
-          ENDDO
-        ENDIF
-C
+        ENDDO
       ENDIF
 C
-6100  CONTINUE
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 101
+C
+C     GDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
+     &           +              XLLLL(M)      *DENT(NAL+IBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+101   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 102
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 102
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 102
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 112
+C
+C     GDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)      *DENT(NCL+KBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+112   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 102
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 102
+C
+C     GDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)      *DENT(KBL+JBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+102   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 103
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 103
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 103
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 113
+C
+C     GDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)      *DENT(KDL+LBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+113   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 103
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 103
+C
+C     GDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)      *DENT(NAL+IBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+103   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 104
+      IF(.NOT.PRM1KL) GOTO 104
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 104
+      IF(KQN(3).EQ.KQN(4)) GOTO 104
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 104
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 104
+C
+C     GDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENT(KDL+LBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 104
+C
+C     GDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENT(KBL+JBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+104   CONTINUE
+C
+C**********************************************************************C
+C     CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)                      C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 201
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 201
+C
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS) 
+     &           +              XLLLL(M)      *DENT(NCL+KBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 201
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (CB|AD)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,NBL+JBAS) = GXCH(NCL+KBAS,NBL+JBAS)
+     &           +              XLLLL(M)      *DENT(NAL+IBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+201   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 202
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 202
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 202
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 202
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)      *DENT(NCL+KBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 202
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (CA|BD)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,KAL+IBAS) = GXCH(NCL+KBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)      *DENT(KBL+JBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+202   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 203
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 203
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 203
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 203
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (AC|DB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,KCL+KBAS) = GXCH(NAL+IBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)      *DENT(KDL+LBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 203
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (DB|AC)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,NBL+JBAS) = GXCH(KDL+LBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)      *DENT(NAL+IBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+203   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 204
+      IF(.NOT.PRM1KL) GOTO 204
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 204
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 204
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 204
+      IF(KQN(3).EQ.KQN(4)) GOTO 204
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (BC|DA)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,KCL+KBAS) = GXCH(KBL+JBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENT(KDL+LBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 204
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK GXCH(LL)  --  (DA|BC)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,KAL+IBAS) = GXCH(KDL+LBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENT(KBL+JBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+204   CONTINUE
+C
+      IF(NOPN.NE.0) RETURN
+C
+C**********************************************************************C
+C     OPEN-SHELL DIRECT COULOMB MATRIX (QDIR)                          C
+C**********************************************************************C
+C
+C     CLOSED-SHELL DIRECT MATRIX BLOCK GDIR(LL)
+C     IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 301
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 301
+C
+C     GDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*        XLLLL(M)      *DENO(NCL+KBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 301
+C
+C     QDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NCL+KBAS,NDL+LBAS) = QDIR(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*        XLLLL(M)      *DENO(NAL+IBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+301   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 302
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 302
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 302
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 312
+C
+C     QDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KBL+JBAS,KAL+IBAS) = QDIR(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*    XLLLL(M)      *DENO(NCL+KBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+312   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 302
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 302
+C
+C     QDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NCL+KBAS,NDL+LBAS) = QDIR(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*PAB*    XLLLL(M)      *DENO(KBL+JBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+302   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 303
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 303
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 303
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 303
+C
+C     QDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*    PCD*XLLLL(M)      *DENO(KDL+LBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 303
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 303
+C
+C     QDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KDL+LBAS,KCL+KBAS) = QDIR(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*    PCD*XLLLL(M)      *DENO(NAL+IBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+303   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 304
+      IF(.NOT.PRM1KL) GOTO 304
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 304
+      IF(KQN(3).EQ.KQN(4)) GOTO 304
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 304
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 304
+C
+C     QDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KBL+JBAS,KAL+IBAS) = QDIR(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*PCD*XLLLL(M)      *DENO(KDL+LBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 304
+C
+C     QDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KDL+LBAS,KCL+KBAS) = QDIR(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*PAB*PCD*XLLLL(M)      *DENO(KBL+JBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+304   CONTINUE
+C
+C**********************************************************************C
+C     OPEN-SHELL EXCHANGE COULOMB MATRIX (QXCH)                        C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 401
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 401
+C
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS) 
+     &           +              XLLLL(M)      *DENO(NCL+KBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 401
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (CB|AD)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,NBL+JBAS) = QXCH(NCL+KBAS,NBL+JBAS)
+     &           +              XLLLL(M)      *DENO(NAL+IBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+401   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 402
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 402
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 402
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 402
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,NDL+LBAS) = QXCH(KBL+JBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)      *DENO(NCL+KBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 402
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (CA|BD)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,KAL+IBAS) = QXCH(NCL+KBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)      *DENO(KBL+JBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+402   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 403
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 403
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 403
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 403
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (AC|DB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,KCL+KBAS) = QXCH(NAL+IBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)      *DENO(KDL+LBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 403
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (DB|AC)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,NBL+JBAS) = QXCH(KDL+LBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)      *DENO(NAL+IBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+403   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 404
+      IF(.NOT.PRM1KL) GOTO 404
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 404
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 404
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 404
+      IF(KQN(3).EQ.KQN(4)) GOTO 404
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (BC|DA)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,KCL+KBAS) = QXCH(KBL+JBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENO(KDL+LBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 404
+C
+C     CLOSED-SHELL EXCHANGE MATRIX BLOCK QXCH(LL)  --  (DA|BC)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,KAL+IBAS) = QXCH(KDL+LBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENO(KBL+JBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+404   CONTINUE
+C
+C     NON-RELATIVISTIC MATRIX CONTRIBUTIONS COMPLETE
+      RETURN
+C
+C     SKIP POINT FOR RELATIVISTIC HAMILTONIANS
+1000  CONTINUE
+C
+C**********************************************************************C
+C     REGULAR CODE: RELATIVISTIC HAMILTONIAN                           C
+C -------------------------------------------------------------------- C
+C     CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)                        C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 501
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 501
+C
+C     GDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &           +              XLLLL(M)      *DENT(NCL+KBAS,NDL+LBAS)
+     &           +              XLLSS(M)      *DENT(NCS+KBAS,NDS+LBAS)
+            GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+     &           +              XSSLL(M)      *DENT(NCL+KBAS,NDL+LBAS)
+     &           +              XSSSS(M)      *DENT(NCS+KBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 501
+C
+C     GDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
+     &           +              XLLLL(M)      *DENT(NAL+IBAS,NBL+JBAS)
+     &           +              XSSLL(M)      *DENT(NAS+IBAS,NBS+JBAS)
+            GDIR(NCS+KBAS,NDS+LBAS) = GDIR(NCS+KBAS,NDS+LBAS)
+     &           +              XLLSS(M)      *DENT(NAL+IBAS,NBL+JBAS)
+     &           +              XSSSS(M)      *DENT(NAS+IBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+501   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 502
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 502
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 502
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 512
+C
+C     GDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)      *DENT(NCL+KBAS,NDL+LBAS)
+     &           +      PAB*    XLLSS(M)      *DENT(NCS+KBAS,NDS+LBAS)
+            GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
+     &           +      PAB*    XSSLL(M)      *DENT(NCL+KBAS,NDL+LBAS)
+     &           +      PAB*    XSSSS(M)      *DENT(NCS+KBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+512   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 502
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 502
+C
+C     GDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NCL+KBAS,NDL+LBAS) = GDIR(NCL+KBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)      *DENT(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*    XSSLL(M)      *DENT(KBS+JBAS,KAS+IBAS)
+            GDIR(NCS+KBAS,NDS+LBAS) = GDIR(NCS+KBAS,NDS+LBAS)
+     &           +      PAB*    XLLSS(M)      *DENT(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*    XSSSS(M)      *DENT(KBS+JBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+502   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 503
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 503
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 503
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 513
+C
+C     GDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(NAL+IBAS,NBL+JBAS) = GDIR(NAL+IBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)      *DENT(KDL+LBAS,KCL+KBAS)
+     &           +          PCD*XLLSS(M)      *DENT(KDS+LBAS,KCS+KBAS)
+            GDIR(NAS+IBAS,NBS+JBAS) = GDIR(NAS+IBAS,NBS+JBAS)
+     &           +          PCD*XSSLL(M)      *DENT(KDL+LBAS,KCL+KBAS)
+     &           +          PCD*XSSSS(M)      *DENT(KDS+LBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+513   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 503
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 503
+C
+C     GDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)      *DENT(NAL+IBAS,NBL+JBAS)
+     &           +          PCD*XSSLL(M)      *DENT(NAS+IBAS,NBS+JBAS)
+            GDIR(KDS+LBAS,KCS+KBAS) = GDIR(KDS+LBAS,KCS+KBAS)
+     &           +          PCD*XLLSS(M)      *DENT(NAL+IBAS,NBL+JBAS)
+     &           +          PCD*XSSSS(M)      *DENT(NAS+IBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+503   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 504
+      IF(.NOT.PRM1KL) GOTO 504
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 504
+      IF(KQN(3).EQ.KQN(4)) GOTO 504
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 504
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 504
+C
+C     GDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KBL+JBAS,KAL+IBAS) = GDIR(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENT(KDL+LBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLSS(M)      *DENT(KDS+LBAS,KCS+KBAS)
+            GDIR(KBS+JBAS,KAS+IBAS) = GDIR(KBS+JBAS,KAS+IBAS)
+     &           +      PAB*PCD*XSSLL(M)      *DENT(KDL+LBAS,KCL+KBAS)
+     &           +      PAB*PCD*XSSSS(M)      *DENT(KDS+LBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 504
+C
+C     GDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GDIR(KDL+LBAS,KCL+KBAS) = GDIR(KDL+LBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENT(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*PCD*XSSLL(M)      *DENT(KBS+JBAS,KAS+IBAS)
+            GDIR(KDS+LBAS,KCS+KBAS) = GDIR(KDS+LBAS,KCS+KBAS)
+     &           +      PAB*PCD*XLLSS(M)      *DENT(KBL+JBAS,KAL+IBAS)
+     &           +      PAB*PCD*XSSSS(M)      *DENT(KBS+JBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+504   CONTINUE
+C
+C**********************************************************************C
+C     CLOSED-SHELL EXCHANGE COULOMB MATRIX (GXCH)                      C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 601
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 601
+C
+C     GXCH: (AD|CB) =         (AD|CB)
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,NDL+LBAS) = GXCH(NAL+IBAS,NDL+LBAS)
+     &           +              XLLLL(M)      *DENT(NCL+KBAS,NBL+JBAS)
+            GXCH(NAS+IBAS,NDS+LBAS) = GXCH(NAS+IBAS,NDS+LBAS)
+     &           +              XSSSS(M)      *DENT(NCS+KBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,NDS+LBAS) = GXCH(NAL+IBAS,NDS+LBAS)
+     &           +              XLLSS(M)      *DENT(NCS+KBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 601
+C
+C     GXCH: (CB|AD) =         (AD|CB)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,NBL+JBAS) = GXCH(NCL+KBAS,NBL+JBAS)
+     &           +              XLLLL(M)      *DENT(NAL+IBAS,NDL+LBAS)
+            GXCH(NCS+KBAS,NBS+JBAS) = GXCH(NCS+KBAS,NBS+JBAS)
+     &           +              XSSSS(M)      *DENT(NAS+IBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,NBS+JBAS) = GXCH(NCL+KBAS,NBS+JBAS)
+     &           +              XSSLL(M)      *DENT(NAS+IBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+601   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 602
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 602
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 602
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 602
+C
+C     GXCH: (BD|CA) = PAB*    (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,NDL+LBAS) = GXCH(KBL+JBAS,NDL+LBAS)
+     &           +      PAB*    XLLLL(M)      *DENT(NCL+KBAS,KAL+IBAS)
+            GXCH(KBS+JBAS,NDS+LBAS) = GXCH(KBS+JBAS,NDS+LBAS)
+     &           +      PAB*    XSSSS(M)      *DENT(NCS+KBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,NDS+LBAS) = GXCH(KBL+JBAS,NDS+LBAS)
+     &           +      PAB*    XLLSS(M)      *DENT(NCS+KBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 602
+C
+C     GXCH: (CA|BD) = PAB*    (AD|CB)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,KAL+IBAS) = GXCH(NCL+KBAS,KAL+IBAS)
+     &           +      PAB*    XLLLL(M)      *DENT(KBL+JBAS,NDL+LBAS)
+            GXCH(NCS+KBAS,KAS+IBAS) = GXCH(NCS+KBAS,KAS+IBAS)
+     &           +      PAB*    XSSSS(M)      *DENT(KBS+JBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LT.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NCL+KBAS,KAS+IBAS) = GXCH(NCL+KBAS,KAS+IBAS)
+     &           +      PAB*    XSSLL(M)      *DENT(KBS+JBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+602   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 603
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 603
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 603
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 603
+C
+C     GXCH: (AC|DB) =     PCD*(AD|CB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,KCL+KBAS) = GXCH(NAL+IBAS,KCL+KBAS)
+     &           +          PCD*XLLLL(M)      *DENT(KDL+LBAS,NBL+JBAS)
+            GXCH(NAS+IBAS,KCS+KBAS) = GXCH(NAS+IBAS,KCS+KBAS)
+     &           +          PCD*XSSSS(M)      *DENT(KDS+LBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(NAL+IBAS,KCS+KBAS) = GXCH(NAL+IBAS,KCS+KBAS)
+     &           +          PCD*XLLSS(M)      *DENT(KDS+LBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 603
+C
+C     GXCH: (DB|AC) =     PCD*(AD|CB)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,NBL+JBAS) = GXCH(KDL+LBAS,NBL+JBAS)
+     &           +          PCD*XLLLL(M)      *DENT(NAL+IBAS,KCL+KBAS)
+            GXCH(KDS+LBAS,NBS+JBAS) = GXCH(KDS+LBAS,NBS+JBAS)
+     &           +          PCD*XSSSS(M)      *DENT(NAS+IBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,NBS+JBAS) = GXCH(KDL+LBAS,NBS+JBAS)
+     &           +          PCD*XSSLL(M)      *DENT(NAS+IBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+603   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 604
+      IF(.NOT.PRM1KL) GOTO 604
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 604
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 604
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 604
+      IF(KQN(3).EQ.KQN(4)) GOTO 604
+C
+C     GXCH: (BC|DA) = PAB*PCD*(AD|CB)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,KCL+KBAS) = GXCH(KBL+JBAS,KCL+KBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENT(KDL+LBAS,KAL+IBAS)
+            GXCH(KBS+JBAS,KCS+KBAS) = GXCH(KBS+JBAS,KCS+KBAS)
+     &           +      PAB*PCD*XSSSS(M)      *DENT(KDS+LBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KBL+JBAS,KCS+KBAS) = GXCH(KBL+JBAS,KCS+KBAS)
+     &           +      PAB*PCD*XLLSS(M)      *DENT(KDS+LBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 604
+C
+C     GXCH: (DA|BC) = PAB*PCD*(AD|CB)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,KAL+IBAS) = GXCH(KDL+LBAS,KAL+IBAS)
+     &           +      PAB*PCD*XLLLL(M)      *DENT(KBL+JBAS,KCL+KBAS)
+            GXCH(KDS+LBAS,KAS+IBAS) = GXCH(KDS+LBAS,KAS+IBAS)
+     &           +      PAB*PCD*XSSSS(M)      *DENT(KBS+JBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            GXCH(KDL+LBAS,KAS+IBAS) = GXCH(KDL+LBAS,KAS+IBAS)
+     &           +      PAB*PCD*XSSLL(M)      *DENT(KBS+JBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+604   CONTINUE
+C
+      IF(NOPN.NE.0) RETURN
+C
+C**********************************************************************C
+C     CLOSED-SHELL DIRECT COULOMB MATRIX (GDIR)                        C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 701
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 701
+C
+C     GDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*        XLLLL(M)      *DENO(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*        XLLSS(M)      *DENO(NCS+KBAS,NDS+LBAS)
+            QDIR(NAS+IBAS,NBS+JBAS) = QDIR(NAS+IBAS,NBS+JBAS)
+     &           + ACFF*        XSSLL(M)      *DENO(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*        XSSSS(M)      *DENO(NCS+KBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 701
+C
+C     QDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NCL+KBAS,NDL+LBAS) = QDIR(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*        XLLLL(M)      *DENO(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*        XSSLL(M)      *DENO(NAS+IBAS,NBS+JBAS)
+            QDIR(NCS+KBAS,NDS+LBAS) = QDIR(NCS+KBAS,NDS+LBAS)
+     &           + ACFF*        XLLSS(M)      *DENO(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*        XSSSS(M)      *DENO(NAS+IBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+701   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 702
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 702
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 702
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 712
+C
+C     QDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KBL+JBAS,KAL+IBAS) = QDIR(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*    XLLLL(M)      *DENO(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*PAB*    XLLSS(M)      *DENO(NCS+KBAS,NDS+LBAS)
+            QDIR(KBS+JBAS,KAS+IBAS) = QDIR(KBS+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*    XSSLL(M)      *DENO(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*PAB*    XSSSS(M)      *DENO(NCS+KBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+712   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 702
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 702
+C
+C     QDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NCL+KBAS,NDL+LBAS) = QDIR(NCL+KBAS,NDL+LBAS)
+     &           + ACFF*PAB*    XLLLL(M)      *DENO(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*    XSSLL(M)      *DENO(KBS+JBAS,KAS+IBAS)
+            QDIR(NCS+KBAS,NDS+LBAS) = QDIR(NCS+KBAS,NDS+LBAS)
+     &           + ACFF*PAB*    XLLSS(M)      *DENO(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*    XSSSS(M)      *DENO(KBS+JBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+702   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 703
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 703
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 703
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 713
+C
+C     QDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(NAL+IBAS,NBL+JBAS) = QDIR(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*    PCD*XLLLL(M)      *DENO(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*    PCD*XLLSS(M)      *DENO(KDS+LBAS,KCS+KBAS)
+            QDIR(NAS+IBAS,NBS+JBAS) = QDIR(NAS+IBAS,NBS+JBAS)
+     &           + ACFF*    PCD*XSSLL(M)      *DENO(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*    PCD*XSSSS(M)      *DENO(KDS+LBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+713   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 703
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 703
+C
+C     QDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KDL+LBAS,KCL+KBAS) = QDIR(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*    PCD*XLLLL(M)      *DENO(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*    PCD*XSSLL(M)      *DENO(NAS+IBAS,NBS+JBAS)
+            QDIR(KDS+LBAS,KCS+KBAS) = QDIR(KDS+LBAS,KCS+KBAS)
+     &           + ACFF*    PCD*XLLSS(M)      *DENO(NAL+IBAS,NBL+JBAS)
+     &           + ACFF*    PCD*XSSSS(M)      *DENO(NAS+IBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+703   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 704
+      IF(.NOT.PRM1KL) GOTO 704
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 704
+      IF(KQN(3).EQ.KQN(4)) GOTO 704
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 704
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 704
+C
+C     QDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KBL+JBAS,KAL+IBAS) = QDIR(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*PCD*XLLLL(M)      *DENO(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*PAB*PCD*XLLSS(M)      *DENO(KDS+LBAS,KCS+KBAS)
+            QDIR(KBS+JBAS,KAS+IBAS) = QDIR(KBS+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*PCD*XSSLL(M)      *DENO(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*PAB*PCD*XSSSS(M)      *DENO(KDS+LBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 704
+C
+C     QDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QDIR(KDL+LBAS,KCL+KBAS) = QDIR(KDL+LBAS,KCL+KBAS)
+     &           + ACFF*PAB*PCD*XLLLL(M)      *DENO(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*PCD*XSSLL(M)      *DENO(KBS+JBAS,KAS+IBAS)
+            QDIR(KDS+LBAS,KCS+KBAS) = QDIR(KDS+LBAS,KCS+KBAS)
+     &           + ACFF*PAB*PCD*XLLSS(M)      *DENO(KBL+JBAS,KAL+IBAS)
+     &           + ACFF*PAB*PCD*XSSSS(M)      *DENO(KBS+JBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+704   CONTINUE
+C
+C**********************************************************************C
+C     OPEN-SHELL EXCHANGE COULOMB MATRIX (GXCH)                        C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 801
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 801
+C
+C     QXCH: (AD|CB) =         (AD|CB)
+      IF(NAL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,NDL+LBAS) = QXCH(NAL+IBAS,NDL+LBAS)
+     &           + BCFF*        XLLLL(M)      *DENO(NCL+KBAS,NBL+JBAS)
+            QXCH(NAS+IBAS,NDS+LBAS) = QXCH(NAS+IBAS,NDS+LBAS)
+     &           + BCFF*        XSSSS(M)      *DENO(NCS+KBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,NDS+LBAS) = QXCH(NAL+IBAS,NDS+LBAS)
+     &           + BCFF*        XLLSS(M)      *DENO(NCS+KBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 801
+C
+C     QXCH: (CB|AD) =         (AD|CB)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,NBL+JBAS) = QXCH(NCL+KBAS,NBL+JBAS)
+     &           + BCFF*        XLLLL(M)      *DENO(NAL+IBAS,NDL+LBAS)
+            QXCH(NCS+KBAS,NBS+JBAS) = QXCH(NCS+KBAS,NBS+JBAS)
+     &           + BCFF*        XSSSS(M)      *DENO(NAS+IBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,NBS+JBAS) = QXCH(NCL+KBAS,NBS+JBAS)
+     &           + BCFF*        XSSLL(M)      *DENO(NAS+IBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+801   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 802
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 802
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 802
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 802
+C
+C     QXCH: (BD|CA) = PAB*    (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,NDL+LBAS) = QXCH(KBL+JBAS,NDL+LBAS)
+     &           + BCFF*PAB*    XLLLL(M)      *DENO(NCL+KBAS,KAL+IBAS)
+            QXCH(KBS+JBAS,NDS+LBAS) = QXCH(KBS+JBAS,NDS+LBAS)
+     &           + BCFF*PAB*    XSSSS(M)      *DENO(NCS+KBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,NDS+LBAS) = QXCH(KBL+JBAS,NDS+LBAS)
+     &           + BCFF*PAB*    XLLSS(M)      *DENO(NCS+KBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 802
+C
+C     QXCH: (CA|BD) = PAB*    (AD|CB)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,KAL+IBAS) = QXCH(NCL+KBAS,KAL+IBAS)
+     &           + BCFF*PAB*    XLLLL(M)      *DENO(KBL+JBAS,NDL+LBAS)
+            QXCH(NCS+KBAS,KAS+IBAS) = QXCH(NCS+KBAS,KAS+IBAS)
+     &           + BCFF*PAB*    XSSSS(M)      *DENO(KBS+JBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LT.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NCL+KBAS,KAS+IBAS) = QXCH(NCL+KBAS,KAS+IBAS)
+     &           + BCFF*PAB*    XSSLL(M)      *DENO(KBS+JBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+802   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 803
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 803
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 803
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 803
+C
+C     QXCH: (AC|DB) =     PCD*(AD|CB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,KCL+KBAS) = QXCH(NAL+IBAS,KCL+KBAS)
+     &           + BCFF*    PCD*XLLLL(M)      *DENO(KDL+LBAS,NBL+JBAS)
+            QXCH(NAS+IBAS,KCS+KBAS) = QXCH(NAS+IBAS,KCS+KBAS)
+     &           + BCFF*    PCD*XSSSS(M)      *DENO(KDS+LBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(NAL+IBAS,KCS+KBAS) = QXCH(NAL+IBAS,KCS+KBAS)
+     &           + BCFF*    PCD*XLLSS(M)      *DENO(KDS+LBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 803
+C
+C     QXCH: (DB|AC) =     PCD*(AD|CB)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,NBL+JBAS) = QXCH(KDL+LBAS,NBL+JBAS)
+     &           + BCFF*    PCD*XLLLL(M)      *DENO(NAL+IBAS,KCL+KBAS)
+            QXCH(KDS+LBAS,NBS+JBAS) = QXCH(KDS+LBAS,NBS+JBAS)
+     &           + BCFF*    PCD*XSSSS(M)      *DENO(NAS+IBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,NBS+JBAS) = QXCH(KDL+LBAS,NBS+JBAS)
+     &           + BCFF*    PCD*XSSLL(M)      *DENO(NAS+IBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+803   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 804
+      IF(.NOT.PRM1KL) GOTO 804
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+C     IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 804
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 804
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 804
+      IF(KQN(3).EQ.KQN(4)) GOTO 804
+C
+C     QXCH: (BC|DA) = PAB*PCD*(AD|CB)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,KCL+KBAS) = QXCH(KBL+JBAS,KCL+KBAS)
+     &           + BCFF*PAB*PCD*XLLLL(M)      *DENO(KDL+LBAS,KAL+IBAS)
+            QXCH(KBS+JBAS,KCS+KBAS) = QXCH(KBS+JBAS,KCS+KBAS)
+     &           + BCFF*PAB*PCD*XSSSS(M)      *DENO(KDS+LBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KBL+JBAS,KCS+KBAS) = QXCH(KBL+JBAS,KCS+KBAS)
+     &           + BCFF*PAB*PCD*XLLSS(M)      *DENO(KDS+LBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 804
+C
+C     QXCH: (DA|BC) = PAB*PCD*(AD|CB)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,KAL+IBAS) = QXCH(KDL+LBAS,KAL+IBAS)
+     &           + BCFF*PAB*PCD*XLLLL(M)      *DENO(KBL+JBAS,KCL+KBAS)
+            QXCH(KDS+LBAS,KAS+IBAS) = QXCH(KDS+LBAS,KAS+IBAS)
+     &           + BCFF*PAB*PCD*XSSSS(M)      *DENO(KBS+JBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            QXCH(KDL+LBAS,KAS+IBAS) = QXCH(KDL+LBAS,KAS+IBAS)
+     &           + BCFF*PAB*PCD*XSSLL(M)      *DENO(KBS+JBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+804   CONTINUE
 C
       RETURN
       END
@@ -24134,16 +25988,9 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       ENDIF
 C
 C     TAKE ADVANTAGE OF VARIOUS INTEGRAL SYMMETRIES
-C     REMOVABLE AFTER THE GENERAL MATRIX CONTRACTION ROUTINE IS UPDATED
-      IF(ISYM.EQ.0) THEN
-        PRM1IJ = .FALSE.
-        PRM1KL = .FALSE.
-        PRM1HC = .FALSE.
-      ELSE
-        PRM1IJ = .TRUE.
-        PRM1KL = .TRUE.
-        PRM1HC = .TRUE.
-      ENDIF
+      PRM1IJ = .false.
+      PRM1KL = .false.
+      PRM1HC = .false.
 C
 C**********************************************************************C
 C     KQN+MQN COMBINATIONS OF INDICES (FOR INTEGRAL SYMMETRIES)        C
@@ -24618,12 +26465,9 @@ C     BB    BB RR    RR   TT    MM   M   MM    TT    11   ZZ           C
 C     BBBBBBB  RR    RR   TT    MM       MM    TT   1111 ZZZZZZZZ      C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  BRTMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
-C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
-C -------------------------------------------------------------------- C
-C  INTEGRAL PERMUTATION BOOLEANS (TRIGGERED IN BREIT1) ARE HANDLED FOR C
-C  CLOSED-SHELL SYSTEMS ONLY. THE EXTENSION TO OPEN-SHELL ATOMS BASED  C
-C  ON THIS IS STRAIGHTFORWARD ENOUGH TO INVOKE.                        C
+C  BRTMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR BREIT MATRIX       C
+C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN AN AXIAL MOLECULE.      C
+C  THIS SHOULD NOT BE CALLED UNLESS THE MOLECULE HAS C\INF SYMMETRY.   C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
@@ -24650,605 +26494,870 @@ C
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
 C
-C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
-      IF(SHAPE.EQ.'ATOMIC') THEN
-        ISYM = 2
-      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
-        ISYM = 1
-      ELSE
-        ISYM = 0
-      ENDIF
-C
-C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
-      IF(ISYM.EQ.0) THEN
-        WRITE(6,*) 'In BRTMT1Z: you probably should be using BRTMT1G.'
-        WRITE(7,*) 'In BRTMT1Z: you probably should be using BRTMT1G.'
-      ENDIF
-C
 C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
       MMJA = MQN(1)*((-1)**MMA)
       MMJB = MQN(2)*((-1)**MMB)
       MMJC = MQN(3)*((-1)**MMC)
       MMJD = MQN(4)*((-1)**MMD)
 C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C     BXCH: NO PERMUTATION SYMMETRY EMPLOYED                           C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+C**********************************************************************C
+C     CLOSED-SHELL EXCHANGE BREIT MATRIX (BXCH)                        C
+C**********************************************************************C
 C
-C     MQN MAGNITUDE SELECTION RULE
-      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 202
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 601
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 601
 C
-C     MQN SIGN SELECTION RULE
-      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 202
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (AD|CB)
+C     BXCH: (AD|CB) =         (AD|CB)
       IF(NAL.LE.NDL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,NDL+LBAS) = BXCH(NAL+IBAS,NDL+LBAS)
-     &                  +         XLSSL(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
+     &                +         XLSSL(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
+            BXCH(NAS+IBAS,NDS+LBAS) = BXCH(NAS+IBAS,NDS+LBAS)
+     &                +         XSLLS(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (AD|CB)
       IF(NAL.LE.NDS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,NDS+LBAS) = BXCH(NAL+IBAS,NDS+LBAS)
-     &                  +         XLSLS(M)*DREAL(DENT(NCL+KBAS,NBS+JBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (AD|CB)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          BXCH(NAS+IBAS,NDL+LBAS) = BXCH(NAS+IBAS,NDL+LBAS)
-C     &                 +         XSLSL(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
-C        ENDDO
-C      ENDDO
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (AD|CB)
-      IF(NAS.LE.NDS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(NAS+IBAS,NDS+LBAS) = BXCH(NAS+IBAS,NDS+LBAS)
-     &                  +         XSLLS(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
+     &                +         XLSLS(M)*DREAL(DENT(NCL+KBAS,NBS+JBAS))
           ENDDO
         ENDDO
       ENDIF
 C
 C     INTEGRALS BY VARIABLE SWAP
-      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 222
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 601
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (CB|AD)
+C     BXCH: (CB|AD) =         (AD|CB)
       IF(NCL.LE.NBL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCL+KBAS,NBL+JBAS) = BXCH(NCL+KBAS,NBL+JBAS)
-     &                  +         XSLLS(M)*DREAL(DENT(NAS+IBAS,NDS+LBAS))
+     &                +         XSLLS(M)*DREAL(DENT(NAS+IBAS,NDS+LBAS))
+            BXCH(NCS+KBAS,NBS+JBAS) = BXCH(NCS+KBAS,NBS+JBAS)
+     &                +         XLSSL(M)*DREAL(DENT(NAL+IBAS,NDL+LBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (CB|AD)
       IF(NCL.LE.NBS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCL+KBAS,NBS+JBAS) = BXCH(NCL+KBAS,NBS+JBAS)
-     &                  +         XLSLS(M)*DREAL(DENT(NAL+IBAS,NDS+LBAS))
+     &                +         XLSLS(M)*DREAL(DENT(NAL+IBAS,NDS+LBAS))
           ENDDO
         ENDDO
       ENDIF
 C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (CB|AD)
-C      M = 0
-C      IF(NCS.LE.NBL) THEN
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            BXCH(NCS+KBAS,NBL+JBAS) = BXCH(NCS+KBAS,NBL+JBAS)
-C     &                 +         XSLSL(M)*DREAL(DENT(NAS+IBAS,NDL+LBAS))
-C          ENDDO
-C        ENDDO
-C      ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (CB|AD)
-      IF(NCS.LE.NBS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(NCS+KBAS,NBS+JBAS) = BXCH(NCS+KBAS,NBS+JBAS)
-     &                  +         XLSSL(M)*DREAL(DENT(NAL+IBAS,NDL+LBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-222   CONTINUE
-C
-202   CONTINUE
-C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C     BXCH: PERMUTATION SYMMETRY I⇄J         ONLY                      C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+601   CONTINUE
 C
 C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-      IF(.NOT.PRM1IJ) GOTO 203
+      IF(.NOT.PRM1IJ) GOTO 602
 C
-C     MQN MAGNITUDE SELECTION RULE
-      IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 203
-C
-C     MQN SIGN SELECTION RULE
-      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 203
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 602
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 602
 C
 C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-      IF(KQN(1).EQ.KQN(2)) GOTO 203
+      IF(KQN(1).EQ.KQN(2)) GOTO 602
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (BD|CA)
+C     BXCH: (BD|CA) = PAB*    (AD|CB)
       IF(KBL.LE.NDL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBL+JBAS,NDL+LBAS) = BXCH(KBL+JBAS,NDL+LBAS)
-     &                  + PAB*    XSLSL(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
+     &                + PAB*    XSLSL(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
+            BXCH(KBS+JBAS,NDS+LBAS) = BXCH(KBS+JBAS,NDS+LBAS)
+     &                + PAB*    XLSLS(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (BD|CA)
       IF(KBL.LE.NDS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBL+JBAS,NDS+LBAS) = BXCH(KBL+JBAS,NDS+LBAS)
-     &                  + PAB*    XSLLS(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (BD|CA)
-C      IF(KBS.LT.NDL) THEN
-C        M = 0
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            BXCH(KBS+JBAS,NDL+LBAS) = BXCH(KBS+JBAS,NDL+LBAS)
-C     &                     +      XLSSL(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
-C          ENDDO
-C        ENDDO
-C      ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (BD|CA)
-      IF(KBS.LE.NDS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(KBS+JBAS,NDS+LBAS) = BXCH(KBS+JBAS,NDS+LBAS)
-     &                  + PAB*    XLSLS(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
+     &                + PAB*    XSLLS(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
           ENDDO
         ENDDO
       ENDIF
 C
 C     INTEGRALS BY VARIABLE SWAP
-      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 223
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 602
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (CA|BD)
+C     BXCH: (CA|BD) = PAB*    (AD|CB)
       IF(NCL.LE.KAL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCL+KBAS,KAL+IBAS) = BXCH(NCL+KBAS,KAL+IBAS)
-     &                  + PAB*    XLSLS(M)*DREAL(DENT(KBS+JBAS,NDS+LBAS))
+     &                + PAB*    XLSLS(M)*DREAL(DENT(KBS+JBAS,NDS+LBAS))
+            BXCH(NCS+KBAS,KAS+IBAS) = BXCH(NCS+KBAS,KAS+IBAS)
+     &                + PAB*    XSLSL(M)*DREAL(DENT(KBL+JBAS,NDL+LBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (CA|BD)
       IF(NCL.LE.KAS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCL+KBAS,KAS+IBAS) = BXCH(NCL+KBAS,KAS+IBAS)
-     &                  + PAB*    XSLLS(M)*DREAL(DENT(KBL+JBAS,NDS+LBAS))
+     &                + PAB*    XSLLS(M)*DREAL(DENT(KBL+JBAS,NDS+LBAS))
           ENDDO
         ENDDO
       ENDIF
 C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (CA|BD)
-C      IF(NCS.LT.KAL) THEN
-C        M = 0
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            BXCH(NCS+KBAS,KAL+IBAS) = BXCH(NCS+KBAS,KAL+IBAS)
-C     &                     +      XLSSL(M)*DREAL(DENT(KBS+JBAS,NDL+LBAS))
-C          ENDDO
-C        ENDDO
-C      ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (CA|BD)
-      IF(NCS.LE.KAS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(NCS+KBAS,KAS+IBAS) = BXCH(NCS+KBAS,KAS+IBAS)
-     &                  + PAB*    XSLSL(M)*DREAL(DENT(KBL+JBAS,NDL+LBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-223   CONTINUE
-C
-203   CONTINUE
-C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C     BXCH: PERMUTATION SYMMETRY         K⇄L ONLY                      C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+602   CONTINUE
 C
 C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-      IF(.NOT.PRM1KL) GOTO 204
+      IF(.NOT.PRM1KL) GOTO 603
 C
-C     MQN MAGNITUDE SELECTION RULE
-      IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 204
-C
-C     MQN SIGN SELECTION RULE
-      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 204
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 603
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 603
 C
 C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-      IF(KQN(3).EQ.KQN(4)) GOTO 204
+      IF(KQN(3).EQ.KQN(4)) GOTO 603
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (AC|DB)
+C     BXCH: (AC|DB) =     PCD*(AD|CB)
       IF(NAL.LE.KCL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,KCL+KBAS) = BXCH(NAL+IBAS,KCL+KBAS)
-     &                  +     PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
+     &                +     PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
+            BXCH(NAS+IBAS,KCS+KBAS) = BXCH(NAS+IBAS,KCS+KBAS)
+     &                +     PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (AC|DB)
       IF(NAL.LE.KCS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,KCS+KBAS) = BXCH(NAL+IBAS,KCS+KBAS)
-     &                  +     PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (AC|DB)
-C      IF(NAS.LE.KCL) THEN
-C        M = 0
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            BXCH(NAS+IBAS,KCL+KBAS) = BXCH(NAS+IBAS,KCL+KBAS)
-C     &                  +     PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
-C          ENDDO
-C        ENDDO
-C      ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (AC|DB)
-      IF(NAS.LE.KCS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(NAS+IBAS,KCS+KBAS) = BXCH(NAS+IBAS,KCS+KBAS)
-     &                  +     PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
+     &                +     PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS))
           ENDDO
         ENDDO
       ENDIF
 C
 C     INTEGRALS BY VARIABLE SWAP
-      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 224
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 603
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (DB|AC)
+C     BXCH: (DB|AC) =     PCD*(AD|CB)
       IF(KDL.LE.NBL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDL+LBAS,NBL+JBAS) = BXCH(KDL+LBAS,NBL+JBAS)
-     &                  +     PCD*XSLSL(M)*DREAL(DENT(NAS+IBAS,KCS+KBAS))
+     &                +     PCD*XSLSL(M)*DREAL(DENT(NAS+IBAS,KCS+KBAS))
+            BXCH(KDS+LBAS,NBS+JBAS) = BXCH(KDS+LBAS,NBS+JBAS)
+     &                +     PCD*XLSLS(M)*DREAL(DENT(NAL+IBAS,KCL+KBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (DB|AC)
       IF(KDL.LE.NBS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDL+LBAS,NBS+JBAS) = BXCH(KDL+LBAS,NBS+JBAS)
-     &                  +     PCD*XLSSL(M)*DREAL(DENT(NAL+IBAS,KCS+KBAS))
+     &                +     PCD*XLSSL(M)*DREAL(DENT(NAL+IBAS,KCS+KBAS))
           ENDDO
         ENDDO
       ENDIF
 C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (DB|AC)
-C      IF(KDS.LE.NBL) THEN
-C        M = 0
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            BXCH(KDS+LBAS,NBL+JBAS) = BXCH(KDS+LBAS,NBL+JBAS)
-C     &                  +     PCD*XSLLS(M)*DREAL(DENT(NAS+IBAS,KCL+KBAS))
-C          ENDDO
-C        ENDDO
-C      ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (DB|AC)
-      IF(KDS.LE.NBS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(KDS+LBAS,NBS+JBAS) = BXCH(KDS+LBAS,NBS+JBAS)
-     &                  +     PCD*XLSLS(M)*DREAL(DENT(NAL+IBAS,KCL+KBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-224   CONTINUE
-C
-204   CONTINUE
-C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C     BXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
-C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
+603   CONTINUE
 C
 C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
-      IF(.NOT.PRM1IJ) GOTO 205
-      IF(.NOT.PRM1KL) GOTO 205
+      IF(.NOT.PRM1IJ) GOTO 604
+      IF(.NOT.PRM1KL) GOTO 604
 C
-C     MQN MAGNITUDE SELECTION RULE
-      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 205
-C
-C     MQN SIGN SELECTION RULE
-      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 205
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 604
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 604
 C
 C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
-      IF(KQN(1).EQ.KQN(2)) GOTO 205
-      IF(KQN(3).EQ.KQN(4)) GOTO 205
+      IF(KQN(1).EQ.KQN(2)) GOTO 604
+      IF(KQN(3).EQ.KQN(4)) GOTO 604
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (BC|DA)
+C     BXCH: (BC|DA) = PAB*PCD*(AD|CB)
       IF(KBL.LE.KCL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBL+JBAS,KCL+KBAS) = BXCH(KBL+JBAS,KCL+KBAS)
-     &                  + PAB*PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
+     &                + PAB*PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
+            BXCH(KBS+JBAS,KCS+KBAS) = BXCH(KBS+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (BC|DA)
       IF(KBL.LE.KCS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBL+JBAS,KCS+KBAS) = BXCH(KBL+JBAS,KCS+KBAS)
-     &                  + PAB*PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,KAS+IBAS))
-          ENDDO
-        ENDDO
-      ENDIF
-C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (BC|DA)
-C      IF(KBS.LE.KCL) THEN
-C        M = 0
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            BXCH(KBS+JBAS,KCL+KBAS) = BXCH(KBS+JBAS,KCL+KBAS)
-C     &                   + PAB*PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,KAL+IBAS))
-C          ENDDO
-C        ENDDO
-C      ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (BC|DA)
-      IF(KBS.LE.KCS) THEN
-        M = 0
-        DO KBAS=1,NBAS(3)
-          DO LBAS=1,NBAS(4)
-            M = M+1
-            BXCH(KBS+JBAS,KCS+KBAS) = BXCH(KBS+JBAS,KCS+KBAS)
-     &                  + PAB*PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
+     &                + PAB*PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,KAS+IBAS))
           ENDDO
         ENDDO
       ENDIF
 C
 C     INTEGRALS BY VARIABLE SWAP
-      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 225
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 604
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (DA|BC)
+C     BXCH: (DA|BC) = PAB*PCD*(AD|CB)
       IF(KDL.LE.KAL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDL+LBAS,KAL+IBAS) = BXCH(KDL+LBAS,KAL+IBAS)
-     &                  + PAB*PCD*XLSSL(M)*DREAL(DENT(KBS+JBAS,KCS+KBAS))
+     &                + PAB*PCD*XLSSL(M)*DREAL(DENT(KBS+JBAS,KCS+KBAS))
+            BXCH(KDS+LBAS,KAS+IBAS) = BXCH(KDS+LBAS,KAS+IBAS)
+     &                + PAB*PCD*XSLLS(M)*DREAL(DENT(KBL+JBAS,KCL+KBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (DA|BC)
       IF(KDL.LE.KAS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDL+LBAS,KAS+IBAS) = BXCH(KDL+LBAS,KAS+IBAS)
-     &                  + PAB*PCD*XSLSL(M)*DREAL(DENT(KBL+JBAS,KCS+KBAS))
+     &                + PAB*PCD*XSLSL(M)*DREAL(DENT(KBL+JBAS,KCS+KBAS))
           ENDDO
         ENDDO
       ENDIF
 C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)  --  (DA|BC)
-C      IF(KDS.LE.KAL) THEN
-C        M = 0
-C        DO KBAS=1,NBAS(3)
-C          DO LBAS=1,NBAS(4)
-C            M = M+1
-C            BXCH(KDS+LBAS,KAL+IBAS) = BXCH(KDS+LBAS,KAL+IBAS)
-C     &                   + PAB*PCD*XLSLS(M)*DREAL(DENT(KBS+JBAS,KCL+KBAS))
-C          ENDDO
-C        ENDDO
-C      ENDIF
+604   CONTINUE
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (DA|BC)
-      IF(KDS.LE.KAS) THEN
+C     SKIP POINT FOR CLOSED-SHELL MOLECULES
+      IF(NOPN.EQ.0) GOTO 1000
+C
+C**********************************************************************C
+C     CLOSED-SHELL DIRECT COULOMB MATRIX (BDIR)                        C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 501
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 501
+C
+C     BDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
-            BXCH(KDS+LBAS,KAS+IBAS) = BXCH(KDS+LBAS,KAS+IBAS)
-     &                  + PAB*PCD*XSLLS(M)*DREAL(DENT(KBL+JBAS,KCL+KBAS))
+            BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
+     &                +         XLSLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
+     &                +         XLSSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
+C
           ENDDO
         ENDDO
       ENDIF
 C
-225   CONTINUE
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 501
 C
-205   CONTINUE
+C     BDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(NCL+KBAS,NDS+LBAS) = BDIR(NCL+KBAS,NDS+LBAS)
+     &           +              XLSLS(M)*DREAL(DENT(NAL+IBAS,NBS+JBAS))
+     &           +              XSLLS(M)*DREAL(DENT(NAS+IBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+501   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 502
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 502
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 502
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 512
+C
+C     BDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(KBL+JBAS,KAS+IBAS) = BDIR(KBL+JBAS,KAS+IBAS)
+     &           +      PAB*    XSLLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
+     &           +      PAB*    XSLSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+512   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 502
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 502
+C
+C     BDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(NCL+KBAS,NDS+LBAS) = BDIR(NCL+KBAS,NDS+LBAS)
+     &           +      PAB*    XSLLS(M)*DREAL(DENT(KBL+JBAS,KAS+IBAS))
+     &           +      PAB*    XLSLS(M)*DREAL(DENT(KBS+JBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+502   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 503
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 503
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 503
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 513
+C
+C     BDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
+     &           +          PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,KCS+KBAS))
+     &           +          PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+513   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 503
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 503
+C
+C     BDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(KDL+LBAS,KCS+KBAS) = BDIR(KDL+LBAS,KCS+KBAS)
+     &           +          PCD*XLSSL(M)*DREAL(DENT(NAL+IBAS,NBS+JBAS))
+     &           +          PCD*XSLSL(M)*DREAL(DENT(NAS+IBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+503   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 504
+      IF(.NOT.PRM1KL) GOTO 504
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 504
+      IF(KQN(3).EQ.KQN(4)) GOTO 504
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 504
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 504
+C
+C     BDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(KBL+JBAS,KAS+IBAS) = BDIR(KBL+JBAS,KAS+IBAS)
+     &           +      PAB*PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,KCS+KBAS))
+     &           +      PAB*PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 504
+C
+C     BDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(KDL+LBAS,KCS+KBAS) = BDIR(KDL+LBAS,KCS+KBAS)
+     &           +      PAB*PCD*XSLSL(M)*DREAL(DENT(KBL+JBAS,KAS+IBAS))
+     &           +      PAB*PCD*XLSSL(M)*DREAL(DENT(KBL+JBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+504   CONTINUE
 C
 C**********************************************************************C
-C     ADD THIS BATCH OF R-INTEGRALS TO OPEN-SHELL BREIT MATRIX.        C
-C     THIS ALSO REQUIRES THE CLOSED-SHELL DIRECT MATRIX ELEMENTS.      C
+C     OPEN-SHELL DIRECT BREIT MATRIX (WDIR)                            C
 C**********************************************************************C
 C
-      IF(NOPN.EQ.0) GOTO 6100
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 701
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 701
 C
-C     CLOSED-SHELL DIRECT MATRIX BDIR
-      IF(MMA.NE.MMB.OR.MMC.NE.MMD) GOTO 6002
+C     WDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
+     &           + ACFF*        XLSLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
+     &           + ACFF*        XLSSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
 C
-C     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
-     &                +         XLSLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
-     &                +         XLSSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
-C
+          ENDDO
         ENDDO
-      ENDDO
-CC
-CC     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          BDIR(NAS+IBAS,NBL+JBAS) = BDIR(NAS+IBAS,NBL+JBAS)
-C     &                +         XSLSL(M)*DREAL(DENT(NCS+KBAS,NDL+LBAS))
-C     &                +         XSLLS(M)*DREAL(DENT(NCL+KBAS,NDS+LBAS))
-C        ENDDO
-C      ENDDO
+      ENDIF
 C
-C     OPEN-SHELL DIRECT MATRIX WDIR
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 701
 C
-C     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
-     &               +    ACFF*XLSLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
-     &               +    ACFF*XLSSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
+C     WDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(NCL+KBAS,NDS+LBAS) = WDIR(NCL+KBAS,NDS+LBAS)
+     &           + ACFF*        XLSLS(M)*DREAL(DENO(NAL+IBAS,NBS+JBAS))
+     &           + ACFF*        XSLLS(M)*DREAL(DENO(NAS+IBAS,NBL+JBAS))
+          ENDDO
         ENDDO
-      ENDDO
-CC
-CC     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          WDIR(NAS+IBAS,NBL+JBAS) = WDIR(NAS+IBAS,NBL+JBAS)
-C     &               +    ACFF*XSLSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
-C     &               +    ACFF*XSLLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
-C        ENDDO
-C      ENDDO
+      ENDIF
 C
-6002  CONTINUE
+701   CONTINUE
 C
-C     OPEN-SHELL DIRECT MATRIX WXCH
-      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 6003
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 702
 C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LL)
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMA.OR.MMC.NE.MMD) GOTO 702
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 702
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 712
+C
+C     WDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(KBL+JBAS,KAS+IBAS) = WDIR(KBL+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*    XSLLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
+     &           + ACFF*PAB*    XSLSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+712   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 702
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 702
+C
+C     WDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(NCL+KBAS,NDS+LBAS) = WDIR(NCL+KBAS,NDS+LBAS)
+     &           + ACFF*PAB*    XSLLS(M)*DREAL(DENO(KBL+JBAS,KAS+IBAS))
+     &           + ACFF*PAB*    XLSLS(M)*DREAL(DENO(KBS+JBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+702   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 703
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMB.OR.MMD.NE.MMC) GOTO 703
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 703
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 713
+C
+C     WDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
+     &           + ACFF*    PCD*XLSSL(M)*DREAL(DENO(KDL+LBAS,KCS+KBAS))
+     &           + ACFF*    PCD*XLSLS(M)*DREAL(DENO(KDS+LBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+713   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 703
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 703
+C
+C     WDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(KDL+LBAS,KCS+KBAS) = WDIR(KDL+LBAS,KCS+KBAS)
+     &           + ACFF*    PCD*XLSSL(M)*DREAL(DENO(NAL+IBAS,NBS+JBAS))
+     &           + ACFF*    PCD*XSLSL(M)*DREAL(DENO(NAS+IBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+703   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 704
+      IF(.NOT.PRM1KL) GOTO 704
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 704
+      IF(KQN(3).EQ.KQN(4)) GOTO 704
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 704
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 704
+C
+C     WDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(KBL+JBAS,KAS+IBAS) = WDIR(KBL+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*PCD*XSLSL(M)*DREAL(DENO(KDL+LBAS,KCS+KBAS))
+     &           + ACFF*PAB*PCD*XSLLS(M)*DREAL(DENO(KDS+LBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 704
+C
+C     WDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(KDL+LBAS,KCS+KBAS) = WDIR(KDL+LBAS,KCS+KBAS)
+     &           + ACFF*PAB*PCD*XSLSL(M)*DREAL(DENO(KBL+JBAS,KAS+IBAS))
+     &           + ACFF*PAB*PCD*XLSSL(M)*DREAL(DENO(KBL+JBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+704   CONTINUE
+C
+C**********************************************************************C
+C     OPEN-SHELL EXCHANGE BREIT MATRIX (WXCH)                          C
+C**********************************************************************C
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.NE.MMD.OR.MMC.NE.MMB) GOTO 801
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 801
+C
+C     WXCH: (AD|CB) =         (AD|CB)
       IF(NAL.LE.NDL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             WXCH(NAL+IBAS,NDL+LBAS) = WXCH(NAL+IBAS,NDL+LBAS)
-     &                +    BCFF*XLSSL(M)*DREAL(DENO(NBS+JBAS,NCS+KBAS))
+     &           + BCFF*        XLSSL(M)*DREAL(DENO(NCS+KBAS,NBS+JBAS))
+            WXCH(NAS+IBAS,NDS+LBAS) = WXCH(NAS+IBAS,NDS+LBAS)
+     &           + BCFF*        XSLLS(M)*DREAL(DENO(NCL+KBAS,NBL+JBAS))
           ENDDO
         ENDDO
       ENDIF
-C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          WXCH(NAL+IBAS,NDS+LBAS) = WXCH(NAL+IBAS,NDS+LBAS)
-     &                +    BCFF*XLSLS(M)*DREAL(DENO(NBS+JBAS,NCL+KBAS))
-        ENDDO
-      ENDDO
-CC
-CC     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          WXCH(NAS+IBAS,NDL+LBAS) = WXCH(NAS+IBAS,NDL+LBAS)
-C     &               +    BCFF*XSLSL(M)*DREAL(DENO(NBL+JBAS,NCS+KBAS))
-C        ENDDO
-C      ENDDO
-C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SS)
-      IF(NAS.LE.NDS) THEN
+      IF(NAL.LE.NDS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
-            WXCH(NAS+IBAS,NDS+LBAS) = WXCH(NAS+IBAS,NDS+LBAS)
-     &                +    BCFF*XSLLS(M)*DREAL(DENO(NBL+JBAS,NCL+KBAS))
+            WXCH(NAL+IBAS,NDS+LBAS) = WXCH(NAL+IBAS,NDS+LBAS)
+     &           + BCFF*        XLSLS(M)*DREAL(DENO(NCL+KBAS,NBS+JBAS))
           ENDDO
         ENDDO
       ENDIF
-6003  CONTINUE
 C
-6100  CONTINUE
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 801
+C
+C     WXCH: (CB|AD) =         (AD|CB)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NCL+KBAS,NBL+JBAS) = WXCH(NCL+KBAS,NBL+JBAS)
+     &           + BCFF*        XSLLS(M)*DREAL(DENO(NAS+IBAS,NDS+LBAS))
+            WXCH(NCS+KBAS,NBS+JBAS) = WXCH(NCS+KBAS,NBS+JBAS)
+     &           + BCFF*        XLSSL(M)*DREAL(DENO(NAL+IBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NCL+KBAS,NBS+JBAS) = WXCH(NCL+KBAS,NBS+JBAS)
+     &           + BCFF*        XLSLS(M)*DREAL(DENO(NAL+IBAS,NDS+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+801   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 802
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.EQ.MMD.OR.MMC.EQ.MMA) GOTO 802
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 802
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 802
+C
+C     WXCH: (BD|CA) = PAB*    (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KBL+JBAS,NDL+LBAS) = WXCH(KBL+JBAS,NDL+LBAS)
+     &           + BCFF*PAB*    XSLSL(M)*DREAL(DENO(NCS+KBAS,KAS+IBAS))
+            WXCH(KBS+JBAS,NDS+LBAS) = WXCH(KBS+JBAS,NDS+LBAS)
+     &           + BCFF*PAB*    XLSLS(M)*DREAL(DENO(NCL+KBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KBL+JBAS,NDS+LBAS) = WXCH(KBL+JBAS,NDS+LBAS)
+     &           + BCFF*PAB*    XSLLS(M)*DREAL(DENO(NCL+KBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 802
+C
+C     WXCH: (CA|BD) = PAB*    (AD|CB)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NCL+KBAS,KAL+IBAS) = WXCH(NCL+KBAS,KAL+IBAS)
+     &           + BCFF*PAB*    XLSLS(M)*DREAL(DENO(KBS+JBAS,NDS+LBAS))
+            WXCH(NCS+KBAS,KAS+IBAS) = WXCH(NCS+KBAS,KAS+IBAS)
+     &           + BCFF*PAB*    XSLSL(M)*DREAL(DENO(KBL+JBAS,NDL+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NCL+KBAS,KAS+IBAS) = WXCH(NCL+KBAS,KAS+IBAS)
+     &           + BCFF*PAB*    XSLLS(M)*DREAL(DENO(KBL+JBAS,NDS+LBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+802   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 803
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMA.EQ.MMC.OR.MMD.EQ.MMB) GOTO 803
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 803
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 803
+C
+C     WXCH: (AC|DB) =     PCD*(AD|CB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NAL+IBAS,KCL+KBAS) = WXCH(NAL+IBAS,KCL+KBAS)
+     &           + BCFF*    PCD*XLSLS(M)*DREAL(DENO(KDS+LBAS,NBS+JBAS))
+            WXCH(NAS+IBAS,KCS+KBAS) = WXCH(NAS+IBAS,KCS+KBAS)
+     &           + BCFF*    PCD*XSLSL(M)*DREAL(DENO(KDL+LBAS,NBL+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NAL+IBAS,KCS+KBAS) = WXCH(NAL+IBAS,KCS+KBAS)
+     &           + BCFF*    PCD*XLSSL(M)*DREAL(DENO(KDL+LBAS,NBS+JBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 803
+C
+C     WXCH: (DB|AC) =     PCD*(AD|CB)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KDL+LBAS,NBL+JBAS) = WXCH(KDL+LBAS,NBL+JBAS)
+     &           + BCFF*    PCD*XSLSL(M)*DREAL(DENO(NAS+IBAS,KCS+KBAS))
+            WXCH(KDS+LBAS,NBS+JBAS) = WXCH(KDS+LBAS,NBS+JBAS)
+     &           + BCFF*    PCD*XLSLS(M)*DREAL(DENO(NAL+IBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KDL+LBAS,NBS+JBAS) = WXCH(KDL+LBAS,NBS+JBAS)
+     &           + BCFF*    PCD*XLSSL(M)*DREAL(DENO(NAL+IBAS,KCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+803   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 804
+      IF(.NOT.PRM1KL) GOTO 804
+C
+C     MQN MAGNITUDE AND SIGN SELECTION RULES
+      IF(MMB.NE.MMC.OR.MMD.NE.MMA) GOTO 804
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 804
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 804
+      IF(KQN(3).EQ.KQN(4)) GOTO 804
+C
+C     WXCH: (BC|DA) = PAB*PCD*(AD|CB)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KBL+JBAS,KCL+KBAS) = WXCH(KBL+JBAS,KCL+KBAS)
+     &           + BCFF*PAB*PCD*XSLLS(M)*DREAL(DENO(KDS+LBAS,KAS+IBAS))
+            WXCH(KBS+JBAS,KCS+KBAS) = WXCH(KBS+JBAS,KCS+KBAS)
+     &           + BCFF*PAB*PCD*XLSSL(M)*DREAL(DENO(KDL+LBAS,KAL+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KBL+JBAS,KCS+KBAS) = WXCH(KBL+JBAS,KCS+KBAS)
+     &           + BCFF*PAB*PCD*XSLSL(M)*DREAL(DENO(KDL+LBAS,KAS+IBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 804
+C
+C     WXCH: (DA|BC) = PAB*PCD*(AD|CB)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KDL+LBAS,KAL+IBAS) = WXCH(KDL+LBAS,KAL+IBAS)
+     &           + BCFF*PAB*PCD*XLSSL(M)*DREAL(DENO(KBS+JBAS,KCS+KBAS))
+            WXCH(KDS+LBAS,KAS+IBAS) = WXCH(KDS+LBAS,KAS+IBAS)
+     &           + BCFF*PAB*PCD*XSLLS(M)*DREAL(DENO(KBL+JBAS,KCL+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KDL+LBAS,KAS+IBAS) = WXCH(KDL+LBAS,KAS+IBAS)
+     &           + BCFF*PAB*PCD*XSLSL(M)*DREAL(DENO(KBL+JBAS,KCS+KBAS))
+          ENDDO
+        ENDDO
+      ENDIF
+C
+804   CONTINUE
+C
+1000  CONTINUE
 C
       RETURN
       END
@@ -25267,14 +27376,9 @@ C     BB    BB RR    RR   TT    MM   M   MM    TT    11  GG    GG      C
 C     BBBBBBB  RR    RR   TT    MM       MM    TT   1111  GGGGGG       C
 C                                                                      C
 C -------------------------------------------------------------------- C
-C  BRTMT1G ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR COULOMB MATRIX     C
+C  BRTMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR BREIT MATRIX       C
 C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
-C -------------------------------------------------------------------- C
-C  INTEGRAL PERMUTATION BOOLEANS (TRIGGERED IN BRET1) CANNOT YET       C
-C  BE HANDLED BY THIS ROUTINE, SO MAKE SURE THEY'RE ALL SET TO FALSE   C
-C  IF YOU'RE HANDLING A NON-AXIAL MOLECULE. BETTER YET, YOU COULD GO   C
-C  AND IMPLEMENT THE PERMUTATION HANDLING IN BRTMT1Z FOR THIS ROUTINE  C
-C  -- SHOULD BE EASY ENOUGH TO DO, IF YOU KEEP YOUR WITS ABOUT YOU.    C
+C  THIS SHOULD NOT BE CALLED UNLESS THE MOLECULE HAS C\INF SYMMETRY.   C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
@@ -25290,6 +27394,9 @@ C
      &           WDIR(MDM,MDM),WXCH(MDM,MDM),CPLE(MDM,MDM)
 C
       COMMON/B1QN/EXL(MBS,4),MQN(4),KQN(4),LQN(4),NBAS(4),IBAS,JBAS,IJ
+      COMMON/BDIM/NDIM,NSKP,NOCC,NVRT
+      COMMON/BSET/BEXL(MBS,0:MEL,MCT),BXYZ(3,MCT),LRGE(MCT,MKP,MKP+1),
+     &            KAPA(MKP,MCT),NFNC(0:MEL,MCT),NKAP(MCT),IQNC(MCT),NCNT
       COMMON/DENS/DENC,DENO,DENT
       COMMON/MT1A/PAB,PCD,MMA,MMB,MMC,MMD,
      &            NAL,NBL,NCL,NDL,NAS,NBS,NCS,NDS,
@@ -25298,168 +27405,854 @@ C
      &            VUEH,VWKR,VKSB,QDIR,QXCH,WDIR,WXCH,CPLE
       COMMON/SHLL/ACFF,BCFF,FOPN,ICLS(MDM),IOPN(MDM),NCLS,NOPN,NOELEC
 C
-C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
-      IF(SHAPE.EQ.'ATOMIC') THEN
-        ISYM = 2
-      ELSEIF(SHAPE.EQ.'DIATOM'.OR.SHAPE.EQ.'LINEAR') THEN
-        ISYM = 1
-      ELSE
-        ISYM = 0
-      ENDIF
+C     VALUES WHICH REFLECT SIGN AND MAGNITUDE OF MQN
+      MMJA = MQN(1)*((-1)**MMA)
+      MMJB = MQN(2)*((-1)**MMB)
+      MMJC = MQN(3)*((-1)**MMC)
+      MMJD = MQN(4)*((-1)**MMD)
 C
-C     PRINT A WARNING IF THE MOLECULE SYMMETRY TYPE IS INCOMPATIBLE
-      IF(ISYM.NE.0) THEN
-        WRITE(6,*) 'In BRTMT1G: you probably should be using BRTMT1Z.'
-        WRITE(7,*) 'In BRTMT1G: you probably should be using BRTMT1Z.'
-      ENDIF
+C**********************************************************************C
+C     CLOSED-SHELL EXCHANGE BREIT MATRIX (BXCH)                        C
+C**********************************************************************C
 C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)
+C     MQN SIGN SELECTION RULES
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 601
+C
+C     BXCH: (AD|CB) =         (AD|CB)
       IF(NAL.LE.NDL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,NDL+LBAS) = BXCH(NAL+IBAS,NDL+LBAS)
-     &                  +      XLSSL(M)*DCONJG(DENT(NBS+JBAS,NCS+KBAS))
+     &                +         XLSSL(M)*      DENT(NCS+KBAS,NBS+JBAS)
+            BXCH(NAS+IBAS,NDS+LBAS) = BXCH(NAS+IBAS,NDS+LBAS)
+     &                +         XSLLS(M)*      DENT(NCL+KBAS,NBL+JBAS)
           ENDDO
         ENDDO
       ENDIF
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          BXCH(NAL+IBAS,NDS+LBAS) = BXCH(NAL+IBAS,NDS+LBAS)
-     &                  +      XLSLS(M)*DCONJG(DENT(NBS+JBAS,NCL+KBAS))
-        ENDDO
-      ENDDO
-C
-CC     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          BXCH(NAS+IBAS,NDL+LBAS) = BXCH(NAS+IBAS,NDL+LBAS)
-C     &                  +      XSLSL(M)*DCONJG(DENT(NBL+JBAS,NCS+KBAS))
-C        ENDDO
-C      ENDDO
-C
-C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)
-      IF(NAS.LE.NDS) THEN
+      IF(NAL.LE.NDS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
-            BXCH(NAS+IBAS,NDS+LBAS) = BXCH(NAS+IBAS,NDS+LBAS)
-     &                  +      XSLLS(M)*DCONJG(DENT(NBL+JBAS,NCL+KBAS))
+            BXCH(NAL+IBAS,NDS+LBAS) = BXCH(NAL+IBAS,NDS+LBAS)
+     &                +         XLSLS(M)*      DENT(NCL+KBAS,NBS+JBAS)
           ENDDO
         ENDDO
       ENDIF
 C
-C**********************************************************************C
-C     ADD THIS BATCH OF R-INTEGRALS TO OPEN-SHELL BREIT MATRIX.        C
-C     THIS ALSO REQUIRES THE CLOSED-SHELL DIRECT MATRIX ELEMENTS.      C
-C**********************************************************************C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 601
 C
-      IF(NOPN.EQ.0) GOTO 6100
-C
-C     CLOSED-SHELL DIRECT MATRIX BDIR
-C
-C     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
-     &                  +      XLSLS(M)*DCONJG(DENT(NCL+KBAS,NDS+LBAS))
-     &                  +      XLSSL(M)*DCONJG(DENT(NCS+KBAS,NDL+LBAS))
-C
+C     BXCH: (CB|AD) =         (AD|CB)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NCL+KBAS,NBL+JBAS) = BXCH(NCL+KBAS,NBL+JBAS)
+     &                +         XSLLS(M)*      DENT(NAS+IBAS,NDS+LBAS)
+            BXCH(NCS+KBAS,NBS+JBAS) = BXCH(NCS+KBAS,NBS+JBAS)
+     &                +         XLSSL(M)*      DENT(NAL+IBAS,NDL+LBAS)
+          ENDDO
         ENDDO
-      ENDDO
-CC
-CC     CLOSED-SHELL DIRECT MATRIX BLOCK BDIR(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          BDIR(NAS+IBAS,NBL+JBAS) = BDIR(NAS+IBAS,NBL+JBAS)
-C     &                  +      XSLSL(M)*DCONJG(DENT(NCS+KBAS,NDL+LBAS))
-C     &                  +      XSLLS(M)*DCONJG(DENT(NCL+KBAS,NDS+LBAS))
-C        ENDDO
-C      ENDDO
-C
-C     OPEN-SHELL DIRECT MATRIX WDIR
-C
-C     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
-     &                  + ACFF*XLSLS(M)*DCONJG(DENO(NCL+KBAS,NDS+LBAS))
-     &                  + ACFF*XLSSL(M)*DCONJG(DENO(NCS+KBAS,NDL+LBAS))
+      ENDIF
+      IF(NCL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NCL+KBAS,NBS+JBAS) = BXCH(NCL+KBAS,NBS+JBAS)
+     &                +         XLSLS(M)*      DENT(NAL+IBAS,NDS+LBAS)
+          ENDDO
         ENDDO
-      ENDDO
-CC
-CC     OPEN-SHELL DIRECT MATRIX BLOCK WDIR(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          WDIR(NAS+IBAS,NBL+JBAS) = WDIR(NAS+IBAS,NBL+JBAS)
-C     &                  + ACFF*XSLSL(M)*DCONJG(DENO(NCS+KBAS,NDL+LBAS))
-C     &                  + ACFF*XSLLS(M)*DCONJG(DENO(NCL+KBAS,NDS+LBAS))
-C        ENDDO
-C      ENDDO
+      ENDIF
 C
-C     OPEN-SHELL DIRECT MATRIX WXCH
+601   CONTINUE
 C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LL)
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 602
+C
+C     MQN SIGN SELECTION RULES
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 602
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 602
+C
+C     BXCH: (BD|CA) = PAB*    (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBL+JBAS,NDL+LBAS) = BXCH(KBL+JBAS,NDL+LBAS)
+     &                + PAB*    XSLSL(M)*      DENT(NCS+KBAS,KAS+IBAS)
+            BXCH(KBS+JBAS,NDS+LBAS) = BXCH(KBS+JBAS,NDS+LBAS)
+     &                + PAB*    XLSLS(M)*      DENT(NCL+KBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBL+JBAS,NDS+LBAS) = BXCH(KBL+JBAS,NDS+LBAS)
+     &                + PAB*    XSLLS(M)*      DENT(NCL+KBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 602
+C
+C     BXCH: (CA|BD) = PAB*    (AD|CB)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NCL+KBAS,KAL+IBAS) = BXCH(NCL+KBAS,KAL+IBAS)
+     &                + PAB*    XLSLS(M)*      DENT(KBS+JBAS,NDS+LBAS)
+            BXCH(NCS+KBAS,KAS+IBAS) = BXCH(NCS+KBAS,KAS+IBAS)
+     &                + PAB*    XSLSL(M)*      DENT(KBL+JBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NCL+KBAS,KAS+IBAS) = BXCH(NCL+KBAS,KAS+IBAS)
+     &                + PAB*    XSLLS(M)*      DENT(KBL+JBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+602   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 603
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 603
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 603
+C
+C     BXCH: (AC|DB) =     PCD*(AD|CB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAL+IBAS,KCL+KBAS) = BXCH(NAL+IBAS,KCL+KBAS)
+     &                +     PCD*XLSLS(M)*      DENT(KDS+LBAS,NBS+JBAS)
+            BXCH(NAS+IBAS,KCS+KBAS) = BXCH(NAS+IBAS,KCS+KBAS)
+     &                +     PCD*XSLSL(M)*      DENT(KDL+LBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(NAL+IBAS,KCS+KBAS) = BXCH(NAL+IBAS,KCS+KBAS)
+     &                +     PCD*XLSSL(M)*      DENT(KDL+LBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 603
+C
+C     BXCH: (DB|AC) =     PCD*(AD|CB)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KDL+LBAS,NBL+JBAS) = BXCH(KDL+LBAS,NBL+JBAS)
+     &                +     PCD*XSLSL(M)*      DENT(NAS+IBAS,KCS+KBAS)
+            BXCH(KDS+LBAS,NBS+JBAS) = BXCH(KDS+LBAS,NBS+JBAS)
+     &                +     PCD*XLSLS(M)*      DENT(NAL+IBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KDL+LBAS,NBS+JBAS) = BXCH(KDL+LBAS,NBS+JBAS)
+     &                +     PCD*XLSSL(M)*      DENT(NAL+IBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+603   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 604
+      IF(.NOT.PRM1KL) GOTO 604
+C
+C     MQN SIGN SELECTION RULES
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 604
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 604
+      IF(KQN(3).EQ.KQN(4)) GOTO 604
+C
+C     BXCH: (BC|DA) = PAB*PCD*(AD|CB)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBL+JBAS,KCL+KBAS) = BXCH(KBL+JBAS,KCL+KBAS)
+     &                + PAB*PCD*XSLLS(M)*      DENT(KDS+LBAS,KAS+IBAS)
+            BXCH(KBS+JBAS,KCS+KBAS) = BXCH(KBS+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XLSSL(M)*      DENT(KDL+LBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KBL+JBAS,KCS+KBAS) = BXCH(KBL+JBAS,KCS+KBAS)
+     &                + PAB*PCD*XSLSL(M)*      DENT(KDL+LBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 604
+C
+C     BXCH: (DA|BC) = PAB*PCD*(AD|CB)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KDL+LBAS,KAL+IBAS) = BXCH(KDL+LBAS,KAL+IBAS)
+     &                + PAB*PCD*XLSSL(M)*      DENT(KBS+JBAS,KCS+KBAS)
+            BXCH(KDS+LBAS,KAS+IBAS) = BXCH(KDS+LBAS,KAS+IBAS)
+     &                + PAB*PCD*XSLLS(M)*      DENT(KBL+JBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BXCH(KDL+LBAS,KAS+IBAS) = BXCH(KDL+LBAS,KAS+IBAS)
+     &                + PAB*PCD*XSLSL(M)*      DENT(KBL+JBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+604   CONTINUE
+C
+C     SKIP POINT FOR CLOSED-SHELL MOLECULES
+      IF(NOPN.EQ.0) GOTO 1000
+C
+C**********************************************************************C
+C     CLOSED-SHELL DIRECT COULOMB MATRIX (BDIR)                        C
+C**********************************************************************C
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 501
+C
+C     BDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
+     &                +         XLSLS(M)*      DENT(NCL+KBAS,NDS+LBAS)
+     &                +         XLSSL(M)*      DENT(NCS+KBAS,NDL+LBAS)
+C
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 501
+C
+C     BDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(NCL+KBAS,NDS+LBAS) = BDIR(NCL+KBAS,NDS+LBAS)
+     &           +              XLSLS(M)*      DENT(NAL+IBAS,NBS+JBAS)
+     &           +              XSLLS(M)*      DENT(NAS+IBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+501   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 502
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 502
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 512
+C
+C     BDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(KBL+JBAS,KAS+IBAS) = BDIR(KBL+JBAS,KAS+IBAS)
+     &           +      PAB*    XSLLS(M)*      DENT(NCL+KBAS,NDS+LBAS)
+     &           +      PAB*    XSLSL(M)*      DENT(NCS+KBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+512   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 502
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 502
+C
+C     BDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(NCL+KBAS,NDS+LBAS) = BDIR(NCL+KBAS,NDS+LBAS)
+     &           +      PAB*    XSLLS(M)*      DENT(KBL+JBAS,KAS+IBAS)
+     &           +      PAB*    XLSLS(M)*      DENT(KBS+JBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+502   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 503
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 503
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 513
+C
+C     BDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(NAL+IBAS,NBS+JBAS) = BDIR(NAL+IBAS,NBS+JBAS)
+     &           +          PCD*XLSSL(M)*      DENT(KDL+LBAS,KCS+KBAS)
+     &           +          PCD*XLSLS(M)*      DENT(KDS+LBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+513   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 503
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 503
+C
+C     BDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(KDL+LBAS,KCS+KBAS) = BDIR(KDL+LBAS,KCS+KBAS)
+     &           +          PCD*XLSSL(M)*      DENT(NAL+IBAS,NBS+JBAS)
+     &           +          PCD*XSLSL(M)*      DENT(NAS+IBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+503   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 504
+      IF(.NOT.PRM1KL) GOTO 504
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 504
+      IF(KQN(3).EQ.KQN(4)) GOTO 504
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 504
+C
+C     BDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(KBL+JBAS,KAS+IBAS) = BDIR(KBL+JBAS,KAS+IBAS)
+     &           +      PAB*PCD*XSLSL(M)*      DENT(KDL+LBAS,KCS+KBAS)
+     &           +      PAB*PCD*XSLLS(M)*      DENT(KDS+LBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 504
+C
+C     BDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            BDIR(KDL+LBAS,KCS+KBAS) = BDIR(KDL+LBAS,KCS+KBAS)
+     &           +      PAB*PCD*XSLSL(M)*      DENT(KBL+JBAS,KAS+IBAS)
+     &           +      PAB*PCD*XLSSL(M)*      DENT(KBL+JBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+504   CONTINUE
+C
+C**********************************************************************C
+C     OPEN-SHELL DIRECT BREIT MATRIX (WDIR)                            C
+C**********************************************************************C
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJA-MMJB.NE.MMJD-MMJC) GOTO 701
+C
+C     WDIR: (AB|CD) =         (AB|CD)
+      IF(NAL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
+     &           + ACFF*        XLSLS(M)*      DENO(NCL+KBAS,NDS+LBAS)
+     &           + ACFF*        XLSSL(M)*      DENO(NCS+KBAS,NDL+LBAS)
+C
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 701
+C
+C     WDIR: (CD|AB) =         (AB|CD)
+      IF(NCL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(NCL+KBAS,NDS+LBAS) = WDIR(NCL+KBAS,NDS+LBAS)
+     &           + ACFF*        XLSLS(M)*      DENO(NAL+IBAS,NBS+JBAS)
+     &           + ACFF*        XSLLS(M)*      DENO(NAS+IBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+701   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 702
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJB-MMJA.NE.MMJD-MMJC) GOTO 702
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 712
+C
+C     WDIR: (BA|CD) = PAB*    (AB|CD)
+      IF(KBL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(KBL+JBAS,KAS+IBAS) = WDIR(KBL+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*    XSLLS(M)*      DENO(NCL+KBAS,NDS+LBAS)
+     &           + ACFF*PAB*    XSLSL(M)*      DENO(NCS+KBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+712   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 702
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 702
+C
+C     WDIR: (CD|BA) = PAB*    (AB|CD)
+      IF(NCL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(NCL+KBAS,NDS+LBAS) = WDIR(NCL+KBAS,NDS+LBAS)
+     &           + ACFF*PAB*    XSLLS(M)*      DENO(KBL+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*    XLSLS(M)*      DENO(KBS+JBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+702   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 703
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJA-MMJB.NE.MMJC-MMJD) GOTO 703
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 713
+C
+C     WDIR: (AB|DC) =     PCD*(AB|CD)
+      IF(NAL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(NAL+IBAS,NBS+JBAS) = WDIR(NAL+IBAS,NBS+JBAS)
+     &           + ACFF*    PCD*XLSSL(M)*      DENO(KDL+LBAS,KCS+KBAS)
+     &           + ACFF*    PCD*XLSLS(M)*      DENO(KDS+LBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+713   CONTINUE
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 703
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 703
+C
+C     WDIR: (DC|AB) =     PCD*(AB|CD)
+      IF(KDL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(KDL+LBAS,KCS+KBAS) = WDIR(KDL+LBAS,KCS+KBAS)
+     &           + ACFF*    PCD*XLSSL(M)*      DENO(NAL+IBAS,NBS+JBAS)
+     &           + ACFF*    PCD*XSLSL(M)*      DENO(NAS+IBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+703   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 704
+      IF(.NOT.PRM1KL) GOTO 704
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 704
+      IF(KQN(3).EQ.KQN(4)) GOTO 704
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJB-MMJA.NE.MMJC-MMJD) GOTO 704
+C
+C     WDIR: (BA|DC) = PAB*PCD*(AB|CD)
+      IF(KBL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(KBL+JBAS,KAS+IBAS) = WDIR(KBL+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*PCD*XSLSL(M)*      DENO(KDL+LBAS,KCS+KBAS)
+     &           + ACFF*PAB*PCD*XSLLS(M)*      DENO(KDS+LBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 704
+C
+C     WDIR: (DC|BA) = PAB*PCD*(AB|CD)
+      IF(KDL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WDIR(KDL+LBAS,KCS+KBAS) = WDIR(KDL+LBAS,KCS+KBAS)
+     &           + ACFF*PAB*PCD*XSLSL(M)*      DENO(KBL+JBAS,KAS+IBAS)
+     &           + ACFF*PAB*PCD*XLSSL(M)*      DENO(KBL+JBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+704   CONTINUE
+C
+C**********************************************************************C
+C     OPEN-SHELL EXCHANGE BREIT MATRIX (WXCH)                          C
+C**********************************************************************C
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJA-MMJD.NE.MMJB-MMJC) GOTO 801
+C
+C     WXCH: (AD|CB) =         (AD|CB)
       IF(NAL.LE.NDL) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
             WXCH(NAL+IBAS,NDL+LBAS) = WXCH(NAL+IBAS,NDL+LBAS)
-     &                  + BCFF*XLSSL(M)*DCONJG(DENO(NBS+JBAS,NCS+KBAS))
+     &           + BCFF*        XLSSL(M)*      DENO(NCS+KBAS,NBS+JBAS)
+            WXCH(NAS+IBAS,NDS+LBAS) = WXCH(NAS+IBAS,NDS+LBAS)
+     &           + BCFF*        XSLLS(M)*      DENO(NCL+KBAS,NBL+JBAS)
           ENDDO
         ENDDO
       ENDIF
-C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(LS)
-      M = 0
-      DO KBAS=1,NBAS(3)
-        DO LBAS=1,NBAS(4)
-          M = M+1
-          WXCH(NAL+IBAS,NDS+LBAS) = WXCH(NAL+IBAS,NDS+LBAS)
-     &                  + BCFF*XLSLS(M)*DCONJG(DENO(NBS+JBAS,NCL+KBAS))
-        ENDDO
-      ENDDO
-CC
-CC     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SL)
-C      M = 0
-C      DO KBAS=1,NBAS(3)
-C        DO LBAS=1,NBAS(4)
-C          M = M+1
-C          WXCH(NAS+IBAS,NDL+LBAS) = WXCH(NAS+IBAS,NDL+LBAS)
-C     &                  + BCFF*XSLSL(M)*DCONJG(DENO(NBL+JBAS,NCS+KBAS))
-C        ENDDO
-C      ENDDO
-C
-C     OPEN-SHELL EXCHANGE MATRIX BLOCK WXCH(SS)
-      IF(NAS.LE.NDS) THEN
+      IF(NAL.LE.NDS) THEN
         M = 0
         DO KBAS=1,NBAS(3)
           DO LBAS=1,NBAS(4)
             M = M+1
-            WXCH(NAS+IBAS,NDS+LBAS) = WXCH(NAS+IBAS,NDS+LBAS)
-     &                  + BCFF*XSLLS(M)*DCONJG(DENO(NBL+JBAS,NCL+KBAS))
+            WXCH(NAL+IBAS,NDS+LBAS) = WXCH(NAL+IBAS,NDS+LBAS)
+     &           + BCFF*        XLSLS(M)*      DENO(NCL+KBAS,NBS+JBAS)
           ENDDO
         ENDDO
       ENDIF
 C
-6100  CONTINUE
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 801
+C
+C     WXCH: (CB|AD) =         (AD|CB)
+      IF(NCL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NCL+KBAS,NBL+JBAS) = WXCH(NCL+KBAS,NBL+JBAS)
+     &           + BCFF*        XSLLS(M)*      DENO(NAS+IBAS,NDS+LBAS)
+            WXCH(NCS+KBAS,NBS+JBAS) = WXCH(NCS+KBAS,NBS+JBAS)
+     &           + BCFF*        XLSSL(M)*      DENO(NAL+IBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NCL+KBAS,NBS+JBAS) = WXCH(NCL+KBAS,NBS+JBAS)
+     &           + BCFF*        XLSLS(M)*      DENO(NAL+IBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+801   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 802
+C
+C     MQN SIGN SELECTION RULES
+      IF(-MMJB-MMJD.NE.-MMJA-MMJC) GOTO 802
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 802
+C
+C     WXCH: (BD|CA) = PAB*    (AD|CB)
+      IF(KBL.LE.NDL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KBL+JBAS,NDL+LBAS) = WXCH(KBL+JBAS,NDL+LBAS)
+     &           + BCFF*PAB*    XSLSL(M)*      DENO(NCS+KBAS,KAS+IBAS)
+            WXCH(KBS+JBAS,NDS+LBAS) = WXCH(KBS+JBAS,NDS+LBAS)
+     &           + BCFF*PAB*    XLSLS(M)*      DENO(NCL+KBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.NDS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KBL+JBAS,NDS+LBAS) = WXCH(KBL+JBAS,NDS+LBAS)
+     &           + BCFF*PAB*    XSLLS(M)*      DENO(NCL+KBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 802
+C
+C     WXCH: (CA|BD) = PAB*    (AD|CB)
+      IF(NCL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NCL+KBAS,KAL+IBAS) = WXCH(NCL+KBAS,KAL+IBAS)
+     &           + BCFF*PAB*    XLSLS(M)*      DENO(KBS+JBAS,NDS+LBAS)
+            WXCH(NCS+KBAS,KAS+IBAS) = WXCH(NCS+KBAS,KAS+IBAS)
+     &           + BCFF*PAB*    XSLSL(M)*      DENO(KBL+JBAS,NDL+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NCL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NCL+KBAS,KAS+IBAS) = WXCH(NCL+KBAS,KAS+IBAS)
+     &           + BCFF*PAB*    XSLLS(M)*      DENO(KBL+JBAS,NDS+LBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+802   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1KL) GOTO 803
+C
+C     MQN SIGN SELECTION RULES
+      IF(MMJA+MMJC.NE.MMJB+MMJD) GOTO 803
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(3).EQ.KQN(4)) GOTO 803
+C
+C     WXCH: (AC|DB) =     PCD*(AD|CB)
+      IF(NAL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NAL+IBAS,KCL+KBAS) = WXCH(NAL+IBAS,KCL+KBAS)
+     &           + BCFF*    PCD*XLSLS(M)*      DENO(KDS+LBAS,NBS+JBAS)
+            WXCH(NAS+IBAS,KCS+KBAS) = WXCH(NAS+IBAS,KCS+KBAS)
+     &           + BCFF*    PCD*XSLSL(M)*      DENO(KDL+LBAS,NBL+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(NAL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(NAL+IBAS,KCS+KBAS) = WXCH(NAL+IBAS,KCS+KBAS)
+     &           + BCFF*    PCD*XLSSL(M)*      DENO(KDL+LBAS,NBS+JBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 803
+C
+C     WXCH: (DB|AC) =     PCD*(AD|CB)
+      IF(KDL.LE.NBL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KDL+LBAS,NBL+JBAS) = WXCH(KDL+LBAS,NBL+JBAS)
+     &           + BCFF*    PCD*XSLSL(M)*      DENO(NAS+IBAS,KCS+KBAS)
+            WXCH(KDS+LBAS,NBS+JBAS) = WXCH(KDS+LBAS,NBS+JBAS)
+     &           + BCFF*    PCD*XLSLS(M)*      DENO(NAL+IBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.NBS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KDL+LBAS,NBS+JBAS) = WXCH(KDL+LBAS,NBS+JBAS)
+     &           + BCFF*    PCD*XLSSL(M)*      DENO(NAL+IBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+803   CONTINUE
+C
+C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
+      IF(.NOT.PRM1IJ) GOTO 804
+      IF(.NOT.PRM1KL) GOTO 804
+C
+C     MQN SIGN SELECTION RULES
+      IF(-MMJB+MMJC.NE.-MMJA+MMJD) GOTO 804
+C
+C     SCREEN NON-RECYCLABLE BLOCKS FROM THE LOWER TRIANGLE
+      IF(KQN(1).EQ.KQN(2)) GOTO 804
+      IF(KQN(3).EQ.KQN(4)) GOTO 804
+C
+C     WXCH: (BC|DA) = PAB*PCD*(AD|CB)
+      IF(KBL.LE.KCL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KBL+JBAS,KCL+KBAS) = WXCH(KBL+JBAS,KCL+KBAS)
+     &           + BCFF*PAB*PCD*XSLLS(M)*      DENO(KDS+LBAS,KAS+IBAS)
+            WXCH(KBS+JBAS,KCS+KBAS) = WXCH(KBS+JBAS,KCS+KBAS)
+     &           + BCFF*PAB*PCD*XLSSL(M)*      DENO(KDL+LBAS,KAL+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KBL.LE.KCS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KBL+JBAS,KCS+KBAS) = WXCH(KBL+JBAS,KCS+KBAS)
+     &           + BCFF*PAB*PCD*XSLSL(M)*      DENO(KDL+LBAS,KAS+IBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+C     INTEGRALS BY VARIABLE SWAP
+      IF(.NOT.PRM1HC.OR.IKL.EQ.IKR) GOTO 804
+C
+C     WXCH: (DA|BC) = PAB*PCD*(AD|CB)
+      IF(KDL.LE.KAL) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KDL+LBAS,KAL+IBAS) = WXCH(KDL+LBAS,KAL+IBAS)
+     &           + BCFF*PAB*PCD*XLSSL(M)*      DENO(KBS+JBAS,KCS+KBAS)
+            WXCH(KDS+LBAS,KAS+IBAS) = WXCH(KDS+LBAS,KAS+IBAS)
+     &           + BCFF*PAB*PCD*XSLLS(M)*      DENO(KBL+JBAS,KCL+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+      IF(KDL.LE.KAS) THEN
+        M = 0
+        DO KBAS=1,NBAS(3)
+          DO LBAS=1,NBAS(4)
+            M = M+1
+            WXCH(KDL+LBAS,KAS+IBAS) = WXCH(KDL+LBAS,KAS+IBAS)
+     &           + BCFF*PAB*PCD*XSLSL(M)*      DENO(KBL+JBAS,KCS+KBAS)
+          ENDDO
+        ENDDO
+      ENDIF
+C
+804   CONTINUE
+C
+1000  CONTINUE
 C
       RETURN
       END
