@@ -24784,7 +24784,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (AD|CB)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,NDL+LBAS) = BXCH(NAL+IBAS,NDL+LBAS)
-     &                  +         XLSSL(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
+     &                +         XLSSL(M)*DREAL(DENT(NCS+KBAS,NBS+JBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24796,7 +24796,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (AD|CB)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,NDS+LBAS) = BXCH(NAL+IBAS,NDS+LBAS)
-     &                  +         XLSLS(M)*DREAL(DENT(NCL+KBAS,NBS+JBAS))
+     &                +         XLSLS(M)*DREAL(DENT(NCL+KBAS,NBS+JBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24807,7 +24807,7 @@ C      DO KBAS=1,NBAS(3)
 C        DO LBAS=1,NBAS(4)
 C          M = M+1
 C          BXCH(NAS+IBAS,NDL+LBAS) = BXCH(NAS+IBAS,NDL+LBAS)
-C     &                 +         XSLSL(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
+C     &                +         XSLSL(M)*DREAL(DENT(NCS+KBAS,NBL+JBAS))
 C        ENDDO
 C      ENDDO
 C
@@ -24818,7 +24818,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (AD|CB)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAS+IBAS,NDS+LBAS) = BXCH(NAS+IBAS,NDS+LBAS)
-     &                  +         XSLLS(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
+     &                +         XSLLS(M)*DREAL(DENT(NCL+KBAS,NBL+JBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24833,7 +24833,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (CB|AD)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCL+KBAS,NBL+JBAS) = BXCH(NCL+KBAS,NBL+JBAS)
-     &                  +         XSLLS(M)*DREAL(DENT(NAS+IBAS,NDS+LBAS))
+     &                +         XSLLS(M)*DREAL(DENT(NAS+IBAS,NDS+LBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24845,7 +24845,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (CB|AD)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCL+KBAS,NBS+JBAS) = BXCH(NCL+KBAS,NBS+JBAS)
-     &                  +         XLSLS(M)*DREAL(DENT(NAL+IBAS,NDS+LBAS))
+     &                +         XLSLS(M)*DREAL(DENT(NAL+IBAS,NDS+LBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24857,7 +24857,7 @@ C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
 C            BXCH(NCS+KBAS,NBL+JBAS) = BXCH(NCS+KBAS,NBL+JBAS)
-C     &                 +         XSLSL(M)*DREAL(DENT(NAS+IBAS,NDL+LBAS))
+C     &                +         XSLSL(M)*DREAL(DENT(NAS+IBAS,NDL+LBAS))
 C          ENDDO
 C        ENDDO
 C      ENDIF
@@ -24869,7 +24869,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (CB|AD)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCS+KBAS,NBS+JBAS) = BXCH(NCS+KBAS,NBS+JBAS)
-     &                  +         XLSSL(M)*DREAL(DENT(NAL+IBAS,NDL+LBAS))
+     &                +         XLSSL(M)*DREAL(DENT(NAL+IBAS,NDL+LBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24901,7 +24901,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (BD|CA)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBL+JBAS,NDL+LBAS) = BXCH(KBL+JBAS,NDL+LBAS)
-     &                  + PAB*    XSLSL(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
+     &                + PAB*    XSLSL(M)*DREAL(DENT(NCS+KBAS,KAS+IBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24913,7 +24913,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (BD|CA)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBL+JBAS,NDS+LBAS) = BXCH(KBL+JBAS,NDS+LBAS)
-     &                  + PAB*    XSLLS(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
+     &                + PAB*    XSLLS(M)*DREAL(DENT(NCL+KBAS,KAS+IBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24925,7 +24925,7 @@ C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
 C            BXCH(KBS+JBAS,NDL+LBAS) = BXCH(KBS+JBAS,NDL+LBAS)
-C     &                     +      XLSSL(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
+C     &                   +      XLSSL(M)*DREAL(DENT(NCS+KBAS,KAL+IBAS))
 C          ENDDO
 C        ENDDO
 C      ENDIF
@@ -24937,7 +24937,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (BD|CA)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBS+JBAS,NDS+LBAS) = BXCH(KBS+JBAS,NDS+LBAS)
-     &                  + PAB*    XLSLS(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
+     &                + PAB*    XLSLS(M)*DREAL(DENT(NCL+KBAS,KAL+IBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24952,7 +24952,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (CA|BD)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCL+KBAS,KAL+IBAS) = BXCH(NCL+KBAS,KAL+IBAS)
-     &                  + PAB*    XLSLS(M)*DREAL(DENT(KBS+JBAS,NDS+LBAS))
+     &                + PAB*    XLSLS(M)*DREAL(DENT(KBS+JBAS,NDS+LBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24964,7 +24964,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (CA|BD)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCL+KBAS,KAS+IBAS) = BXCH(NCL+KBAS,KAS+IBAS)
-     &                  + PAB*    XSLLS(M)*DREAL(DENT(KBL+JBAS,NDS+LBAS))
+     &                + PAB*    XSLLS(M)*DREAL(DENT(KBL+JBAS,NDS+LBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -24976,7 +24976,7 @@ C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
 C            BXCH(NCS+KBAS,KAL+IBAS) = BXCH(NCS+KBAS,KAL+IBAS)
-C     &                     +      XLSSL(M)*DREAL(DENT(KBS+JBAS,NDL+LBAS))
+C     &                   +      XLSSL(M)*DREAL(DENT(KBS+JBAS,NDL+LBAS))
 C          ENDDO
 C        ENDDO
 C      ENDIF
@@ -24988,7 +24988,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (CA|BD)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NCS+KBAS,KAS+IBAS) = BXCH(NCS+KBAS,KAS+IBAS)
-     &                  + PAB*    XSLSL(M)*DREAL(DENT(KBL+JBAS,NDL+LBAS))
+     &                + PAB*    XSLSL(M)*DREAL(DENT(KBL+JBAS,NDL+LBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25020,7 +25020,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (AC|DB)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,KCL+KBAS) = BXCH(NAL+IBAS,KCL+KBAS)
-     &                  +     PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
+     &                +     PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,NBS+JBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25032,7 +25032,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (AC|DB)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAL+IBAS,KCS+KBAS) = BXCH(NAL+IBAS,KCS+KBAS)
-     &                  +     PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS))
+     &                +     PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,NBS+JBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25044,7 +25044,7 @@ C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
 C            BXCH(NAS+IBAS,KCL+KBAS) = BXCH(NAS+IBAS,KCL+KBAS)
-C     &                  +     PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
+C     &                +     PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,NBL+JBAS))
 C          ENDDO
 C        ENDDO
 C      ENDIF
@@ -25056,7 +25056,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (AC|DB)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(NAS+IBAS,KCS+KBAS) = BXCH(NAS+IBAS,KCS+KBAS)
-     &                  +     PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
+     &                +     PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,NBL+JBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25071,7 +25071,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (DB|AC)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDL+LBAS,NBL+JBAS) = BXCH(KDL+LBAS,NBL+JBAS)
-     &                  +     PCD*XSLSL(M)*DREAL(DENT(NAS+IBAS,KCS+KBAS))
+     &                +     PCD*XSLSL(M)*DREAL(DENT(NAS+IBAS,KCS+KBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25083,7 +25083,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (DB|AC)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDL+LBAS,NBS+JBAS) = BXCH(KDL+LBAS,NBS+JBAS)
-     &                  +     PCD*XLSSL(M)*DREAL(DENT(NAL+IBAS,KCS+KBAS))
+     &                +     PCD*XLSSL(M)*DREAL(DENT(NAL+IBAS,KCS+KBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25095,7 +25095,7 @@ C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
 C            BXCH(KDS+LBAS,NBL+JBAS) = BXCH(KDS+LBAS,NBL+JBAS)
-C     &                  +     PCD*XSLLS(M)*DREAL(DENT(NAS+IBAS,KCL+KBAS))
+C     &                +     PCD*XSLLS(M)*DREAL(DENT(NAS+IBAS,KCL+KBAS))
 C          ENDDO
 C        ENDDO
 C      ENDIF
@@ -25107,7 +25107,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (DB|AC)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDS+LBAS,NBS+JBAS) = BXCH(KDS+LBAS,NBS+JBAS)
-     &                  +     PCD*XLSLS(M)*DREAL(DENT(NAL+IBAS,KCL+KBAS))
+     &                +     PCD*XLSLS(M)*DREAL(DENT(NAL+IBAS,KCL+KBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25117,7 +25117,7 @@ C
 204   CONTINUE
 C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
-C     BXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                         C
+C     BXCH: PERMUTATION SYMMETRY I⇄J AND K⇄L                           C
 C>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>C
 C
 C     MATRIX CONTRIBUTIONS BY PERMUTATION OF INDICES
@@ -25141,7 +25141,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (BC|DA)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBL+JBAS,KCL+KBAS) = BXCH(KBL+JBAS,KCL+KBAS)
-     &                  + PAB*PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
+     &                + PAB*PCD*XSLLS(M)*DREAL(DENT(KDS+LBAS,KAS+IBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25153,7 +25153,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (BC|DA)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBL+JBAS,KCS+KBAS) = BXCH(KBL+JBAS,KCS+KBAS)
-     &                  + PAB*PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,KAS+IBAS))
+     &                + PAB*PCD*XSLSL(M)*DREAL(DENT(KDL+LBAS,KAS+IBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25165,7 +25165,7 @@ C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
 C            BXCH(KBS+JBAS,KCL+KBAS) = BXCH(KBS+JBAS,KCL+KBAS)
-C     &                   + PAB*PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,KAL+IBAS))
+C     &                + PAB*PCD*XLSLS(M)*DREAL(DENT(KDS+LBAS,KAL+IBAS))
 C          ENDDO
 C        ENDDO
 C      ENDIF
@@ -25177,7 +25177,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (BC|DA)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KBS+JBAS,KCS+KBAS) = BXCH(KBS+JBAS,KCS+KBAS)
-     &                  + PAB*PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
+     &                + PAB*PCD*XLSSL(M)*DREAL(DENT(KDL+LBAS,KAL+IBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25192,7 +25192,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LL)  --  (DA|BC)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDL+LBAS,KAL+IBAS) = BXCH(KDL+LBAS,KAL+IBAS)
-     &                  + PAB*PCD*XLSSL(M)*DREAL(DENT(KBS+JBAS,KCS+KBAS))
+     &                + PAB*PCD*XLSSL(M)*DREAL(DENT(KBS+JBAS,KCS+KBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25204,7 +25204,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(LS)  --  (DA|BC)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDL+LBAS,KAS+IBAS) = BXCH(KDL+LBAS,KAS+IBAS)
-     &                  + PAB*PCD*XSLSL(M)*DREAL(DENT(KBL+JBAS,KCS+KBAS))
+     &                + PAB*PCD*XSLSL(M)*DREAL(DENT(KBL+JBAS,KCS+KBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25216,7 +25216,7 @@ C        DO KBAS=1,NBAS(3)
 C          DO LBAS=1,NBAS(4)
 C            M = M+1
 C            BXCH(KDS+LBAS,KAL+IBAS) = BXCH(KDS+LBAS,KAL+IBAS)
-C     &                   + PAB*PCD*XLSLS(M)*DREAL(DENT(KBS+JBAS,KCL+KBAS))
+C     &                + PAB*PCD*XLSLS(M)*DREAL(DENT(KBS+JBAS,KCL+KBAS))
 C          ENDDO
 C        ENDDO
 C      ENDIF
@@ -25228,7 +25228,7 @@ C     CLOSED-SHELL EXCHANGE MATRIX BLOCK BXCH(SS)  --  (DA|BC)
           DO LBAS=1,NBAS(4)
             M = M+1
             BXCH(KDS+LBAS,KAS+IBAS) = BXCH(KDS+LBAS,KAS+IBAS)
-     &                  + PAB*PCD*XSLLS(M)*DREAL(DENT(KBL+JBAS,KCL+KBAS))
+     &                + PAB*PCD*XSLLS(M)*DREAL(DENT(KBL+JBAS,KCL+KBAS))
           ENDDO
         ENDDO
       ENDIF
@@ -25289,8 +25289,8 @@ C      DO KBAS=1,NBAS(3)
 C        DO LBAS=1,NBAS(4)
 C          M = M+1
 C          WDIR(NAS+IBAS,NBL+JBAS) = WDIR(NAS+IBAS,NBL+JBAS)
-C     &               +    ACFF*XSLSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
-C     &               +    ACFF*XSLLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
+C     &                +    ACFF*XSLSL(M)*DREAL(DENO(NCS+KBAS,NDL+LBAS))
+C     &                +    ACFF*XSLLS(M)*DREAL(DENO(NCL+KBAS,NDS+LBAS))
 C        ENDDO
 C      ENDDO
 C
@@ -25327,7 +25327,7 @@ C      DO KBAS=1,NBAS(3)
 C        DO LBAS=1,NBAS(4)
 C          M = M+1
 C          WXCH(NAS+IBAS,NDL+LBAS) = WXCH(NAS+IBAS,NDL+LBAS)
-C     &               +    BCFF*XSLSL(M)*DREAL(DENO(NBL+JBAS,NCS+KBAS))
+C     &                +    BCFF*XSLSL(M)*DREAL(DENO(NBL+JBAS,NCS+KBAS))
 C        ENDDO
 C      ENDDO
 C
