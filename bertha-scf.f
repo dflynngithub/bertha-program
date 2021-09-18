@@ -26818,7 +26818,7 @@ C
 604   CONTINUE
 C
 C     SKIP POINT FOR CLOSED-SHELL MOLECULES
-      IF(NOPN.EQ.0) GOTO 1000
+      IF(NOPN.EQ.0) RETURN
 C
 C**********************************************************************C
 C     CLOSED-SHELL DIRECT COULOMB MATRIX (BDIR)                        C
@@ -27422,8 +27422,6 @@ C     WXCH: (DA|BC) = PAB*PCD*(AD|CB)
 C
 804   CONTINUE
 C
-1000  CONTINUE
-C
       RETURN
       END
 C
@@ -27443,7 +27441,6 @@ C                                                                      C
 C -------------------------------------------------------------------- C
 C  BRTMT1Z ASSEMBLES CONTRIBUTIONS TO THE MOLECULAR BREIT MATRIX       C
 C  WHICH ARISE FROM A SINGLE NUCLEAR CENTRE IN A GENERAL MOLECULE.     C
-C  THIS SHOULD NOT BE CALLED UNLESS THE MOLECULE HAS C\INF SYMMETRY.   C
 C**********************************************************************C
       INCLUDE 'parameters.h'
       INCLUDE 'scfoptions.h'
@@ -27725,7 +27722,7 @@ C
 604   CONTINUE
 C
 C     SKIP POINT FOR CLOSED-SHELL MOLECULES
-      IF(NOPN.EQ.0) GOTO 1000
+      IF(NOPN.EQ.0) RETURN
 C
 C**********************************************************************C
 C     CLOSED-SHELL DIRECT COULOMB MATRIX (BDIR)                        C
@@ -28316,8 +28313,6 @@ C     WXCH: (DA|BC) = PAB*PCD*(AD|CB)
       ENDIF
 C
 804   CONTINUE
-C
-1000  CONTINUE
 C
       RETURN
       END
