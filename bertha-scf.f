@@ -5123,6 +5123,8 @@ C
 C
       DIMENSION RK(3*MDM),ESAV(0:MIT),DNRM(MIT),WEDN(0:MIT)
       DIMENSION NMLEV(5),TMLEV(5)
+
+      dimension edirtlf(5,9),exchtlf(5,9)
 C
       COMPLEX*16 WK(LWK)
       COMPLEX*16 COEF(MDM,MDM),DTMP(MDM,MDM),OTMP(MDM,MDM)
@@ -5206,6 +5208,13 @@ C     INITIALISE ENERGY NORM STORAGE
       ELSE
         ESAV(0) = ETOT
       ENDIF
+
+      do i=1,5
+        do j=1,9
+          edirtlf(i,j) = 0.0d0
+          exchtlf(i,j) = 0.0d0
+        enddo
+      enddo
 C
 C**********************************************************************C
 C     ECONOMISATION STRATEGIES                                         C
@@ -5215,7 +5224,7 @@ C     MULTI-CENTRE INTEGRAL SYMMETRY RELATIONS FOR RECYCLING RR BATCHES
       INTSYM = .TRUE.
 C
 C     TOGGLE FOR ATOMIC COULOMB/BREIT INTEGRAL SPLICING BY RACAH ALGEBRA
-      RACAH1 = .TRUE.
+      RACAH1 = .false.
 C
 C     CONVERGENCE STRATEGY: DIRECT INVERSION OF THE ITERATIVE SUBSPACE
       DIISQC = .TRUE.
@@ -5278,7 +5287,7 @@ C
 C     REASONS TO SKIP DIRECTLY TO BREIT PERTURBATION ANAYLSIS
       IF(SHAPE.EQ.'ATOMIC'.AND.HMLT.EQ.'DHFP') THEN
         EQFILE = .FALSE.
-        GOTO 998
+C        GOTO 998
       ENDIF
 C
 C     CALCULATE THE FULL SET OF EQ-COEFFICIENTS
@@ -5288,8 +5297,8 @@ C     CALCULATE THE FULL SET OF EQ-COEFFICIENTS
       ENDIF
       CALL SYSTEM_CLOCK(ICL4)
       TEPP = DFLOAT(ICL4-ICL3)/RATE
-C
-C     GOTO 998
+c
+      goto 998
 C
 C     GENERATE DIAGONAL TWO-ELECTRON INTEGRALS FOR SCREENING LATER
       CALL SYSTEM_CLOCK(ICL3)
@@ -5335,6 +5344,8 @@ C**********************************************************************C
 C
 C     LOOP OVER SCF ITERATIONS
       DO ITER=1,MIT
+
+        if(iter.eq.2) goto 300
 C
 C       TIME AT START OF ITERATION
         CALL SYSTEM_CLOCK(ICL3)
@@ -5397,7 +5408,7 @@ C       GENERATE MEAN-FIELD CLOSED- AND OPEN-SHELL COULOMB MATRIX
 C
 C         CALCULATE MANY-CENTRE COULOMB INTEGRALS (MCMURCHIE-DAVIDSON)
           CALL SYSTEM_CLOCK(ICL5)
-c         CALL COULOMB
+c         CALL COULOMB(ittval,itlfval)
           CALL CLMFAST
           CALL SYSTEM_CLOCK(ICL6)
           TCL2 =        DFLOAT(ICL6-ICL5)/RATE
@@ -5437,8 +5448,15 @@ C       GENERATE MEAN-FIELD BREIT MATRIX
 C
 C         CALCULATE MANY-CENTRE BREIT INTEGRALS (MCMURCHIE-DAVIDSON)
           CALL SYSTEM_CLOCK(ICL5)
-C         CALL BREIT
-          CALL BRTFAST
+c         CALL BREIT
+C         CALL BRTFAST
+C
+C         INITIALISE STORAGE MATRICES
+          DO I=1,NDIM
+            DO J=1,NDIM
+              BXCH(I,J) = DCMPLX(0.0D0,0.0D0)
+            ENDDO
+          ENDDO
 C
           CALL SYSTEM_CLOCK(ICL6)
           TBR2 =        DFLOAT(ICL6-ICL5)/RATE
@@ -6150,9 +6168,15 @@ C     ADDITIONAL OPTIONS AFTER CONVERGENCE (1ST ORDER P.T.)            C
 C**********************************************************************C
 C
 998   CONTINUE
-C
+c
+c      DO ITTVAL=1,4
+      iblocks=0
+      ittval=1
+      itlfval=1
+c     do itlfval=1,8
+      write(*,*) 'is this even doing the right thing?'
 C     CALCULATE THE PERTUBATIVE VALUE OF THE VARIOUS QED TERMS
-      IF(HMLT.EQ.'DHFP'.OR.HMLT.EQ.'DHFQ') THEN
+      IF(HMLT.EQ.'DHFP'.OR.HMLT.EQ.'DHFQ'.OR.HMLT.EQ.'DHFB') THEN
         CALL SYSTEM_CLOCK(ICL5)
 C
 C       LET'S CALL THIS STAGE 4
@@ -6160,6 +6184,7 @@ C       LET'S CALL THIS STAGE 4
         SHLEV(ILEV) = SHLV
 C
 C       TITLE FOR CALL TO QED ROUTINES
+c        if(itlfval.eq.1) then
         WRITE(6, *) ' '
         WRITE(7, *) ' '
         WRITE(6, *) REPEAT('=',72)
@@ -6168,6 +6193,7 @@ C       TITLE FOR CALL TO QED ROUTINES
         WRITE(7, *) REPEAT(' ',19),'QED contributions (1st order P.T.)'
         WRITE(6, *) REPEAT('=',72)
         WRITE(7, *) REPEAT('=',72)
+c        endif
 C
 C       CALCULATE LOW-ENERGY ELECTRON SELF-INTERACTION ELEMENTS
         CALL SYSTEM_CLOCK(ICL7)
@@ -6195,39 +6221,77 @@ C
 C       GENERATE MATRIX REP OF BREIT INTERACTION
         IF(NOCC.GT.1) THEN
 C
-          CALL SYSTEM_CLOCK(ICL7)
+          CALL COULOMB(itlfval,ITTVAL,iblocks)
+C          CALL CLMFAST
+C          IF(RACAH1) THEN
+C            DO IZ=1,NCNT
+C              CALL COULOMB1(IZ)
+C            ENDDO
+C          ENDIF
+
+      DO I=1,NSKP
+        K=I+NSKP
+        DO J=1,NSKP
+          L=J+NSKP
+          edirtlf(1,itlfval) = edirtlf(1,itlfval)
+     &                        + 0.5D0*DREAL(DENT(I,J)*GDIR(I,J))
+          edirtlf(2,itlfval) = edirtlf(2,itlfval)
+     &                        + 0.5D0*DREAL(DENT(I,L)*GDIR(I,L))
+          edirtlf(3,itlfval) = edirtlf(3,itlfval)
+     &                        + 0.5D0*DREAL(DENT(K,J)*GDIR(K,J))
+          edirtlf(4,itlfval) = edirtlf(4,itlfval)
+     &                        + 0.5D0*DREAL(DENT(K,L)*GDIR(K,L))
+          eXCHtlf(1,itlfval) = eXCHtlf(1,itlfval)
+     &                        + 0.5D0*DREAL(DENT(I,J)*GXCH(I,J))
+          eXCHtlf(2,itlfval) = eXCHtlf(2,itlfval)
+     &                        + 0.5D0*DREAL(DENT(I,L)*GXCH(I,L))
+          eXCHtlf(3,itlfval) = eXCHtlf(3,itlfval)
+     &                        + 0.5D0*DREAL(DENT(K,J)*GXCH(K,J))
+          eXCHtlf(4,itlfval) = eXCHtlf(4,itlfval)
+     &                        + 0.5D0*DREAL(DENT(K,L)*GXCH(K,L))
+        ENDDO
+      ENDDO
+
+      DO ITT=1,4
+        edirtlf(5,itlfval) = edirtlf(5,itlfval)+edirtlf(itt,itlfval)
+        exchtlf(5,itlfval) = exchtlf(5,itlfval)+exchtlf(itt,itlfval)
+        edirtlf(ITT,9) = edirtlf(ITT,9)+edirtlf(ITT,itlfval)
+        exchtlf(ITT,9) = exchtlf(ITT,9)+exchtlf(ITT,itlfval)
+      ENDDO
+
+
 C         CALL BREIT
-          CALL BRTFAST
-          CALL SYSTEM_CLOCK(ICL8)
-          TBR2 = TBR2 + DFLOAT(ICL8-ICL7)/RATE
-          TB2T = TB2T + DFLOAT(ICL8-ICL7)/RATE
+c         CALL BRTFAST
+c          CALL SYSTEM_CLOCK(ICL8)
+c          TBR2 = TBR2 + DFLOAT(ICL8-ICL7)/RATE
+c          TB2T = TB2T + DFLOAT(ICL8-ICL7)/RATE
 C
-          CALL SYSTEM_CLOCK(ICL7)
-          IF(RACAH1) THEN
-            DO IZ=1,NCNT
-              CALL BREIT1(IZ)
-            ENDDO
-          ENDIF
-C         CALL BREIT2
-          CALL SYSTEM_CLOCK(ICL8)
-C         TCR1 =        DFLOAT(ICL8-ICL7)/RATE
-C         TC1T = TC1T + DFLOAT(ICL8-ICL7)/RATE
-          TBR1 =        DFLOAT(ICL8-ICL7)/RATE
-          TB1T = TB1T + DFLOAT(ICL8-ICL7)/RATE
+c          CALL SYSTEM_CLOCK(ICL7)
+C           IF(RACAH1) THEN
+C             DO IZ=1,NCNT
+C                CALL BREIT1(IZ)
+C             ENDDO
+C           ENDIF
+c         CALL BREIT2
+c          CALL SYSTEM_CLOCK(ICL8)
+cC         TCR1 =        DFLOAT(ICL8-ICL7)/RATE
+cC         TC1T = TC1T + DFLOAT(ICL8-ICL7)/RATE
+c          TBR1 =        DFLOAT(ICL8-ICL7)/RATE
+c          TB1T = TB1T + DFLOAT(ICL8-ICL7)/RATE
 C
         ENDIF
 C
-C       CALCULATE FRACTION OF SCREENED INTEGRALS
-        DO MCNT=1,5
-          DO ITT=5,9
-            IF(N2EI(MCNT,ITT).NE.0) THEN
-              RATIO = DFLOAT(N2ES(MCNT,ITT))/DFLOAT(N2EI(MCNT,ITT))
-              F2ES(MCNT,ITT) = 100.0D0*RATIO
-            ELSE
-              F2ES(MCNT,ITT) = 0.0D0
-            ENDIF
-          ENDDO
-        ENDDO
+cC       CALCULATE FRACTION OF SCREENED INTEGRALS
+c        DO MCNT=1,5
+c          DO ITT=5,9
+c            IF(N2EI(MCNT,ITT).NE.0) THEN
+c              RATIO = DFLOAT(N2ES(MCNT,ITT))/DFLOAT(N2EI(MCNT,ITT))
+c              F2ES(MCNT,ITT) = 100.0D0*RATIO
+c            ELSE
+c              F2ES(MCNT,ITT) = 0.0D0
+c            ENDIF
+c          ENDDO
+c        ENDDO
 CC
 CC       BUILD COUPLING MATRIX
 C        IF(NOPN.NE.0) THEN
@@ -6273,12 +6337,12 @@ C          WRITE(8, *) EIGN(I),(COEF(J,I),J=1,NDIM)
 C        ENDDO
 C        CLOSE(UNIT=8)
 C
-C       RECALCULATE TOTAL ENERGY
-        CALL ENRGIES
-C
-C       UPDATE TOTAL BREIT CALCULATION TIME
-        CALL SYSTEM_CLOCK(ICL6)
-        TBMX = DFLOAT(ICL6-ICL5)/RATE
+cC       RECALCULATE TOTAL ENERGY
+         CALL ENRGIES
+cC
+cC       UPDATE TOTAL BREIT CALCULATION TIME
+c        CALL SYSTEM_CLOCK(ICL6)
+c        TBMX = DFLOAT(ICL6-ICL5)/RATE
 CC
 CC       SUMMARISE DIRECT AND EXCHANGE ENERGIES
 C        WRITE(6,22) 'Breit direct (closed)     (BD)',EBDR
@@ -6318,10 +6382,10 @@ C        WRITE(7,26) 'Time        ',(MS(T2ES(MCNT,5)),MCNT=1,5)
 C        WRITE(6, *) REPEAT('=',72)
 C        WRITE(7, *) REPEAT('=',72)
 CC
-C       LEVEL ITERATIONS AND TIME
-        NMLEV(4) = 1
-        TMLEV(4) = TBMX
-        ITER     = ITER+1
+cC       LEVEL ITERATIONS AND TIME
+c        NMLEV(4) = 1
+c        TMLEV(4) = TBMX
+c        ITER     = ITER+1
 C
 C       FLAG A CHANGE OF CALCULATION TREE (QED 1-BODY IN GREATER DETAIL)
 C       ONLY DO THIS IF THE TREE WAS HFSCF (AND ABOUT TO END ANYWAY)
@@ -6336,6 +6400,26 @@ C       ONLY DO THIS IF THE TREE WAS HFSCF (AND ABOUT TO END ANYWAY)
         ENDIF
 C
       ENDIF
+
+C      ENDDO
+c      ENDDO
+      write(*,*) 'iblocks is ',iblocks
+
+      edirtlf(5,9) = edirtlf(1,9)+edirtlf(2,9)+edirtlf(3,9)+edirtlf(4,9)
+      exchtlf(5,9) = exchtlf(1,9)+exchtlf(2,9)+exchtlf(3,9)+exchtlf(4,9)
+
+      WRITE(*,*) 'DIRECT'
+      DO itlfval=1,9
+        WRITE(*,*) (edirtlf(ittval,itlfval),ittval=1,5)
+      ENDDO
+
+      WRITE(*,*) 'EXCHANGE'
+      DO itlfval=1,9
+        WRITE(*,*) (exchtlf(ittval,itlfval),ittval=1,5)
+      ENDDO
+C
+C Coulomb (closed)     328.438574167	  41.837089206      286.601484961
+C Breit (closed)         0.000000000	  -0.131498462        0.131498462
 C
 C**********************************************************************C
 C     SUMMARY OF CALCULATION DETAILS                                   C
@@ -6362,7 +6446,7 @@ C     MOLECULAR ENERGIES
 50    FORMAT(1X,A,22X,A,11X,A,14X,A)
 51    FORMAT(1X,A,39X,F17.9)
 151   FORMAT(1X,A,36X,ES20.9)
-52    FORMAT(1X,A,1X,F17.9,2X,F17.9,2X,F17.9)
+52    FORMAT(1X,A,1X,F24.16,2X,F24.16,2X,F24.16)
       WRITE(6, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
       WRITE(7, *) REPEAT(' ',19),'Molecular energies (Hartree units)'
       WRITE(6, *) REPEAT('=',72)
@@ -9824,7 +9908,7 @@ C
       END
 C
 C
-      SUBROUTINE COULOMB
+      SUBROUTINE COULOMB(itlfval,ITTVAL,iblocks)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
@@ -10000,6 +10084,51 @@ C     SKIP ONE-CENTRE CONTRIBUTIONS (DEFER TO RACAH ALGEBRA ROUTINE)
       IF(MCNT.EQ.1.AND.RACAH1) THEN
         GOTO 1100
       ENDIF
+C
+      goto 123
+      icounter=0
+      IF(ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTC.AND.ICNTA.EQ.ICNTD) then
+        ITFL = 1
+        icounter=icounter+1
+      endif
+      
+      IF(ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTC.AND.ICNTA.NE.ICNTD) then
+        ITFL = 2
+        icounter=icounter+1
+      endif
+      IF(ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTD.AND.ICNTA.NE.ICNTC) then
+        ITFL = 3
+        icounter=icounter+1
+      endif
+      IF(ICNTA.EQ.ICNTC.AND.ICNTA.EQ.ICNTD.AND.ICNTA.NE.ICNTB) then
+        ITFL = 4
+        icounter=icounter+1
+      endif
+      IF(ICNTB.EQ.ICNTC.AND.ICNTB.EQ.ICNTD.AND.ICNTA.NE.ICNTB) then
+        ITFL = 5
+        icounter=icounter+1
+      endif
+
+      IF(ICNTA.EQ.ICNTB.AND.ICNTC.EQ.ICNTD.AND.ICNTA.NE.ICNTC) then
+        ITFL = 6
+        icounter=icounter+1
+      endif
+      IF(ICNTA.EQ.ICNTC.AND.ICNTB.EQ.ICNTD.AND.ICNTA.NE.ICNTB) then
+        ITFL = 7
+        icounter=icounter+1
+      endif
+      IF(ICNTA.EQ.ICNTD.AND.ICNTB.EQ.ICNTC.AND.ICNTA.NE.ICNTB) then
+        ITFL = 8
+        icounter=icounter+1
+      endif
+      if(icounter.ne.1) write(*,*) 'icounter',icounter
+
+      IF(ITFL.NE.itlfval) GOTO 1100
+123   continue
+      iblocks = iblocks+1
+C      GOTO 1100
+C 1101  CONTINUE
+C
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 2000)                 C
@@ -10327,26 +10456,27 @@ C       FLAG READ-IN OF E0(CD) COEFFICIENTS FOR THIS COMPONENT LABEL
 C
 C     COMPONENT OVERLAP INDEX {(LL|LL)=1,(LL|SS)=2,(SS|LL)=3,(SS|SS)=4}
       ITT = MAPTTTT(IT1,IT2)
+c      IF(ITT.NE.ITTVAL) GOTO 5100
 C
 C     STAGE 1: INCLUDE ONLY (LL|LL) REPULSION INTEGRALS
-      IF(ILEV.EQ.1.AND.ITT.GT.1) THEN
-        GOTO 5100
-      ENDIF
-C
-C     STAGE 2: INCLUDE ONLY (LL|SS) AND (SS|LL) REPULSION INTEGRALS
-      IF(ILEV.EQ.2.AND.ITT.GT.3) THEN
-        GOTO 5100
-      ENDIF
-C
-C     STAGE 3: INCLUDE ONLY TWO-CENTRE (SS|SS) REPULSION INTEGRALS
-      IF(ILEV.EQ.3.AND.ITT.EQ.4) THEN
-C
-        IF(SSSSI3.AND.MCNT.EQ.3) THEN
-          GOTO 5100
-        ENDIF
-        IF(SSSSI4.AND.MCNT.EQ.4) THEN
-          GOTO 5100
-        ENDIF
+C      IF(ILEV.EQ.1.AND.ITT.GT.1) THEN
+C        GOTO 5100
+C      ENDIF
+CC
+CC     STAGE 2: INCLUDE ONLY (LL|SS) AND (SS|LL) REPULSION INTEGRALS
+C      IF(ILEV.EQ.2.AND.ITT.GT.3) THEN
+C        GOTO 5100
+C      ENDIF
+CC
+CC     STAGE 3: INCLUDE ONLY TWO-CENTRE (SS|SS) REPULSION INTEGRALS
+C      IF(ILEV.EQ.3.AND.ITT.EQ.4) THEN
+CCC
+C        IF(SSSSI3.AND.MCNT.EQ.3) THEN
+C          GOTO 5100
+C        ENDIF
+C        IF(SSSSI4.AND.MCNT.EQ.4) THEN
+C          GOTO 5100
+C        ENDIF
 C
 C        OPTIONS FOR VISSCHER SMALL COMPONENT APPROXIMATION
 C
@@ -10363,7 +10493,7 @@ cC         TODO: THIS IS WHERE I WOULD EVALUATE THE POINT-COULOMB RESULTS
 c4002      CONTINUE
 C        ENDIF
 C
-      ENDIF
+C      ENDIF
 C
 C     UPDATE COUNTER FOR NUMBER OF CLASSES
       N2EB(MCNT,ITT) = N2EB(MCNT,ITT)+1
@@ -15557,14 +15687,14 @@ c        IF(ICNTA.NE.ICNTB.OR.ICNTC.NE.ICNTD) GOTO 1100
 c      ENDIF
       
 c     IF(ICNTA.EQ.ICNTB.AND.ICNTC.EQ.ICNTD) GOTO 1101
-C     IF(ICNTA.EQ.ICNTC.AND.ICNTB.EQ.ICNTD) GOTO 1101
-C     IF(ICNTA.EQ.ICNTD.AND.ICNTC.EQ.ICNTB) GOTO 1101
-C     IF(ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTC) GOTO 1101
-C     IF(ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTD) GOTO 1101
-C     IF(ICNTA.EQ.ICNTC.AND.ICNTC.EQ.ICNTD) GOTO 1101
-c     IF(ICNTB.EQ.ICNTC.AND.ICNTC.EQ.ICNTD) GOTO 1101
-C     GOTO 1100
-C1101  CONTINUE
+c     IF(ICNTA.EQ.ICNTC.AND.ICNTB.EQ.ICNTD) GOTO 1101
+c     IF(ICNTA.EQ.ICNTD.AND.ICNTC.EQ.ICNTB) GOTO 1101
+c     IF(ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTC) GOTO 1101
+c     IF(ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTD) GOTO 1101
+c     IF(ICNTA.EQ.ICNTC.AND.ICNTC.EQ.ICNTD) GOTO 1101
+      IF(ICNTB.EQ.ICNTC.AND.ICNTC.EQ.ICNTD) GOTO 1101
+      GOTO 1100
+1101  CONTINUE
 C
 C     REPLACE BREIT INTERACTION WITH GAUNT ONLY
       IF(GAUNT2) THEN
@@ -21577,9 +21707,9 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       ENDIF
 C
 C     TAKE ADVANTAGE OF VARIOUS INTEGRAL SYMMETRIES
-      PRM1IJ = .TRUE.
-      PRM1KL = .TRUE.
-      PRM1HC = .TRUE.
+      PRM1IJ = .FALSE.
+      PRM1KL = .FALSE.
+      PRM1HC = .FALSE.
 C
 C**********************************************************************C
 C     KQN+MQN COMBINATIONS OF INDICES (FOR INTEGRAL SYMMETRIES)        C
@@ -26052,9 +26182,9 @@ C     INTEGRAL SKIPPING ON MOLECULAR GROUP SYMMETRY CLASS BASIS
       ENDIF
 C
 C     TAKE ADVANTAGE OF VARIOUS INTEGRAL SYMMETRIES
-      PRM1IJ = .TRUE.
-      PRM1KL = .TRUE.
-      PRM1HC = .TRUE.
+      PRM1IJ = .FALSE.
+      PRM1KL = .FALSE.
+      PRM1HC = .FALSE.
 C
 C**********************************************************************C
 C     KQN+MQN COMBINATIONS OF INDICES (FOR INTEGRAL SYMMETRIES)        C
