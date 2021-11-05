@@ -12352,6 +12352,16 @@ C     ILLEGAL COMPONENT OVERLAP CHECKER
         ENDIF
       ENDDO
 C
+C     ENSURE THE APPROPRIATE TOGGLES ARE ON
+      IF(.NOT.EQFILE) THEN
+        WRITE(6, *) 'In ERIFAST: need to set EQFILE toggle to true.'
+        WRITE(7, *) 'In ERIFAST: need to set EQFILE toggle to true.'
+      ENDIF
+      IF(.NOT.RCFILE) THEN
+        WRITE(6, *) 'In ERIFAST: need to set RCFILE toggle to true.'
+        WRITE(7, *) 'In ERIFAST: need to set RCFILE toggle to true.'
+      ENDIF
+C
 C     EVALUATE LQNS FOR BASIS FUNCTIONS (A,B,C,D)
       CALL SYSTEM_CLOCK(ICL1,RATE)
       DO N=1,4
@@ -18408,6 +18418,16 @@ C     ILLEGAL COMPONENT OVERLAP CHECKER
           STOP
         ENDIF
       ENDDO
+C
+C     ENSURE THE APPROPRIATE TOGGLES ARE ON
+      IF(.NOT.EQFILE) THEN
+        WRITE(6, *) 'In BIIFAST: need to set EQFILE toggle to true.'
+        WRITE(7, *) 'In BIIFAST: need to set EQFILE toggle to true.'
+      ENDIF
+      IF(.NOT.RCFILE) THEN
+        WRITE(6, *) 'In BIIFAST: need to set RCFILE toggle to true.'
+        WRITE(7, *) 'In BIIFAST: need to set RCFILE toggle to true.'
+      ENDIF
 C
 C     EVALUATE LQNS FOR BASIS FUNCTIONS (A,B,C,D)
       CALL SYSTEM_CLOCK(ICL1,RATE)
