@@ -5418,7 +5418,7 @@ C         ADD ALL ONE-CENTRE COULOMB CONTRIBUTIONS (RACAH ALGEBRA)
           CALL SYSTEM_CLOCK(ICL5)
           IF(RACAH1) THEN
             DO IZ=1,NCNT
-              CALL COULOMB1(IZ)
+              CALL COULOMB1(IZ,itlftt)
             ENDDO
           ENDIF
           CALL SYSTEM_CLOCK(ICL6)
