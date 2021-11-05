@@ -5123,6 +5123,8 @@ C
 C
       DIMENSION RK(3*MDM),ESAV(0:MIT),DNRM(MIT),WEDN(0:MIT)
       DIMENSION NMLEV(5),TMLEV(5)
+
+      dimension edirtlf(9,5),exchtlf(9,5)
 C
       COMPLEX*16 WK(LWK)
       COMPLEX*16 COEF(MDM,MDM),DTMP(MDM,MDM),OTMP(MDM,MDM)
@@ -5397,8 +5399,8 @@ C       GENERATE MEAN-FIELD CLOSED- AND OPEN-SHELL COULOMB MATRIX
 C
 C         CALCULATE MANY-CENTRE COULOMB INTEGRALS (MCMURCHIE-DAVIDSON)
           CALL SYSTEM_CLOCK(ICL5)
-c         CALL COULOMB
-          CALL CLMFAST
+          CALL COULOMB(iblcktlf,itlftt)
+c         CALL CLMFAST(iblcktlf,itlftt)
           CALL SYSTEM_CLOCK(ICL6)
           TCL2 =        DFLOAT(ICL6-ICL5)/RATE
           TC2T = TC2T + DFLOAT(ICL6-ICL5)/RATE
@@ -9824,7 +9826,7 @@ C
       END
 C
 C
-      SUBROUTINE COULOMB
+      SUBROUTINE COULOMB(iblcktlf,itlftt)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
@@ -11486,7 +11488,7 @@ C
       END
 C
 C
-      SUBROUTINE CLMFAST
+      SUBROUTINE CLMFAST(iblcktlf,itlftt)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
@@ -21537,7 +21539,7 @@ C   [L] TESTANG: TESTS A FULL BATCH OF COMMON ANGULAR COEFFICIENTS.    C
 C**********************************************************************C
 C
 C
-      SUBROUTINE COULOMB1(IZ)
+      SUBROUTINE COULOMB1(IZ,itlftt)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
