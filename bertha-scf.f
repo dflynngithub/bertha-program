@@ -5259,6 +5259,13 @@ C     TWO-ELECTRON SCHWARZ SCREENING
       SCHWRZ = .FALSE.
 C
 C**********************************************************************C
+C     DIAGNOSTICS                                                      C
+C**********************************************************************C
+C
+C     TWO-ELECTRON BLOCK BY BREAKDOWN
+      BRKDWN = .FALSE.
+C
+C**********************************************************************C
 C     PRELIMINARY STORAGE OF ARRAYS AND TITLES                         C
 C**********************************************************************C
 C
@@ -5399,8 +5406,8 @@ C       GENERATE MEAN-FIELD CLOSED- AND OPEN-SHELL COULOMB MATRIX
 C
 C         CALCULATE MANY-CENTRE COULOMB INTEGRALS (MCMURCHIE-DAVIDSON)
           CALL SYSTEM_CLOCK(ICL5)
-          CALL COULOMB(iblcktlf,itlftt)
-c         CALL CLMFAST(iblcktlf,itlftt)
+C         CALL COULOMB(iblcktlf,itlftt)
+          CALL CLMFAST(iblcktlf,itlftt)
           CALL SYSTEM_CLOCK(ICL6)
           TCL2 =        DFLOAT(ICL6-ICL5)/RATE
           TC2T = TC2T + DFLOAT(ICL6-ICL5)/RATE
@@ -6153,6 +6160,9 @@ C**********************************************************************C
 C
 998   CONTINUE
 C
+C     TWO-ELECTRON BLOCK BY BREAKDOWN
+      BRKDWN = .TRUE.
+C
 C     CALCULATE THE PERTUBATIVE VALUE OF THE VARIOUS QED TERMS
       IF(HMLT.EQ.'DHFP'.OR.HMLT.EQ.'DHFQ') THEN
         CALL SYSTEM_CLOCK(ICL5)
@@ -6171,65 +6181,143 @@ C       TITLE FOR CALL TO QED ROUTINES
         WRITE(6, *) REPEAT('=',72)
         WRITE(7, *) REPEAT('=',72)
 C
-C       CALCULATE LOW-ENERGY ELECTRON SELF-INTERACTION ELEMENTS
-        CALL SYSTEM_CLOCK(ICL7)
-C        CALL ANMLS
-        CALL SYSTEM_CLOCK(ICL8)
-        T1EL = T1EL + DFLOAT(ICL8-ICL7)/RATE
-        TAMX = TAMX + DFLOAT(ICL8-ICL7)/RATE
+cC       CALCULATE LOW-ENERGY ELECTRON SELF-INTERACTION ELEMENTS
+c        CALL SYSTEM_CLOCK(ICL7)
+cC        CALL ANMLS
+c        CALL SYSTEM_CLOCK(ICL8)
+c        T1EL = T1EL + DFLOAT(ICL8-ICL7)/RATE
+c        TAMX = TAMX + DFLOAT(ICL8-ICL7)/RATE
+cC
+cC       CALCULATE LOW-ENERGY ELECTRON SELF-INTERACTION ELEMENTS
+c        CALL SYSTEM_CLOCK(ICL7)
+cC       CALL SLFINT(ITER)
+c        CALL SYSTEM_CLOCK(ICL8)
+c        T1EL = T1EL + DFLOAT(ICL8-ICL7)/RATE
+c        TSMX = TSMX + DFLOAT(ICL8-ICL7)/RATE
+cC
+cC       CALCULATE NUCLEAR VACUUM POLARISATION ELEMENTS
+c        CALL SYSTEM_CLOCK(ICL7)
+cc        CALL UEHNUC
+cc        CALL WKRNUC
+cc        CALL KSBNUC
+c        CALL SYSTEM_CLOCK(ICL8)
+c        T1EL = T1EL + DFLOAT(ICL8-ICL7)/RATE
+c        TUMX = TUMX + DFLOAT(ICL8-ICL7)/RATE
+cC
+cC       GENERATE MATRIX REP OF BREIT INTERACTION
+c        IF(NOCC.GT.1) THEN
 C
-C       CALCULATE LOW-ENERGY ELECTRON SELF-INTERACTION ELEMENTS
-        CALL SYSTEM_CLOCK(ICL7)
-C       CALL SLFINT(ITER)
-        CALL SYSTEM_CLOCK(ICL8)
-        T1EL = T1EL + DFLOAT(ICL8-ICL7)/RATE
-        TSMX = TSMX + DFLOAT(ICL8-ICL7)/RATE
+c          CALL SYSTEM_CLOCK(ICL7)
+C          CALL BREIT
+c          CALL BRTFAST
+c          CALL SYSTEM_CLOCK(ICL8)
+c          TBR2 = TBR2 + DFLOAT(ICL8-ICL7)/RATE
+c          TB2T = TB2T + DFLOAT(ICL8-ICL7)/RATE
 C
-C       CALCULATE NUCLEAR VACUUM POLARISATION ELEMENTS
-        CALL SYSTEM_CLOCK(ICL7)
-c        CALL UEHNUC
-c        CALL WKRNUC
-c        CALL KSBNUC
-        CALL SYSTEM_CLOCK(ICL8)
-        T1EL = T1EL + DFLOAT(ICL8-ICL7)/RATE
-        TUMX = TUMX + DFLOAT(ICL8-ICL7)/RATE
+c          CALL SYSTEM_CLOCK(ICL7)
+C          IF(RACAH1) THEN
+C            DO IZ=1,NCNT
+C              CALL BREIT1(IZ)
+C            ENDDO
+C          ENDIF
+c          CALL SYSTEM_CLOCK(ICL8)
+c          TBR1 =        DFLOAT(ICL8-ICL7)/RATE
+c          TB1T = TB1T + DFLOAT(ICL8-ICL7)/RATE
+
+          do iblcktlf=1,9
+            do itlftt=1,5
+              edirtlf(iblcktlf,itlftt) = 0.0d0
+              exchtlf(iblcktlf,itlftt) = 0.0d0
+            enddo
+          enddo
+
+          do iblcktlf=1,8
+            do itlftt=1,4
+
+              if(iblcktlf.eq.1) then
+                DO I=1,NDIM
+                  DO J=1,NDIM
+                    GDIR(I,J) = DCMPLX(0.0D0,0.0D0)
+                    GXCH(I,J) = DCMPLX(0.0D0,0.0D0)
+                  ENDDO
+                ENDDO
+                IF(RACAH1) THEN
+                  DO IZ=1,NCNT
+                    CALL COULOMB1(IZ,itlftt)
+                  ENDDO
+                ENDIF
+              endif
+
+              IF(IBLCKTLF.NE.1) THEN
+                CALL CLMFAST(iblcktlf,itlftt)
+              ENDIF
+
+              do i=1,Ndim
+                do j=1,Ndim
+                  edirtlf(iblcktlf,itlftt) = edirtlf(iblcktlf,itlftt)
+     &                               + 0.5D0*gdir(i,j)*dreal(dent(i,j))
+                  exchtlf(iblcktlf,itlftt) = exchtlf(iblcktlf,itlftt)
+     &                               + 0.5D0*gxch(i,j)*dreal(dent(i,j))
+                ENDDO
+              enddo
+
+              edirtlf(9,itlftt) = edirtlf(9,itlftt)
+     &                          + edirtlf(iblcktlf,itlftt)
+              exchtlf(9,itlftt) = exchtlf(9,itlftt)
+     &                          + exchtlf(iblcktlf,itlftt)
+
+              edirtlf(iblcktlf,5) = edirtlf(iblcktlf,5)
+     &                            + edirtlf(iblcktlf,itlftt)
+              exchtlf(iblcktlf,5) = exchtlf(iblcktlf,5)
+     &                            + exchtlf(iblcktlf,itlftt)
+            enddo
 C
-C       GENERATE MATRIX REP OF BREIT INTERACTION
-        IF(NOCC.GT.1) THEN
-C
-          CALL SYSTEM_CLOCK(ICL7)
-C         CALL BREIT
-          CALL BRTFAST
-          CALL SYSTEM_CLOCK(ICL8)
-          TBR2 = TBR2 + DFLOAT(ICL8-ICL7)/RATE
-          TB2T = TB2T + DFLOAT(ICL8-ICL7)/RATE
-C
-          CALL SYSTEM_CLOCK(ICL7)
-          IF(RACAH1) THEN
-            DO IZ=1,NCNT
-              CALL BREIT1(IZ)
-            ENDDO
-          ENDIF
-C         CALL BREIT2
-          CALL SYSTEM_CLOCK(ICL8)
-C         TCR1 =        DFLOAT(ICL8-ICL7)/RATE
-C         TC1T = TC1T + DFLOAT(ICL8-ICL7)/RATE
-          TBR1 =        DFLOAT(ICL8-ICL7)/RATE
-          TB1T = TB1T + DFLOAT(ICL8-ICL7)/RATE
-C
-        ENDIF
-C
-C       CALCULATE FRACTION OF SCREENED INTEGRALS
-        DO MCNT=1,5
-          DO ITT=5,9
-            IF(N2EI(MCNT,ITT).NE.0) THEN
-              RATIO = DFLOAT(N2ES(MCNT,ITT))/DFLOAT(N2EI(MCNT,ITT))
-              F2ES(MCNT,ITT) = 100.0D0*RATIO
-            ELSE
-              F2ES(MCNT,ITT) = 0.0D0
-            ENDIF
-          ENDDO
-        ENDDO
+            edirtlf(9,5) = edirtlf(9,5) + edirtlf(iblcktlf,5)
+            exchtlf(9,5) = exchtlf(9,5) + exchtlf(iblcktlf,5)
+          enddo
+
+999       FORMAT(5(F20.12,4X))
+          write(*,*) 'ENERGIES (AU)'
+          write(*,*) 'DIRECT'
+          do iblcktlf=1,9
+            write(*,999) (edirtlf(iblcktlf,itlftt),itlftt=1,5)
+          enddo
+
+          write(*,*) ''
+          write(*,*) 'EXCHANGE'
+          do iblcktlf=1,9
+            write(*,999) (exchtlf(iblcktlf,itlftt),itlftt=1,5)
+          enddo
+
+888       FORMAT(5(F16.8,4X))
+          XX = edirtlf(9,5)
+          write(*,*) ''
+          write(*,*) 'PERCENT OF TOTAL'
+          write(*,*) 'DIRECT'
+          do iblcktlf=1,9
+            write(*,888) (100*edirtlf(iblcktlf,itlftt)/XX,itlftt=1,5)
+          enddo
+
+          YY = exchtlf(9,5)
+          write(*,*) ''
+          write(*,*) 'EXCHANGE'
+          do iblcktlf=1,9
+            write(*,888) (100*exchtlf(iblcktlf,itlftt)/YY,itlftt=1,5)
+          enddo
+cC
+c        ENDIF
+cC
+cC       CALCULATE FRACTION OF SCREENED INTEGRALS
+c        DO MCNT=1,5
+c          DO ITT=5,9
+c            IF(N2EI(MCNT,ITT).NE.0) THEN
+c              RATIO = DFLOAT(N2ES(MCNT,ITT))/DFLOAT(N2EI(MCNT,ITT))
+c              F2ES(MCNT,ITT) = 100.0D0*RATIO
+c            ELSE
+c              F2ES(MCNT,ITT) = 0.0D0
+c            ENDIF
+c          ENDDO
+c        ENDDO
 CC
 CC       BUILD COUPLING MATRIX
 C        IF(NOPN.NE.0) THEN
@@ -6337,7 +6425,7 @@ C       ONLY DO THIS IF THE TREE WAS HFSCF (AND ABOUT TO END ANYWAY)
           HMINT(5) = 'PVACPOL'
         ENDIF
 C
-      ENDIF
+c      ENDIF
 C
 C**********************************************************************C
 C     SUMMARY OF CALCULATION DETAILS                                   C
@@ -10009,6 +10097,15 @@ C     SKIP ONE-CENTRE CONTRIBUTIONS (DEFER TO RACAH ALGEBRA ROUTINE)
         GOTO 1100
       ENDIF
 C
+      IF(ICNTA.NE.ICNTC.AND.ICNTA.EQ.ICNTB.AND.ICNTC.EQ.ICNTD) MN = 2
+      IF(ICNTA.NE.ICNTB.AND.ICNTA.EQ.ICNTC.AND.ICNTB.EQ.ICNTD) MN = 3
+      IF(ICNTA.NE.ICNTB.AND.ICNTA.EQ.ICNTD.AND.ICNTB.EQ.ICNTC) MN = 4
+      IF(ICNTA.NE.ICNTB.AND.ICNTB.EQ.ICNTC.AND.ICNTB.EQ.ICNTD) MN = 5
+      IF(ICNTB.NE.ICNTA.AND.ICNTA.EQ.ICNTC.AND.ICNTA.EQ.ICNTD) MN = 6
+      IF(ICNTC.NE.ICNTA.AND.ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTD) MN = 7
+      IF(ICNTD.NE.ICNTA.AND.ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTC) MN = 8
+      IF(BRKDWN.AND.MN.NE.iblcktlf) GOTO 1100
+C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 2000)                 C
 C**********************************************************************C
@@ -10336,6 +10433,9 @@ C       FLAG READ-IN OF E0(CD) COEFFICIENTS FOR THIS COMPONENT LABEL
 C
 C     COMPONENT OVERLAP INDEX {(LL|LL)=1,(LL|SS)=2,(SS|LL)=3,(SS|SS)=4}
       ITT = MAPTTTT(IT1,IT2)
+      if(BRKDWN.AND.itt.ne.itlftt) then
+        goto 5100
+      endif
 C
 C     STAGE 1: INCLUDE ONLY (LL|LL) REPULSION INTEGRALS
       IF(ILEV.EQ.1.AND.ITT.GT.1) THEN
@@ -11677,6 +11777,15 @@ C     SKIP ONE-CENTRE CONTRIBUTIONS (DEFER TO RACAH ALGEBRA ROUTINE)
       IF(MCNT.EQ.1.AND.RACAH1) THEN
         GOTO 1100
       ENDIF
+
+      IF(ICNTA.NE.ICNTC.AND.ICNTA.EQ.ICNTB.AND.ICNTC.EQ.ICNTD) MN = 2
+      IF(ICNTA.NE.ICNTB.AND.ICNTA.EQ.ICNTC.AND.ICNTB.EQ.ICNTD) MN = 3
+      IF(ICNTA.NE.ICNTB.AND.ICNTA.EQ.ICNTD.AND.ICNTB.EQ.ICNTC) MN = 4
+      IF(ICNTA.NE.ICNTB.AND.ICNTB.EQ.ICNTC.AND.ICNTB.EQ.ICNTD) MN = 5
+      IF(ICNTB.NE.ICNTA.AND.ICNTA.EQ.ICNTC.AND.ICNTA.EQ.ICNTD) MN = 6
+      IF(ICNTC.NE.ICNTA.AND.ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTD) MN = 7
+      IF(ICNTD.NE.ICNTA.AND.ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTC) MN = 8
+      IF(BRKDWN.AND.MN.NE.iblcktlf) GOTO 1100
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 2000)                 C
@@ -12043,6 +12152,9 @@ C       FLAG READ-IN OF E0(CD) COEFFICIENTS FOR THIS COMPONENT LABEL
 C
 C       COMPONENT OVERLAP INDEX {(LL|LL)=1,(LL|SS)=2,(SS|LL)=3,(SS|SS)=4}
         ITT = MAPTTTT(IT1,IT2)
+        if(BRKDWN.AND.itt.ne.itlftt) then
+          goto 9100
+        endif
 C
 C       STAGE 1: INCLUDE ONLY (LL|LL) REPULSION INTEGRALS
         IF(ILEV.EQ.1.AND.ITT.GT.1) THEN
@@ -21985,12 +22097,24 @@ C
         ELSE
 C       RELATIVISTIC HAMILTONIAN
 C
-          DO M=1,MAXCD
-            XLLLL(M) = XLLLL(M) + ANGFAC*RJLLLL(M,LTEN)
-            XLLSS(M) = XLLSS(M) + ANGFAC*RJLLSS(M,LTEN)
-            XSSLL(M) = XSSLL(M) + ANGFAC*RJSSLL(M,LTEN)
-            XSSSS(M) = XSSSS(M) + ANGFAC*RJSSSS(M,LTEN)
-          ENDDO
+          if(BRKDWN.AND.itlftt.eq.1) then
+            DO M=1,MAXCD
+              XLLLL(M) = XLLLL(M) + ANGFAC*RJLLLL(M,LTEN)
+            ENDDO
+          elseif(BRKDWN.AND.itlftt.eq.2) then
+            DO M=1,MAXCD
+              XLLSS(M) = XLLSS(M) + ANGFAC*RJLLSS(M,LTEN)
+            ENDDO
+          elseif(BRKDWN.AND.itlftt.eq.3) then
+            DO M=1,MAXCD
+              XSSLL(M) = XSSLL(M) + ANGFAC*RJSSLL(M,LTEN)
+            ENDDO
+          elseif(BRKDWN.AND.itlftt.eq.4) then
+            DO M=1,MAXCD
+              XSSSS(M) = XSSSS(M) + ANGFAC*RJSSSS(M,LTEN)
+            ENDDO
+          endif
+
 C
         ENDIF
 C
