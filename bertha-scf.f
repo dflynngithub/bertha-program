@@ -5214,7 +5214,7 @@ C     ECONOMISATION STRATEGIES                                         C
 C**********************************************************************C
 C
 C     MULTI-CENTRE INTEGRAL SYMMETRY RELATIONS FOR RECYCLING RR BATCHES
-      INTSYM = .TRUE.
+      INTSYM = .FALSE.
 C
 C     TOGGLE FOR ATOMIC COULOMB/BREIT INTEGRAL SPLICING BY RACAH ALGEBRA
       RACAH1 = .TRUE.
@@ -5263,7 +5263,7 @@ C     DIAGNOSTICS                                                      C
 C**********************************************************************C
 C
 C     TWO-ELECTRON BLOCK BY BREAKDOWN
-      BRKDWN = .FALSE.
+c      BRKDWN = .FALSE.
 C
 C**********************************************************************C
 C     PRELIMINARY STORAGE OF ARRAYS AND TITLES                         C
@@ -5299,7 +5299,7 @@ C     CALCULATE THE FULL SET OF EQ-COEFFICIENTS
       CALL SYSTEM_CLOCK(ICL4)
       TEPP = DFLOAT(ICL4-ICL3)/RATE
 C
-C      GOTO 998
+      GOTO 998
 C
 C     GENERATE DIAGONAL TWO-ELECTRON INTEGRALS FOR SCREENING LATER
       CALL SYSTEM_CLOCK(ICL3)
@@ -5407,7 +5407,7 @@ C       GENERATE MEAN-FIELD CLOSED- AND OPEN-SHELL COULOMB MATRIX
 C
 C         CALCULATE MANY-CENTRE COULOMB INTEGRALS (MCMURCHIE-DAVIDSON)
           CALL SYSTEM_CLOCK(ICL5)
-C         CALL COULOMB(iblcktlf,itlftt)
+c         CALL COULOMB(iblcktlf,itlftt)
           CALL CLMFAST(iblcktlf,itlftt)
           CALL SYSTEM_CLOCK(ICL6)
           TCL2 =        DFLOAT(ICL6-ICL5)/RATE
@@ -5426,7 +5426,7 @@ C         ADD ALL ONE-CENTRE COULOMB CONTRIBUTIONS (RACAH ALGEBRA)
           CALL SYSTEM_CLOCK(ICL5)
           IF(RACAH1) THEN
             DO IZ=1,NCNT
-              CALL COULOMB1(IZ,itlftt)
+              CALL COULOMB1(IZ)
             ENDDO
           ENDIF
           CALL SYSTEM_CLOCK(ICL6)
@@ -6162,10 +6162,11 @@ C
 998   CONTINUE
 C
 C     TWO-ELECTRON BLOCK BY BREAKDOWN
-      BRKDWN = .TRUE.
+c      BRKDWN = .TRUE.
+      RCFILE = .FALSE.
 C
 C     CALCULATE THE PERTUBATIVE VALUE OF THE VARIOUS QED TERMS
-      IF(HMLT.EQ.'DHFP'.OR.HMLT.EQ.'DHFQ') THEN
+c      IF(HMLT.EQ.'DHFR'.OR.HMLT.EQ.'DHFP'.OR.HMLT.EQ.'DHFQ') THEN
         CALL SYSTEM_CLOCK(ICL5)
 C
 C       LET'S CALL THIS STAGE 4
@@ -6235,23 +6236,24 @@ c          TB1T = TB1T + DFLOAT(ICL8-ICL7)/RATE
           do iblcktlf=1,8
             do itlftt=1,4
 
-              if(iblcktlf.eq.1) then
-                DO I=1,NDIM
-                  DO J=1,NDIM
-                    GDIR(I,J) = DCMPLX(0.0D0,0.0D0)
-                    GXCH(I,J) = DCMPLX(0.0D0,0.0D0)
-                  ENDDO
-                ENDDO
-                IF(RACAH1) THEN
-                  DO IZ=1,NCNT
-                    CALL COULOMB1(IZ,itlftt)
-                  ENDDO
-                ENDIF
-              endif
+c              if(iblcktlf.eq.1) then
+c                DO I=1,NDIM
+c                  DO J=1,NDIM
+c                    GDIR(I,J) = DCMPLX(0.0D0,0.0D0)
+c                    GXCH(I,J) = DCMPLX(0.0D0,0.0D0)
+c                  ENDDO
+c                ENDDO
+c                IF(RACAH1) THEN
+c                  DO IZ=1,NCNT
+c                    CALL COULOMB1(IZ,itlftt)
+c                  ENDDO
+c                ENDIF
+c              endif
 
-              IF(IBLCKTLF.NE.1) THEN
-                CALL CLMFAST(iblcktlf,itlftt)
-              ENDIF
+c              IF(IBLCKTLF.NE.1) THEN
+                CALL COULOMB(iblcktlf,itlftt)
+c               CALL CLMFAST(iblcktlf,itlftt)
+c              ENDIF
 
               do i=1,Ndim
                 do j=1,Ndim
@@ -6426,7 +6428,7 @@ C       ONLY DO THIS IF THE TREE WAS HFSCF (AND ABOUT TO END ANYWAY)
           HMINT(5) = 'PVACPOL'
         ENDIF
 C
-      ENDIF
+c      ENDIF
 C
 C**********************************************************************C
 C     SUMMARY OF CALCULATION DETAILS                                   C
@@ -10094,10 +10096,11 @@ C     NUMBER OF NUCLEAR CENTRES INVOLVED IN THIS OVERLAP
       MCNT = NCNTRS(ICNTA,ICNTB,ICNTC,ICNTD)
 C
 C     SKIP ONE-CENTRE CONTRIBUTIONS (DEFER TO RACAH ALGEBRA ROUTINE)
-      IF(MCNT.EQ.1.AND.RACAH1) THEN
-        GOTO 1100
-      ENDIF
+c      IF(MCNT.EQ.1.AND.RACAH1) THEN
+c        GOTO 1100
+c      ENDIF
 C
+      IF(ICNTA.EQ.ICNTC.AND.ICNTA.EQ.ICNTB.AND.ICNTC.EQ.ICNTD) MN = 1
       IF(ICNTA.NE.ICNTC.AND.ICNTA.EQ.ICNTB.AND.ICNTC.EQ.ICNTD) MN = 2
       IF(ICNTA.NE.ICNTB.AND.ICNTA.EQ.ICNTC.AND.ICNTB.EQ.ICNTD) MN = 3
       IF(ICNTA.NE.ICNTB.AND.ICNTA.EQ.ICNTD.AND.ICNTB.EQ.ICNTC) MN = 4
@@ -10105,7 +10108,7 @@ C
       IF(ICNTB.NE.ICNTA.AND.ICNTA.EQ.ICNTC.AND.ICNTA.EQ.ICNTD) MN = 6
       IF(ICNTC.NE.ICNTA.AND.ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTD) MN = 7
       IF(ICNTD.NE.ICNTA.AND.ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTC) MN = 8
-      IF(BRKDWN.AND.MN.NE.iblcktlf) GOTO 1100
+      IF(MN.NE.iblcktlf) GOTO 1100
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 2000)                 C
@@ -10434,7 +10437,7 @@ C       FLAG READ-IN OF E0(CD) COEFFICIENTS FOR THIS COMPONENT LABEL
 C
 C     COMPONENT OVERLAP INDEX {(LL|LL)=1,(LL|SS)=2,(SS|LL)=3,(SS|SS)=4}
       ITT = MAPTTTT(IT1,IT2)
-      if(BRKDWN.AND.itt.ne.itlftt) then
+      if(itt.ne.itlftt) then
         goto 5100
       endif
 C
@@ -11775,10 +11778,10 @@ C     NUMBER OF NUCLEAR CENTRES INVOLVED IN THIS OVERLAP
       MCNT = NCNTRS(ICNTA,ICNTB,ICNTC,ICNTD)
 C
 C     SKIP ONE-CENTRE CONTRIBUTIONS (DEFER TO RACAH ALGEBRA ROUTINE)
-      IF(MCNT.EQ.1.AND.RACAH1) THEN
-        GOTO 1100
-      ENDIF
-
+c      IF(MCNT.EQ.1.AND.RACAH1) THEN
+c        GOTO 1100
+c      ENDIF
+      IF(ICNTA.EQ.ICNTC.AND.ICNTA.EQ.ICNTB.AND.ICNTC.EQ.ICNTD) MN = 1
       IF(ICNTA.NE.ICNTC.AND.ICNTA.EQ.ICNTB.AND.ICNTC.EQ.ICNTD) MN = 2
       IF(ICNTA.NE.ICNTB.AND.ICNTA.EQ.ICNTC.AND.ICNTB.EQ.ICNTD) MN = 3
       IF(ICNTA.NE.ICNTB.AND.ICNTA.EQ.ICNTD.AND.ICNTB.EQ.ICNTC) MN = 4
@@ -11786,7 +11789,7 @@ C     SKIP ONE-CENTRE CONTRIBUTIONS (DEFER TO RACAH ALGEBRA ROUTINE)
       IF(ICNTB.NE.ICNTA.AND.ICNTA.EQ.ICNTC.AND.ICNTA.EQ.ICNTD) MN = 6
       IF(ICNTC.NE.ICNTA.AND.ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTD) MN = 7
       IF(ICNTD.NE.ICNTA.AND.ICNTA.EQ.ICNTB.AND.ICNTA.EQ.ICNTC) MN = 8
-      IF(BRKDWN.AND.MN.NE.iblcktlf) GOTO 1100
+      IF(MN.NE.iblcktlf) GOTO 1100
 C
 C**********************************************************************C
 C     LOOP OVER ALL LQN ORBITAL TYPES (USE INDEX 2000)                 C
@@ -12153,7 +12156,7 @@ C       FLAG READ-IN OF E0(CD) COEFFICIENTS FOR THIS COMPONENT LABEL
 C
 C       COMPONENT OVERLAP INDEX {(LL|LL)=1,(LL|SS)=2,(SS|LL)=3,(SS|SS)=4}
         ITT = MAPTTTT(IT1,IT2)
-        if(BRKDWN.AND.itt.ne.itlftt) then
+        if(itt.ne.itlftt) then
           goto 9100
         endif
 C
@@ -21652,7 +21655,7 @@ C   [L] TESTANG: TESTS A FULL BATCH OF COMMON ANGULAR COEFFICIENTS.    C
 C**********************************************************************C
 C
 C
-      SUBROUTINE COULOMB1(IZ,itlftt)
+      SUBROUTINE COULOMB1(IZ)
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
 C**********************************************************************C
 C                                                                      C
@@ -22098,24 +22101,12 @@ C
         ELSE
 C       RELATIVISTIC HAMILTONIAN
 C
-          if(BRKDWN.AND.itlftt.eq.1) then
-            DO M=1,MAXCD
-              XLLLL(M) = XLLLL(M) + ANGFAC*RJLLLL(M,LTEN)
-            ENDDO
-          elseif(BRKDWN.AND.itlftt.eq.2) then
-            DO M=1,MAXCD
-              XLLSS(M) = XLLSS(M) + ANGFAC*RJLLSS(M,LTEN)
-            ENDDO
-          elseif(BRKDWN.AND.itlftt.eq.3) then
-            DO M=1,MAXCD
-              XSSLL(M) = XSSLL(M) + ANGFAC*RJSSLL(M,LTEN)
-            ENDDO
-          elseif(BRKDWN.AND.itlftt.eq.4) then
-            DO M=1,MAXCD
-              XSSSS(M) = XSSSS(M) + ANGFAC*RJSSSS(M,LTEN)
-            ENDDO
-          endif
-
+          DO M=1,MAXCD
+            XLLLL(M) = XLLLL(M) + ANGFAC*RJLLLL(M,LTEN)
+            XLLSS(M) = XLLSS(M) + ANGFAC*RJLLSS(M,LTEN)
+            XSSLL(M) = XSSLL(M) + ANGFAC*RJSSLL(M,LTEN)
+            XSSSS(M) = XSSSS(M) + ANGFAC*RJSSSS(M,LTEN)
+          ENDDO
 C
         ENDIF
 C
