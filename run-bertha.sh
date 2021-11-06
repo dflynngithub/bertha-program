@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 NAME=${1?Error: no name given}
-ulimit -s unlimited
+#ulimit -s unlimited 
 #./bertha-budget < input/$NAME
 #./bertha-nuclear < input/$NAME
 # gfortran -O4 bertha-atomic.f -o bertha-atomic -llapack -lblas
-./bertha-atomic < input/$NAME
+#./bertha-atomic < input/$NAME
 gfortran -O4 bertha-scf.f -o bertha-scf -llapack -lblas
 ./bertha-scf < input/$NAME
 #./bertha-mbpt < input/$NAME
